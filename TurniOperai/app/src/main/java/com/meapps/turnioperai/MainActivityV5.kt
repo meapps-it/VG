@@ -47,6 +47,7 @@ private fun visual5(type: ShiftType): ShiftVisual5 = when(type) {
     ShiftType.REST -> ShiftVisual5(Color(0xFFF0F2F5), Color(0xFF687386), Icons.Default.Hotel)
     ShiftType.VACATION -> ShiftVisual5(Color(0xFFF1EAFF), Purple5, Icons.Default.BeachAccess)
     ShiftType.SICK -> ShiftVisual5(Color(0xFFFFE8EA), Red5, Icons.Default.MedicalServices)
+    ShiftType.ROL -> ShiftVisual5(Color(0xFFE8F4FF), Color(0xFF2563EB), Icons.Default.AccessTime)
     ShiftType.PERMIT -> ShiftVisual5(Color(0xFFFFF0E2), Color(0xFFD97706), Icons.Default.EventAvailable)
     ShiftType.ON_CALL -> ShiftVisual5(Color(0xFFE6F5FF), Color(0xFF0284C7), Icons.Default.PhoneInTalk)
     ShiftType.SPLIT -> ShiftVisual5(Color(0xFFFFEDF6), Color(0xFFD72D7A), Icons.Default.CallSplit)
