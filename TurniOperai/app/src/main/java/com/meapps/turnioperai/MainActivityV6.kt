@@ -3,7 +3,9 @@ package com.meapps.turnioperai
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -28,6 +30,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
+import org.json.JSONArray
+import org.json.JSONObject
 
 private val V6Blue = Color(0xFF4069E5)
 private val V6Navy = Color(0xFF17325C)
@@ -151,6 +155,45 @@ private fun continuous12PresetsV6(): List<CyclePresetV6> = listOf(
     )
 )
 
+private fun makeBackupJsonV7(shifts: List<ShiftEntry>, theme: String): String {
+    val root = JSONObject()
+    root.put("format", "TurniOperaiBackup")
+    root.put("version", 7)
+    root.put("createdAt", LocalDate.now().toString())
+    root.put("theme", theme)
+    val array = JSONArray()
+    shifts.sortedBy { it.date }.forEach { entry ->
+        array.put(
+            JSONObject()
+                .put("date", entry.date.toString())
+                .put("type", entry.type.name)
+                .put("overtime", entry.overtime)
+        )
+    }
+    root.put("shifts", array)
+    return root.toString(2)
+}
+
+private fun parseBackupV7(raw: String): Pair<List<ShiftEntry>, String?> {
+    val root = JSONObject(raw)
+    require(root.optString("format") == "TurniOperaiBackup") { "File di backup non riconosciuto" }
+    val array = root.getJSONArray("shifts")
+    val shifts = buildList {
+        for (i in 0 until array.length()) {
+            val item = array.getJSONObject(i)
+            add(
+                ShiftEntry(
+                    LocalDate.parse(item.getString("date")),
+                    ShiftType.valueOf(item.getString("type")),
+                    item.optBoolean("overtime", false)
+                )
+            )
+        }
+    }
+    val restoredTheme = root.optString("theme").takeIf { it in setOf("light", "dark", "system") }
+    return shifts to restoredTheme
+}
+
 class MainActivityV6 : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -167,6 +210,50 @@ fun TurniOperaiV6(context: Context) {
     var editDate by remember { mutableStateOf<LocalDate?>(null) }
     var menuOpen by remember { mutableStateOf(false) }
     val dark = theme == "dark" || (theme == "system" && androidx.compose.foundation.isSystemInDarkTheme())
+    var backupMessage by remember { mutableStateOf("") }
+
+    val createBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { writer ->
+                    writer.write(makeBackupJsonV7(shifts, theme))
+                } ?: error("Impossibile aprire il file")
+            }.onSuccess {
+                backupMessage = "Backup salvato correttamente"
+            }.onFailure {
+                backupMessage = "Errore durante il salvataggio del backup"
+            }
+        }
+    }
+
+    val restoreBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                val raw = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                    ?: error("Impossibile leggere il file")
+                parseBackupV7(raw)
+            }.onSuccess { restored ->
+                val restoredShifts = restored.first.sortedBy { it.date }
+                shifts = restoredShifts
+                val editor = prefs.edit().putStringSet(
+                    "shifts",
+                    restoredShifts.map { "${it.date}|${it.type.name}|${it.overtime}" }.toSet()
+                )
+                restored.second?.let { restoredTheme ->
+                    theme = restoredTheme
+                    editor.putString("theme", restoredTheme)
+                }
+                editor.apply()
+                backupMessage = "Backup ripristinato: ${restoredShifts.size} giornate"
+            }.onFailure {
+                backupMessage = "Backup non valido o danneggiato"
+            }
+        }
+    }
 
     fun save(list: List<ShiftEntry>) {
         shifts = list.sortedBy { it.date }
@@ -249,7 +336,10 @@ fun TurniOperaiV6(context: Context) {
                         else -> SettingsV6(
                             theme = theme,
                             onTheme = { value -> theme = value; prefs.edit().putString("theme", value).apply() },
-                            onApply = ::applyGenerated
+                            onApply = ::applyGenerated,
+                            onBackup = { createBackupLauncher.launch("TurniOperai-backup-${LocalDate.now()}.json") },
+                            onRestore = { restoreBackupLauncher.launch(arrayOf("application/json", "text/plain")) },
+                            backupMessage = backupMessage
                         )
                     }
                 }
@@ -337,19 +427,19 @@ private fun MonthGridV6(month: YearMonth, shifts: List<ShiftEntry>, onDate: (Loc
 @Composable
 private fun SummaryV6(shifts: List<ShiftEntry>) {
     val workTypes = setOf(ShiftType.MORNING, ShiftType.AFTERNOON, ShiftType.NIGHT, ShiftType.DAY, ShiftType.SPLIT, ShiftType.HOLIDAY, ShiftType.DOUBLE)
-    val work = shifts.count { it.type in workTypes }
+    val saturdaysWorked = shifts.count { it.date.dayOfWeek == DayOfWeek.SATURDAY && it.type in workTypes }
     val nights = shifts.count { it.type == ShiftType.NIGHT }
     val overtime = shifts.count { it.overtime }
-    val rests = shifts.count { it.type == ShiftType.REST }
+    val weekdayRests = shifts.count { it.type == ShiftType.REST && it.date.dayOfWeek.value in 1..5 }
     ElevatedCard(shape = RoundedCornerShape(22.dp)) {
         Column(Modifier.padding(16.dp)) {
             Text("Riepilogo mese", fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatV6("Turni", "$work", Icons.Default.Schedule, Color(0xFFE6F7EE), V6Green, Modifier.weight(1f))
+                StatV6("Sabati lav.", "$saturdaysWorked", Icons.Default.EventAvailable, Color(0xFFE6F7EE), V6Green, Modifier.weight(1f))
                 StatV6("Notti", "$nights", Icons.Default.DarkMode, Color(0xFFE8EEFF), V6Blue, Modifier.weight(1f))
                 StatV6("Straord.", "$overtime", Icons.Default.Bolt, Color(0xFFFFF2D8), V6Orange, Modifier.weight(1f))
-                StatV6("Riposi", "$rests", Icons.Default.Hotel, Color(0xFFF1EAFF), V6Purple, Modifier.weight(1f))
+                StatV6("Riposi L-V", "$weekdayRests", Icons.Default.Hotel, Color(0xFFF1EAFF), V6Purple, Modifier.weight(1f))
             }
         }
     }
@@ -491,7 +581,14 @@ private fun EditShiftV6(date: LocalDate, existing: ShiftEntry?, onBack: () -> Un
 }
 
 @Composable
-private fun SettingsV6(theme: String, onTheme: (String) -> Unit, onApply: (List<ShiftEntry>) -> Unit) {
+private fun SettingsV6(
+    theme: String,
+    onTheme: (String) -> Unit,
+    onApply: (List<ShiftEntry>) -> Unit,
+    onBackup: () -> Unit,
+    onRestore: () -> Unit,
+    backupMessage: String
+) {
     var mode by remember { mutableStateOf(ScheduleModeV6.FIXED) }
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
@@ -584,6 +681,26 @@ private fun SettingsV6(theme: String, onTheme: (String) -> Unit, onApply: (List<
             }
         }
         item {
+            SettingsCardV6("5. Backup e ripristino", "Salva i turni in un file e ripristinali se cambi telefono o reinstalli l'app.", Icons.Default.Save, V6Teal) {
+                Button(onClick = onBackup, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Save, null)
+                    Spacer(Modifier.width(7.dp))
+                    Text("Salva backup", fontWeight = FontWeight.Bold)
+                }
+                OutlinedButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Restore, null)
+                    Spacer(Modifier.width(7.dp))
+                    Text("Ripristina backup", fontWeight = FontWeight.Bold)
+                }
+                Text("Il backup contiene calendario dei turni, straordinari e tema dell'app. Il file resta dove scegli tu sul telefono o nel cloud.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (backupMessage.isNotBlank()) {
+                    Surface(color = V6Green.copy(alpha = .10f), shape = RoundedCornerShape(10.dp)) {
+                        Text(backupMessage, modifier = Modifier.fillMaxWidth().padding(10.dp), color = V6Green, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+        item {
             Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(14.dp)) {
                 Column(Modifier.fillMaxWidth().padding(12.dp)) {
                     Text("Nota", fontWeight = FontWeight.Bold)
@@ -591,7 +708,7 @@ private fun SettingsV6(theme: String, onTheme: (String) -> Unit, onApply: (List<
                 }
             }
         }
-        item { Text("Turni Operai 6.0", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        item { Text("Turni Operai 7.0", color = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 
