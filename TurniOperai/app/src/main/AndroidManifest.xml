@@ -6,7 +6,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.TurniOperai">
-        <activity android:name=".MainActivityV4" android:exported="true">
+        <activity android:name=".MainActivityV5" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
