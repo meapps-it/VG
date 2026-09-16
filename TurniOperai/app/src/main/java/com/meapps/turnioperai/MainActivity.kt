@@ -58,7 +58,13 @@ enum class ShiftType(val label: String, val short: String, val defaultStart: Str
     DOUBLE("Doppio turno", "2T", "", "")
 }
 
-data class ShiftEntry(val date: LocalDate, val type: ShiftType, val overtime: Boolean = false)
+data class ShiftEntry(
+    val date: LocalDate,
+    val type: ShiftType,
+    val overtime: Boolean = false,
+    val overtimeMinutes: Int = 0,
+    val vacationMinutes: Int = 0
+)
 
 data class ShiftTimes(val start: String, val end: String)
 
@@ -91,7 +97,7 @@ fun TurniOperaiApp(context: Context) {
 
     fun saveAll(list: List<ShiftEntry>) {
         shifts = list.sortedBy { it.date }
-        prefs.edit().putStringSet("shifts", list.map { "${it.date}|${it.type.name}|${it.overtime}" }.toSet()).apply()
+        prefs.edit().putStringSet("shifts", list.map { "${it.date}|${it.type.name}|${it.overtime}|${it.overtimeMinutes}|${it.vacationMinutes}" }.toSet()).apply()
     }
 
     MaterialTheme(colorScheme = if (dark) darkColorScheme(primary = Color(0xFF8EACFF)) else lightScheme) {
@@ -173,7 +179,18 @@ fun TurniOperaiApp(context: Context) {
 fun loadShifts(raw: Set<String>): List<ShiftEntry> = raw.mapNotNull { row ->
     runCatching {
         val p = row.split("|")
-        ShiftEntry(LocalDate.parse(p[0]), ShiftType.valueOf(p[1]), p.getOrNull(2)?.toBoolean() ?: false)
+        val type = ShiftType.valueOf(p[1])
+        val overtimeFlag = p.getOrNull(2)?.toBoolean() ?: false
+        val overtimeMinutes = p.getOrNull(3)?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+        val vacationMinutes = p.getOrNull(4)?.toIntOrNull()?.coerceAtLeast(0)
+            ?: if (type == ShiftType.VACATION) 8 * 60 else 0
+        ShiftEntry(
+            LocalDate.parse(p[0]),
+            type,
+            overtimeFlag || overtimeMinutes > 0,
+            overtimeMinutes,
+            vacationMinutes
+        )
     }.getOrNull()
 }.sortedBy { it.date }
 
