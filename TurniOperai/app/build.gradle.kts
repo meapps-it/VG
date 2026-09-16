@@ -4,6 +4,12 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val releaseKeyFile = rootProject.file("keystore.properties")
+val releaseKeyProps = java.util.Properties().apply {
+    if (releaseKeyFile.exists()) releaseKeyFile.inputStream().use { load(it) }
+}
+val hasReleaseKey = releaseKeyFile.exists()
+
 android {
     namespace = "com.meapps.turnioperai"
     compileSdk = 35
@@ -23,6 +29,14 @@ android {
             keyAlias = "turni-debug"
             keyPassword = "turnioperai"
         }
+        if (hasReleaseKey) {
+            create("production") {
+                storeFile = file(releaseKeyProps.getProperty("storeFile"))
+                storePassword = releaseKeyProps.getProperty("storePassword")
+                keyAlias = releaseKeyProps.getProperty("keyAlias")
+                keyPassword = releaseKeyProps.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
@@ -31,6 +45,7 @@ android {
         }
         release {
             isMinifyEnabled = false
+            if (hasReleaseKey) signingConfig = signingConfigs.getByName("production")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
