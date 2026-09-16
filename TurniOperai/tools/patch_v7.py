@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# Trigger v7 patch/build workflow.
 src = Path("TurniOperai/app/src/main/java/com/meapps/turnioperai/MainActivityV6.kt")
 text = src.read_text(encoding="utf-8")
 
