@@ -52,6 +52,7 @@ enum class ShiftType(val label: String, val short: String, val defaultStart: Str
     VACATION("Ferie", "F", "", ""),
     SICK("Malattia", "Mal", "", ""),
     PERMIT("Permesso", "Per", "", ""),
+    ROL("R.O.L.", "ROL", "", ""),
     ON_CALL("Reperibilità", "Rep", "", ""),
     SPLIT("Spezzato", "Sp", "08:00", "18:00"),
     HOLIDAY("Festivo lavorato", "Fest", "", ""),
@@ -63,7 +64,8 @@ data class ShiftEntry(
     val type: ShiftType,
     val overtime: Boolean = false,
     val overtimeMinutes: Int = 0,
-    val vacationMinutes: Int = 0
+    val vacationMinutes: Int = 0,
+    val rolMinutes: Int = 0
 )
 
 data class ShiftTimes(val start: String, val end: String)
@@ -97,7 +99,7 @@ fun TurniOperaiApp(context: Context) {
 
     fun saveAll(list: List<ShiftEntry>) {
         shifts = list.sortedBy { it.date }
-        prefs.edit().putStringSet("shifts", list.map { "${it.date}|${it.type.name}|${it.overtime}|${it.overtimeMinutes}|${it.vacationMinutes}" }.toSet()).apply()
+        prefs.edit().putStringSet("shifts", list.map { "${it.date}|${it.type.name}|${it.overtime}|${it.overtimeMinutes}|${it.vacationMinutes}|${it.rolMinutes}" }.toSet()).apply()
     }
 
     MaterialTheme(colorScheme = if (dark) darkColorScheme(primary = Color(0xFF8EACFF)) else lightScheme) {
@@ -184,12 +186,15 @@ fun loadShifts(raw: Set<String>): List<ShiftEntry> = raw.mapNotNull { row ->
         val overtimeMinutes = p.getOrNull(3)?.toIntOrNull()?.coerceAtLeast(0) ?: 0
         val vacationMinutes = p.getOrNull(4)?.toIntOrNull()?.coerceAtLeast(0)
             ?: if (type == ShiftType.VACATION) 8 * 60 else 0
+        val rolMinutes = p.getOrNull(5)?.toIntOrNull()?.coerceAtLeast(0)
+            ?: if (type == ShiftType.ROL) 8 * 60 else 0
         ShiftEntry(
             LocalDate.parse(p[0]),
             type,
             overtimeFlag || overtimeMinutes > 0,
             overtimeMinutes,
-            vacationMinutes
+            vacationMinutes,
+            rolMinutes
         )
     }.getOrNull()
 }.sortedBy { it.date }
@@ -211,6 +216,7 @@ fun shiftColors(type: ShiftType?): Pair<Color, Color> = when (type) {
     ShiftType.VACATION -> PurpleSoft to Purple
     ShiftType.SICK -> RedSoft to Red
     ShiftType.PERMIT -> Color(0xFFFFF0E5) to Color(0xFFD97706)
+    ShiftType.ROL -> Color(0xFFE8F4FF) to Color(0xFF2563EB)
     ShiftType.ON_CALL -> Color(0xFFE9F6FF) to Color(0xFF0284C7)
     ShiftType.SPLIT -> Color(0xFFFFF0F7) to Color(0xFFDB2777)
     ShiftType.HOLIDAY -> Color(0xFFFFECEC) to Color(0xFFDC2626)
@@ -633,7 +639,7 @@ fun RotationPlanner(onApply: (LocalDate, List<ShiftType>, Int) -> Unit) {
 fun parseCycle(raw: String): List<ShiftType> {
     val map = mapOf(
         "M" to ShiftType.MORNING, "P" to ShiftType.AFTERNOON, "N" to ShiftType.NIGHT, "R" to ShiftType.REST,
-        "G" to ShiftType.DAY, "F" to ShiftType.VACATION, "MAL" to ShiftType.SICK, "PER" to ShiftType.PERMIT,
+        "G" to ShiftType.DAY, "F" to ShiftType.VACATION, "MAL" to ShiftType.SICK, "PER" to ShiftType.PERMIT, "ROL" to ShiftType.ROL,
         "REP" to ShiftType.ON_CALL, "SP" to ShiftType.SPLIT, "FEST" to ShiftType.HOLIDAY, "2T" to ShiftType.DOUBLE
     )
     return raw.split(",", ";", " ").mapNotNull { map[it.trim().uppercase()] }

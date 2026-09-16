@@ -65,10 +65,17 @@ data class VacationProfileV8(
     val startMonth: String
 )
 
+data class RolProfileV9(
+    val monthlyMinutes: Int,
+    val openingMinutes: Int,
+    val startMonth: String
+)
+
 data class BackupDataV8(
     val shifts: List<ShiftEntry>,
     val theme: String?,
-    val vacationProfile: VacationProfileV8?
+    val vacationProfile: VacationProfileV8?,
+    val rolProfile: RolProfileV9?
 )
 
 private val vacationPresetsV8 = listOf(
@@ -149,6 +156,27 @@ private fun vacationUsedMinutesV8(shifts: List<ShiftEntry>, profile: VacationPro
 private fun vacationBalanceMinutesV8(shifts: List<ShiftEntry>, profile: VacationProfileV8): Int =
     profile.openingMinutes + accruedMonthsV8(profile) * profile.monthlyMinutes - vacationUsedMinutesV8(shifts, profile)
 
+private fun rolStartYearMonthV9(profile: RolProfileV9): YearMonth =
+    runCatching { YearMonth.parse(profile.startMonth.take(7)) }.getOrElse { YearMonth.now() }
+
+private fun rolAccruedMonthsV9(profile: RolProfileV9, today: LocalDate = LocalDate.now()): Int {
+    val start = rolStartYearMonthV9(profile)
+    val now = YearMonth.from(today)
+    if (start.isAfter(now)) return 0
+    val whole = ChronoUnit.MONTHS.between(start.atDay(1), now.atDay(1)).toInt()
+    return whole + if (today.dayOfMonth >= 15) 1 else 0
+}
+
+private fun rolUsedMinutesV9(shifts: List<ShiftEntry>, profile: RolProfileV9): Int {
+    val startDate = rolStartYearMonthV9(profile).atDay(1)
+    return shifts.asSequence()
+        .filter { it.type == ShiftType.ROL && !it.date.isBefore(startDate) }
+        .sumOf { if (it.rolMinutes > 0) it.rolMinutes else 8 * 60 }
+}
+
+private fun rolBalanceMinutesV9(shifts: List<ShiftEntry>, profile: RolProfileV9): Int =
+    profile.openingMinutes + rolAccruedMonthsV9(profile) * profile.monthlyMinutes - rolUsedMinutesV9(shifts, profile)
+
 enum class ScheduleModeV6(val title: String, val subtitle: String, val icon: ImageVector) {
     FIXED("Turno fisso", "Stesso turno nei giorni lavorativi scelti", Icons.Default.Work),
     TWO_SHIFTS("2 turni", "Alternanza Mattino / Pomeriggio", Icons.Default.SwapHoriz),
@@ -168,6 +196,7 @@ private fun visualV6(type: ShiftType): ShiftVisualV6 = when (type) {
     ShiftType.VACATION -> ShiftVisualV6(Color(0xFFF1EAFF), V6Purple, Icons.Default.BeachAccess)
     ShiftType.SICK -> ShiftVisualV6(Color(0xFFFFE8EA), V6Red, Icons.Default.MedicalServices)
     ShiftType.PERMIT -> ShiftVisualV6(Color(0xFFFFF0E2), Color(0xFFD97706), Icons.Default.EventAvailable)
+    ShiftType.ROL -> ShiftVisualV6(Color(0xFFE8F4FF), Color(0xFF2563EB), Icons.Default.AccessTime)
     ShiftType.ON_CALL -> ShiftVisualV6(Color(0xFFE6F5FF), Color(0xFF0284C7), Icons.Default.PhoneInTalk)
     ShiftType.SPLIT -> ShiftVisualV6(Color(0xFFFFEDF6), Color(0xFFD72D7A), Icons.Default.CallSplit)
     ShiftType.HOLIDAY -> ShiftVisualV6(Color(0xFFFFE8E8), Color(0xFFC92A2A), Icons.Default.Celebration)
@@ -254,16 +283,24 @@ private fun continuous12PresetsV6(): List<CyclePresetV6> = listOf(
     )
 )
 
-private fun makeBackupJsonV8(shifts: List<ShiftEntry>, theme: String, vacationProfile: VacationProfileV8): String {
+private fun makeBackupJsonV9(
+    shifts: List<ShiftEntry>,
+    theme: String,
+    vacationProfile: VacationProfileV8,
+    rolProfile: RolProfileV9
+): String {
     val root = JSONObject()
     root.put("format", "TurniOperaiBackup")
-    root.put("version", 8)
+    root.put("version", 9)
     root.put("createdAt", LocalDate.now().toString())
     root.put("theme", theme)
     root.put("vacationContractKey", vacationProfile.contractKey)
     root.put("vacationMonthlyMinutes", vacationProfile.monthlyMinutes)
     root.put("vacationOpeningMinutes", vacationProfile.openingMinutes)
     root.put("vacationStartMonth", vacationProfile.startMonth)
+    root.put("rolMonthlyMinutes", rolProfile.monthlyMinutes)
+    root.put("rolOpeningMinutes", rolProfile.openingMinutes)
+    root.put("rolStartMonth", rolProfile.startMonth)
     val array = JSONArray()
     shifts.sortedBy { it.date }.forEach { entry ->
         array.put(
@@ -273,13 +310,14 @@ private fun makeBackupJsonV8(shifts: List<ShiftEntry>, theme: String, vacationPr
                 .put("overtime", entry.overtime)
                 .put("overtimeMinutes", entry.overtimeMinutes)
                 .put("vacationMinutes", entry.vacationMinutes)
+                .put("rolMinutes", entry.rolMinutes)
         )
     }
     root.put("shifts", array)
     return root.toString(2)
 }
 
-private fun parseBackupV8(raw: String): BackupDataV8 {
+private fun parseBackupV9(raw: String): BackupDataV8 {
     val root = JSONObject(raw)
     require(root.optString("format") == "TurniOperaiBackup") { "File di backup non riconosciuto" }
     val array = root.getJSONArray("shifts")
@@ -290,22 +328,24 @@ private fun parseBackupV8(raw: String): BackupDataV8 {
             val overtimeMinutes = item.optInt("overtimeMinutes", 0).coerceAtLeast(0)
             val vacationMinutes = if (item.has("vacationMinutes")) {
                 item.optInt("vacationMinutes", 0).coerceAtLeast(0)
-            } else if (type == ShiftType.VACATION) {
-                8 * 60
-            } else 0
+            } else if (type == ShiftType.VACATION) 8 * 60 else 0
+            val rolMinutes = if (item.has("rolMinutes")) {
+                item.optInt("rolMinutes", 0).coerceAtLeast(0)
+            } else if (type == ShiftType.ROL) 8 * 60 else 0
             add(
                 ShiftEntry(
                     LocalDate.parse(item.getString("date")),
                     type,
                     item.optBoolean("overtime", false) || overtimeMinutes > 0,
                     overtimeMinutes,
-                    vacationMinutes
+                    vacationMinutes,
+                    rolMinutes
                 )
             )
         }
     }
     val restoredTheme = root.optString("theme").takeIf { it in setOf("light", "dark", "system") }
-    val profile = if (root.has("vacationContractKey") || root.has("vacationMonthlyMinutes")) {
+    val vacationProfile = if (root.has("vacationContractKey") || root.has("vacationMonthlyMinutes")) {
         val key = root.optString("vacationContractKey", "metal4")
         VacationProfileV8(
             contractKey = key,
@@ -314,7 +354,14 @@ private fun parseBackupV8(raw: String): BackupDataV8 {
             startMonth = root.optString("vacationStartMonth", LocalDate.now().withDayOfYear(1).withDayOfMonth(1).toString())
         )
     } else null
-    return BackupDataV8(shifts, restoredTheme, profile)
+    val rolProfile = if (root.has("rolMonthlyMinutes") || root.has("rolOpeningMinutes")) {
+        RolProfileV9(
+            monthlyMinutes = root.optInt("rolMonthlyMinutes", 8 * 60).coerceAtLeast(0),
+            openingMinutes = root.optInt("rolOpeningMinutes", 0).coerceAtLeast(0),
+            startMonth = root.optString("rolStartMonth", LocalDate.now().withDayOfYear(1).withDayOfMonth(1).toString())
+        )
+    } else null
+    return BackupDataV8(shifts, restoredTheme, vacationProfile, rolProfile)
 }
 
 class MainActivityV6 : ComponentActivity() {
@@ -353,6 +400,15 @@ fun TurniOperaiV6(context: Context) {
         vacationOpeningMinutes,
         vacationStartMonth
     )
+    var rolMonthlyMinutes by remember { mutableIntStateOf(prefs.getInt("rol_monthly_minutes", 8 * 60)) }
+    var rolOpeningMinutes by remember { mutableIntStateOf(prefs.getInt("rol_opening_minutes", 0)) }
+    var rolStartMonth by remember {
+        mutableStateOf(
+            prefs.getString("rol_start_month", LocalDate.now().withDayOfYear(1).withDayOfMonth(1).toString())
+                ?: LocalDate.now().withDayOfYear(1).withDayOfMonth(1).toString()
+        )
+    }
+    val rolProfile = RolProfileV9(rolMonthlyMinutes, rolOpeningMinutes, rolStartMonth)
 
     val createBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
@@ -360,7 +416,7 @@ fun TurniOperaiV6(context: Context) {
         if (uri != null) {
             runCatching {
                 context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { writer ->
-                    writer.write(makeBackupJsonV8(shifts, theme, vacationProfile))
+                    writer.write(makeBackupJsonV9(shifts, theme, vacationProfile, rolProfile))
                 } ?: error("Impossibile aprire il file")
             }.onSuccess {
                 backupMessage = "Backup salvato correttamente"
@@ -377,14 +433,14 @@ fun TurniOperaiV6(context: Context) {
             runCatching {
                 val raw = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
                     ?: error("Impossibile leggere il file")
-                parseBackupV8(raw)
+                parseBackupV9(raw)
             }.onSuccess { restored ->
                 val restoredShifts = restored.shifts.sortedBy { it.date }
                 shifts = restoredShifts
                 val editor = prefs.edit().putStringSet(
                     "shifts",
                     restoredShifts.map {
-                        "${it.date}|${it.type.name}|${it.overtime}|${it.overtimeMinutes}|${it.vacationMinutes}"
+                        "${it.date}|${it.type.name}|${it.overtime}|${it.overtimeMinutes}|${it.vacationMinutes}|${it.rolMinutes}"
                     }.toSet()
                 )
                 restored.theme?.let { restoredTheme ->
@@ -401,6 +457,14 @@ fun TurniOperaiV6(context: Context) {
                     editor.putInt("vacation_opening_minutes", profile.openingMinutes)
                     editor.putString("vacation_start_month", profile.startMonth)
                 }
+                restored.rolProfile?.let { profile ->
+                    rolMonthlyMinutes = profile.monthlyMinutes
+                    rolOpeningMinutes = profile.openingMinutes
+                    rolStartMonth = profile.startMonth
+                    editor.putInt("rol_monthly_minutes", profile.monthlyMinutes)
+                    editor.putInt("rol_opening_minutes", profile.openingMinutes)
+                    editor.putString("rol_start_month", profile.startMonth)
+                }
                 editor.apply()
                 backupMessage = "Backup ripristinato: ${restoredShifts.size} giornate"
             }.onFailure {
@@ -411,7 +475,7 @@ fun TurniOperaiV6(context: Context) {
 
     fun save(list: List<ShiftEntry>) {
         shifts = list.sortedBy { it.date }
-        prefs.edit().putStringSet("shifts", shifts.map { "${it.date}|${it.type.name}|${it.overtime}|${it.overtimeMinutes}|${it.vacationMinutes}" }.toSet()).apply()
+        prefs.edit().putStringSet("shifts", shifts.map { "${it.date}|${it.type.name}|${it.overtime}|${it.overtimeMinutes}|${it.vacationMinutes}|${it.rolMinutes}" }.toSet()).apply()
     }
 
     fun applyGenerated(generated: List<ShiftEntry>) {
@@ -484,8 +548,8 @@ fun TurniOperaiV6(context: Context) {
             ) { pad ->
                 Box(Modifier.padding(pad)) {
                     when (tab) {
-                        0 -> HomeV6(shifts, vacationProfile) { editDate = it }
-                        1 -> StatsV6(shifts, vacationProfile)
+                        0 -> HomeV6(shifts, vacationProfile, rolProfile) { editDate = it }
+                        1 -> StatsV6(shifts, vacationProfile, rolProfile)
                         2 -> CalendarV6(shifts) { editDate = it }
                         else -> SettingsV6(
                             theme = theme,
@@ -507,6 +571,17 @@ fun TurniOperaiV6(context: Context) {
                                     .putInt("vacation_opening_minutes", profile.openingMinutes)
                                     .putString("vacation_start_month", profile.startMonth)
                                     .apply()
+                            },
+                            rolProfile = rolProfile,
+                            onRolProfileChange = { profile ->
+                                rolMonthlyMinutes = profile.monthlyMinutes
+                                rolOpeningMinutes = profile.openingMinutes
+                                rolStartMonth = profile.startMonth
+                                prefs.edit()
+                                    .putInt("rol_monthly_minutes", profile.monthlyMinutes)
+                                    .putInt("rol_opening_minutes", profile.openingMinutes)
+                                    .putString("rol_start_month", profile.startMonth)
+                                    .apply()
                             }
                         )
                     }
@@ -522,7 +597,7 @@ private fun MenuItemV6(label: String, icon: ImageVector, onClick: () -> Unit) {
 }
 
 @Composable
-private fun HomeV6(shifts: List<ShiftEntry>, vacationProfile: VacationProfileV8, onDate: (LocalDate) -> Unit) {
+private fun HomeV6(shifts: List<ShiftEntry>, vacationProfile: VacationProfileV8, rolProfile: RolProfileV9, onDate: (LocalDate) -> Unit) {
     var month by remember { mutableStateOf(YearMonth.now()) }
     val title = month.month.getDisplayName(TextStyle.FULL, Locale.ITALIAN).replaceFirstChar { it.uppercase() } + " ${month.year}"
     val monthShifts = shifts.filter { YearMonth.from(it.date) == month }
@@ -539,7 +614,7 @@ private fun HomeV6(shifts: List<ShiftEntry>, vacationProfile: VacationProfileV8,
                 }
             }
         }
-        item { SummaryV6(monthShifts, shifts, vacationProfile) }
+        item { SummaryV6(monthShifts, shifts, vacationProfile, rolProfile) }
         item {
             Button(onClick = { onDate(LocalDate.now()) }, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
                 Icon(Icons.Default.Add, null)
@@ -593,7 +668,7 @@ private fun MonthGridV6(month: YearMonth, shifts: List<ShiftEntry>, onDate: (Loc
 }
 
 @Composable
-private fun SummaryV6(monthShifts: List<ShiftEntry>, allShifts: List<ShiftEntry>, vacationProfile: VacationProfileV8) {
+private fun SummaryV6(monthShifts: List<ShiftEntry>, allShifts: List<ShiftEntry>, vacationProfile: VacationProfileV8, rolProfile: RolProfileV9) {
     val workTypes = setOf(ShiftType.MORNING, ShiftType.AFTERNOON, ShiftType.NIGHT, ShiftType.DAY, ShiftType.SPLIT, ShiftType.HOLIDAY, ShiftType.DOUBLE)
     val saturdaysWorked = monthShifts.count { it.date.dayOfWeek == DayOfWeek.SATURDAY && it.type in workTypes }
     val nights = monthShifts.count { it.type == ShiftType.NIGHT }
@@ -603,6 +678,10 @@ private fun SummaryV6(monthShifts: List<ShiftEntry>, allShifts: List<ShiftEntry>
         if (it.vacationMinutes > 0) it.vacationMinutes else 8 * 60
     }
     val vacationBalance = vacationBalanceMinutesV8(allShifts, vacationProfile)
+    val rolMonthMinutes = monthShifts.filter { it.type == ShiftType.ROL }.sumOf {
+        if (it.rolMinutes > 0) it.rolMinutes else 8 * 60
+    }
+    val rolBalance = rolBalanceMinutesV9(allShifts, rolProfile)
     ElevatedCard(shape = RoundedCornerShape(22.dp)) {
         Column(Modifier.padding(16.dp)) {
             Text("Riepilogo mese", fontWeight = FontWeight.Bold)
@@ -618,6 +697,11 @@ private fun SummaryV6(monthShifts: List<ShiftEntry>, allShifts: List<ShiftEntry>
                 StatV6("Ferie mese", formatVacationV8(vacationMonthMinutes), Icons.Default.BeachAccess, Color(0xFFF1EAFF), V6Purple, Modifier.weight(1f))
                 StatV6("Ferie residue", formatVacationV8(vacationBalance), Icons.Default.AccountBalanceWallet, Color(0xFFE3F7F5), V6Teal, Modifier.weight(1f))
             }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatV6("ROL mese", formatHoursMinutesV8(rolMonthMinutes), Icons.Default.AccessTime, Color(0xFFE8F4FF), Color(0xFF2563EB), Modifier.weight(1f))
+                StatV6("ROL residui", formatHoursMinutesV8(rolBalance.coerceAtLeast(0)), Icons.Default.AccountBalanceWallet, Color(0xFFE8F4FF), Color(0xFF2563EB), Modifier.weight(1f))
+            }
         }
     }
 }
@@ -632,12 +716,12 @@ private fun StatV6(label: String, value: String, icon: ImageVector, bg: Color, f
 }
 
 @Composable
-private fun StatsV6(shifts: List<ShiftEntry>, vacationProfile: VacationProfileV8) {
+private fun StatsV6(shifts: List<ShiftEntry>, vacationProfile: VacationProfileV8, rolProfile: RolProfileV9) {
     val month = shifts.filter { YearMonth.from(it.date) == YearMonth.now() }
     val counts = month.groupingBy { it.type }.eachCount()
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item { Text("Statistiche", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold) }
-        item { SummaryV6(month, shifts, vacationProfile) }
+        item { SummaryV6(month, shifts, vacationProfile, rolProfile) }
         items(ShiftType.entries) { type ->
             val v = visualV6(type)
             Card(colors = CardDefaults.cardColors(containerColor = v.bg), shape = RoundedCornerShape(15.dp)) {
@@ -680,6 +764,9 @@ private fun CalendarV6(shifts: List<ShiftEntry>, onDate: (LocalDate) -> Unit) {
                         if (shift.type == ShiftType.VACATION) {
                             Text("Ferie: ${formatVacationV8(if (shift.vacationMinutes > 0) shift.vacationMinutes else 8 * 60)}", style = MaterialTheme.typography.labelSmall, color = v.fg)
                         }
+                        if (shift.type == ShiftType.ROL) {
+                            Text("ROL: ${formatHoursMinutesV8(if (shift.rolMinutes > 0) shift.rolMinutes else 8 * 60)}", style = MaterialTheme.typography.labelSmall, color = v.fg)
+                        }
                     }
                     Icon(Icons.Default.ChevronRight, null, tint = v.fg)
                 }
@@ -696,6 +783,12 @@ private fun EditShiftV6(date: LocalDate, existing: ShiftEntry?, onBack: () -> Un
         mutableIntStateOf(
             existing?.vacationMinutes?.takeIf { it > 0 }
                 ?: if (existing?.type == ShiftType.VACATION) 8 * 60 else 8 * 60
+        )
+    }
+    var rolMinutes by remember {
+        mutableIntStateOf(
+            existing?.rolMinutes?.takeIf { it > 0 }
+                ?: if (existing?.type == ShiftType.ROL) 8 * 60 else 8 * 60
         )
     }
     val workTypes = setOf(ShiftType.MORNING, ShiftType.AFTERNOON, ShiftType.NIGHT, ShiftType.DAY, ShiftType.SPLIT, ShiftType.HOLIDAY, ShiftType.DOUBLE)
@@ -723,6 +816,7 @@ private fun EditShiftV6(date: LocalDate, existing: ShiftEntry?, onBack: () -> Un
                                 modifier = Modifier.weight(1f).clickable {
                                     type = st
                                     if (st == ShiftType.VACATION && vacationMinutes <= 0) vacationMinutes = 8 * 60
+                                    if (st == ShiftType.ROL && rolMinutes <= 0) rolMinutes = 8 * 60
                                     if (st !in workTypes) overtimeMinutes = 0
                                 }
                             ) {
@@ -805,6 +899,35 @@ private fun EditShiftV6(date: LocalDate, existing: ShiftEntry?, onBack: () -> Un
                     }
                 }
             }
+            if (type == ShiftType.ROL) {
+                item {
+                    Surface(color = Color(0xFFE8F4FF), shape = RoundedCornerShape(16.dp)) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.AccessTime, null, tint = Color(0xFF2563EB))
+                                Spacer(Modifier.width(10.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text("Durata ROL", fontWeight = FontWeight.Bold)
+                                    Text("Conteggio separato dalle ferie, a scatti di 30 minuti.", style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                FilledTonalIconButton(onClick = { rolMinutes = (rolMinutes - 30).coerceAtLeast(30) }) {
+                                    Icon(Icons.Default.Remove, "Meno 30 minuti")
+                                }
+                                Text(formatHoursMinutesV8(rolMinutes), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2563EB))
+                                FilledTonalIconButton(onClick = { rolMinutes = (rolMinutes + 30).coerceAtMost(8 * 60) }) {
+                                    Icon(Icons.Default.Add, "Più 30 minuti")
+                                }
+                            }
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(selected = rolMinutes == 4 * 60, onClick = { rolMinutes = 4 * 60 }, label = { Text("4h") }, modifier = Modifier.weight(1f))
+                                FilterChip(selected = rolMinutes == 8 * 60, onClick = { rolMinutes = 8 * 60 }, label = { Text("8h") }, modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+            }
             item {
                 Button(
                     onClick = {
@@ -814,7 +937,8 @@ private fun EditShiftV6(date: LocalDate, existing: ShiftEntry?, onBack: () -> Un
                                 type = type,
                                 overtime = overtimeMinutes > 0,
                                 overtimeMinutes = if (type in workTypes) overtimeMinutes else 0,
-                                vacationMinutes = if (type == ShiftType.VACATION) vacationMinutes else 0
+                                vacationMinutes = if (type == ShiftType.VACATION) vacationMinutes else 0,
+                                rolMinutes = if (type == ShiftType.ROL) rolMinutes else 0
                             )
                         )
                     },
@@ -848,7 +972,9 @@ private fun SettingsV6(
     backupMessage: String,
     vacationProfile: VacationProfileV8,
     allShifts: List<ShiftEntry>,
-    onVacationProfileChange: (VacationProfileV8) -> Unit
+    onVacationProfileChange: (VacationProfileV8) -> Unit,
+    rolProfile: RolProfileV9,
+    onRolProfileChange: (RolProfileV9) -> Unit
 ) {
     var mode by remember { mutableStateOf(ScheduleModeV6.FIXED) }
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -947,7 +1073,12 @@ private fun SettingsV6(
             }
         }
         item {
-            SettingsCardV6("6. Backup e ripristino", "Salva turni, straordinari e impostazioni ferie per poter ripristinare tutto.", Icons.Default.Save, V6Teal) {
+            SettingsCardV6("6. ROL", "Profilo attuale dalla tua busta paga: maturazione 8 ore al mese, separata dalle ferie.", Icons.Default.AccessTime, Color(0xFF2563EB)) {
+                RolSettingsV9(rolProfile, allShifts, onRolProfileChange)
+            }
+        }
+        item {
+            SettingsCardV6("7. Backup e ripristino", "Salva turni, straordinari, ferie e ROL per poter ripristinare tutto.", Icons.Default.Save, V6Teal) {
                 Button(onClick = onBackup, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.Save, null)
                     Spacer(Modifier.width(7.dp))
@@ -958,7 +1089,7 @@ private fun SettingsV6(
                     Spacer(Modifier.width(7.dp))
                     Text("Ripristina backup", fontWeight = FontWeight.Bold)
                 }
-                Text("Il backup contiene calendario, quantità di straordinario, ferie usate, contratto ferie, saldo iniziale e tema. Il file resta dove scegli tu sul telefono o nel cloud.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Il backup contiene calendario, quantità di straordinario, ferie, ROL, saldi iniziali e tema. Il file resta dove scegli tu sul telefono o nel cloud.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (backupMessage.isNotBlank()) {
                     Surface(color = V6Green.copy(alpha = .10f), shape = RoundedCornerShape(10.dp)) {
                         Text(backupMessage, modifier = Modifier.fillMaxWidth().padding(10.dp), color = V6Green, fontWeight = FontWeight.SemiBold)
@@ -974,7 +1105,7 @@ private fun SettingsV6(
                 }
             }
         }
-        item { Text("Turni Operai 8.0", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        item { Text("Turni Operai 9.0", color = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 
@@ -1078,6 +1209,78 @@ private fun VacationSettingsV8(
         }
     }
     Text("Il calcolo è gestionale: il cedolino resta il riferimento, perché anzianità, assenze e regole di rateo possono cambiare in base al CCNL e alla situazione personale.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun RolSettingsV9(
+    profile: RolProfileV9,
+    shifts: List<ShiftEntry>,
+    onChange: (RolProfileV9) -> Unit
+) {
+    var startText by remember(profile.startMonth) { mutableStateOf(profile.startMonth) }
+    var startMessage by remember { mutableStateOf("") }
+
+    Surface(color = Color(0xFFE8F4FF), shape = RoundedCornerShape(14.dp)) {
+        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Maturazione mensile", fontWeight = FontWeight.ExtraBold, color = Color(0xFF2563EB))
+            Text("8 ore al mese", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+            Text("Valore ricavato dalla busta paga attuale: 64 ore maturate da gennaio ad agosto.", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+
+    Text("Saldo ROL iniziale", fontWeight = FontWeight.Bold)
+    Text("Inserisci il residuo del cedolino alla data da cui vuoi iniziare il conteggio.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    DurationStepperV8(
+        valueMinutes = profile.openingMinutes,
+        stepMinutes = 30,
+        maxMinutes = 1000 * 60,
+        enabled = true,
+        onChange = { onChange(profile.copy(openingMinutes = it)) }
+    )
+
+    Text("Inizio conteggio ROL", fontWeight = FontWeight.Bold)
+    OutlinedTextField(
+        value = startText,
+        onValueChange = { startText = it },
+        label = { Text("YYYY-MM-DD") },
+        supportingText = { Text("Il mese corrente viene conteggiato dal giorno 15.") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth()
+    )
+    OutlinedButton(
+        onClick = {
+            val parsed = runCatching { LocalDate.parse(startText) }.getOrNull()
+            if (parsed == null) {
+                startMessage = "Data non valida"
+            } else {
+                val normalized = parsed.withDayOfMonth(1).toString()
+                startText = normalized
+                onChange(profile.copy(startMonth = normalized, monthlyMinutes = 8 * 60))
+                startMessage = "Data di partenza salvata"
+            }
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(Icons.Default.Check, null)
+        Spacer(Modifier.width(6.dp))
+        Text("Salva data inizio")
+    }
+    if (startMessage.isNotBlank()) Text(startMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+
+    val months = rolAccruedMonthsV9(profile)
+    val accrued = months * profile.monthlyMinutes
+    val used = rolUsedMinutesV9(shifts, profile)
+    val balance = rolBalanceMinutesV9(shifts, profile)
+    Surface(color = Color(0xFFE8F4FF), shape = RoundedCornerShape(14.dp)) {
+        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Situazione ROL", fontWeight = FontWeight.ExtraBold, color = Color(0xFF2563EB))
+            Text("Mesi maturati: $months")
+            Text("Maturati dal conteggio: ${formatHoursMinutesV8(accrued)}")
+            Text("Utilizzati: ${formatHoursMinutesV8(used)}")
+            Text("Residuo stimato: ${if (balance < 0) "-" else ""}${formatHoursMinutesV8(kotlin.math.abs(balance))}", fontWeight = FontWeight.Bold)
+        }
+    }
+    Text("Per ora il rateo ROL è fissato a 8h/mese perché è quello risultante dal cedolino caricato. In seguito aggiungeremo profili ROL diversi.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable
