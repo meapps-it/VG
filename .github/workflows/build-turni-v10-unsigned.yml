@@ -1,0 +1,47 @@
+name: Build Turni Operai v10 unsigned release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["turni-operai"]
+    paths:
+      - ".github/workflows/build-turni-v10-unsigned.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build unsigned release
+        working-directory: TurniOperai
+        run: gradle :app:assembleRelease --stacktrace
+
+      - name: Collect apksigner
+        run: |
+          BT=$(ls -1 "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+          mkdir -p signer/lib
+          cp "$ANDROID_HOME/build-tools/$BT/apksigner" signer/
+          cp "$ANDROID_HOME/build-tools/$BT/lib/apksigner.jar" signer/lib/
+
+      - name: Upload unsigned release
+        uses: actions/upload-artifact@v4
+        with:
+          name: TurniOperai-v10-unsigned
+          path: |
+            TurniOperai/app/build/outputs/apk/release/app-release-unsigned.apk
+            signer/apksigner
+            signer/lib/apksigner.jar
+          if-no-files-found: error
