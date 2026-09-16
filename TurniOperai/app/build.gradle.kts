@@ -12,11 +12,23 @@ android {
         applicationId = "com.meapps.turnioperai"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "4.0"
+        versionCode = 6
+        versionName = "6.0"
+    }
+
+    signingConfigs {
+        create("stableDebug") {
+            storeFile = file("turni-operai-debug.jks")
+            storePassword = "turnioperai"
+            keyAlias = "turni-debug"
+            keyPassword = "turnioperai"
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("stableDebug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
