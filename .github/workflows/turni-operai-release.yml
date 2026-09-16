@@ -1,0 +1,53 @@
+name: Build Turni Operai Production APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: turni-operai
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Restore production signing material
+        working-directory: TurniOperai
+        env:
+          KEYSTORE_B64: ${{ secrets.TURNI_OPERAI_KEYSTORE_B64 }}
+          STORE_PASS: ${{ secrets.TURNI_OPERAI_STORE_PASSWORD }}
+          KEY_ALIAS_VALUE: ${{ secrets.TURNI_OPERAI_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.TURNI_OPERAI_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_B64"
+          test -n "$STORE_PASS"
+          test -n "$KEY_ALIAS_VALUE"
+          test -n "$KEY_PASS"
+          printf '%s' "$KEYSTORE_B64" | base64 -d > app/turni-operai-production.jks
+          printf 'storeFile=turni-operai-production.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$STORE_PASS" "$KEY_ALIAS_VALUE" "$KEY_PASS" > keystore.properties
+
+      - name: Build signed release APK
+        working-directory: TurniOperai
+        run: gradle :app:assembleRelease --stacktrace
+
+      - name: Verify APK signature
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs TurniOperai/app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TurniOperai-v10-production-apk
+          path: TurniOperai/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
