@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -5,7 +7,7 @@ plugins {
 }
 
 val releaseKeyFile = rootProject.file("keystore.properties")
-val releaseKeyProps = java.util.Properties().apply {
+val releaseKeyProps = Properties().apply {
     if (releaseKeyFile.exists()) releaseKeyFile.inputStream().use { load(it) }
 }
 val hasReleaseKey = releaseKeyFile.exists()
