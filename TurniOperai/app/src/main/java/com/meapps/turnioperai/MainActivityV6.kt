@@ -3,6 +3,7 @@ package com.meapps.turnioperai
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -79,6 +80,24 @@ data class BackupDataV8(
 )
 
 private val vacationPresetsV8 = listOf(
+    VacationPresetV8(
+        "textile_industry",
+        "Tessile / Abbigliamento Industria - 4 settimane",
+        "Preset 40 ore settimanali: 160 ore annue, 13h20m al mese. Verifica sempre il cedolino.",
+        13 * 60 + 20
+    ),
+    VacationPresetV8(
+        "textile_pmi",
+        "Tessile PMI / Uniontessile - 4 settimane",
+        "Preset 40 ore settimanali: 160 ore annue, 13h20m al mese. Verifica sempre il cedolino.",
+        13 * 60 + 20
+    ),
+    VacationPresetV8(
+        "textile_craft",
+        "Tessile / Moda Artigianato - 4 settimane",
+        "Preset 40 ore settimanali: 160 ore annue, 13h20m al mese. Verifica sempre il cedolino.",
+        13 * 60 + 20
+    ),
     VacationPresetV8(
         "metal4",
         "Metalmeccanici Industria - 4 settimane",
@@ -377,6 +396,7 @@ fun TurniOperaiV6(context: Context) {
     var theme by remember { mutableStateOf(prefs.getString("theme", "light") ?: "light") }
     var shifts by remember { mutableStateOf(loadShifts(prefs.getStringSet("shifts", emptySet()) ?: emptySet())) }
     var tab by remember { mutableIntStateOf(0) }
+    val tabHistory = remember { mutableStateListOf<Int>() }
     var editDate by remember { mutableStateOf<LocalDate?>(null) }
     var menuOpen by remember { mutableStateOf(false) }
     val dark = theme == "dark" || (theme == "system" && androidx.compose.foundation.isSystemInDarkTheme())
@@ -483,6 +503,22 @@ fun TurniOperaiV6(context: Context) {
         save(shifts.filterNot { it.date in dates } + generated)
     }
 
+    fun navigateTo(index: Int) {
+        if (index != tab) {
+            tabHistory.add(tab)
+            tab = index
+        }
+    }
+
+    BackHandler(enabled = menuOpen || editDate != null || tabHistory.isNotEmpty() || tab != 0) {
+        when {
+            menuOpen -> menuOpen = false
+            editDate != null -> editDate = null
+            tabHistory.isNotEmpty() -> tab = tabHistory.removeAt(tabHistory.lastIndex)
+            tab != 0 -> tab = 0
+        }
+    }
+
     MaterialTheme(
         colorScheme = if (dark) darkColorScheme(primary = Color(0xFF9FB5FF)) else lightColorScheme(
             primary = V6Blue,
@@ -519,10 +555,10 @@ fun TurniOperaiV6(context: Context) {
                             Box {
                                 IconButton(onClick = { menuOpen = true }) { Icon(Icons.Default.Menu, "Menu", tint = Color.White) }
                                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                                    MenuItemV6("Home", Icons.Default.Home) { tab = 0; menuOpen = false }
-                                    MenuItemV6("Statistiche", Icons.Default.BarChart) { tab = 1; menuOpen = false }
-                                    MenuItemV6("Calendario", Icons.Default.CalendarMonth) { tab = 2; menuOpen = false }
-                                    MenuItemV6("Impostazione turni", Icons.Default.Settings) { tab = 3; menuOpen = false }
+                                    MenuItemV6("Home", Icons.Default.Home) { navigateTo(0); menuOpen = false }
+                                    MenuItemV6("Statistiche", Icons.Default.BarChart) { navigateTo(1); menuOpen = false }
+                                    MenuItemV6("Calendario", Icons.Default.CalendarMonth) { navigateTo(2); menuOpen = false }
+                                    MenuItemV6("Impostazione turni", Icons.Default.Settings) { navigateTo(3); menuOpen = false }
                                 }
                             }
                         }
@@ -538,7 +574,7 @@ fun TurniOperaiV6(context: Context) {
                         ).forEach { (label, icon, index) ->
                             NavigationBarItem(
                                 selected = tab == index,
-                                onClick = { tab = index },
+                                onClick = { navigateTo(index) },
                                 icon = { Icon(icon, label) },
                                 label = { Text(label) }
                             )
@@ -980,7 +1016,7 @@ private fun SettingsV6(
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Text("Impostazione turni", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
-            Text("Scegli come lavori. Poi imposta il ciclo senza inventarti formule da NASA.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Scegli la turnazione e configura il ciclo di lavoro.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         item {
             SettingsCardV6("1. Tipo di turnazione", "Le modalità più comuni più un ciclo completamente personalizzabile.", Icons.Default.Category, V6Blue) {
@@ -1105,7 +1141,7 @@ private fun SettingsV6(
                 }
             }
         }
-        item { Text("Turni Operai 9.0", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        item { Text("Turni Operai 10.0", color = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 
