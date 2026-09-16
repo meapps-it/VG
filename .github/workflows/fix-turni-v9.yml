@@ -1,0 +1,60 @@
+name: Fix and Build Turni Operai v9
+
+on:
+  push:
+    branches: ["turni-operai"]
+    paths:
+      - "TurniOperai/tools/fix_v9_compat.py"
+      - ".github/workflows/fix-turni-v9.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: turni-operai
+
+      - name: Patch compatibility sources
+        run: python TurniOperai/tools/fix_v9_compat.py
+
+      - name: Commit compatibility fix
+        run: |
+          git config user.name "meapps-it"
+          git config user.email "maurizio.enardu@gmail.com"
+          git add TurniOperai/app/src/main/java/com/meapps/turnioperai/MainActivityV3.kt TurniOperai/app/src/main/java/com/meapps/turnioperai/MainActivityV5.kt
+          if ! git diff --cached --quiet; then
+            git commit -m "Fix v9 ROL compatibility sources"
+            git push origin turni-operai
+          fi
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Restore stable debug signing key
+        working-directory: TurniOperai/app
+        run: base64 -d turni-operai-debug.jks.b64 > turni-operai-debug.jks
+
+      - name: Build debug APK
+        working-directory: TurniOperai
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TurniOperai-v9-apk
+          path: TurniOperai/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
