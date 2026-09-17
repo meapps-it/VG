@@ -20,8 +20,8 @@ android {
         applicationId = "com.meapps.turnioperai"
         minSdk = 26
         targetSdk = 35
-        versionCode = 12
-        versionName = "12.0"
+        versionCode = 13
+        versionName = "13.0"
     }
 
     signingConfigs {
@@ -71,5 +71,8 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("androidx.credentials:credentials:1.6.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.2.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
