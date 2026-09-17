@@ -20,8 +20,8 @@ android {
         applicationId = "com.meapps.turnioperai"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "10.0"
+        versionCode = 11
+        versionName = "11.0"
     }
 
     signingConfigs {
@@ -70,5 +70,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

@@ -1,6 +1,7 @@
 package com.meapps.turnioperai
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -26,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -34,6 +36,7 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlinx.coroutines.delay
 
 private val V6Blue = Color(0xFF4069E5)
 private val V6Navy = Color(0xFF17325C)
@@ -386,7 +389,13 @@ private fun parseBackupV9(raw: String): BackupDataV8 {
 class MainActivityV6 : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { TurniOperaiV6(this) }
+        setContent { AuthGateV11(this) { TurniOperaiV6(this) } }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        recreate()
     }
 }
 
@@ -429,6 +438,17 @@ fun TurniOperaiV6(context: Context) {
         )
     }
     val rolProfile = RolProfileV9(rolMonthlyMinutes, rolOpeningMinutes, rolStartMonth)
+
+    var liveNow by remember { mutableStateOf(LocalDateTime.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            liveNow = LocalDateTime.now()
+            delay(1000)
+        }
+    }
+    val liveDateTime = remember(liveNow) {
+        liveNow.format(DateTimeFormatter.ofPattern("EEEE dd/MM/yyyy • HH:mm:ss", Locale.ITALIAN))
+    }
 
     val createBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
@@ -550,7 +570,7 @@ fun TurniOperaiV6(context: Context) {
                             Spacer(Modifier.width(10.dp))
                             Column(Modifier.weight(1f)) {
                                 Text("Turni Operai", color = Color.White, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
-                                Text("Calendario e cicli di turnazione", color = Color.White.copy(alpha = .80f), style = MaterialTheme.typography.bodySmall)
+                                Text(liveDateTime, color = Color.White.copy(alpha = .80f), style = MaterialTheme.typography.bodySmall)
                             }
                             Box {
                                 IconButton(onClick = { menuOpen = true }) { Icon(Icons.Default.Menu, "Menu", tint = Color.White) }
