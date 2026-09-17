@@ -579,6 +579,7 @@ fun TurniOperaiV6(context: Context) {
                                     MenuItemV6("Statistiche", Icons.Default.BarChart) { navigateTo(1); menuOpen = false }
                                     MenuItemV6("Calendario", Icons.Default.CalendarMonth) { navigateTo(2); menuOpen = false }
                                     MenuItemV6("Impostazione turni", Icons.Default.Settings) { navigateTo(3); menuOpen = false }
+                                    MenuItemV6("Account", Icons.Default.AccountCircle) { openAccountV11(context); menuOpen = false }
                                 }
                             }
                         }
