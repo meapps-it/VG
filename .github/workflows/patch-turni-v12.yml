@@ -1,0 +1,64 @@
+name: Patch and Build Turni Operai v12
+
+on:
+  push:
+    branches: ["turni-operai"]
+    paths:
+      - "TurniOperai/tools/patch_v12.py"
+      - ".github/workflows/patch-turni-v12.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: turni-operai
+
+      - name: Apply v12 patch
+        run: python TurniOperai/tools/patch_v12.py
+
+      - name: Commit patched source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add TurniOperai/app/src/main/java/com/meapps/turnioperai/MainActivityV6.kt TurniOperai/app/build.gradle.kts
+          git diff --cached --quiet || git commit -m "Turni Operai v12 account access from guest mode"
+          git push origin turni-operai
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build unsigned release
+        working-directory: TurniOperai
+        run: gradle :app:assembleRelease --stacktrace
+
+      - name: Collect apksigner
+        run: |
+          BT=$(ls -1 "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+          mkdir -p signer/lib
+          cp "$ANDROID_HOME/build-tools/$BT/apksigner" signer/
+          cp "$ANDROID_HOME/build-tools/$BT/lib/apksigner.jar" signer/lib/
+
+      - name: Upload unsigned release
+        uses: actions/upload-artifact@v4
+        with:
+          name: TurniOperai-v12-unsigned
+          path: |
+            TurniOperai/app/build/outputs/apk/release/app-release-unsigned.apk
+            signer/apksigner
+            signer/lib/apksigner.jar
+          if-no-files-found: error
