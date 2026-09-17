@@ -2,7 +2,6 @@ package com.meapps.turnioperai
 
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import android.util.Base64
 import androidx.compose.foundation.layout.*
@@ -18,17 +17,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.net.URLEncoder
+import java.security.MessageDigest
+import java.util.UUID
 
 private const val SUPABASE_URL_V11 = "https://qfjwtawsqfwmsmrrgqfi.supabase.co"
 private const val SUPABASE_KEY_V11 = "sb_publishable_-EUVjwsk3txKk2Opqrc7Kw_xFNa9Hw1"
 private const val AUTH_PREFS_V11 = "turni_operai_auth"
+private const val GOOGLE_WEB_CLIENT_ID_V13 = "598309166441-hi9h68au8eahdrj95phafjufj4bvm4t0.apps.googleusercontent.com"
 
 data class AuthSessionV11(
     val email: String,
@@ -67,15 +74,29 @@ private object SupabaseAuthV11 {
         }.getOrNull().orEmpty().ifBlank { "Operazione non riuscita" }
     }
 
-    suspend fun signIn(email: String, password: String): Result<AuthSessionV11> = runCatching {
-        val (code, raw) = post("/auth/v1/token?grant_type=password", JSONObject().put("email", email).put("password", password))
-        if (code !in 200..299) error(errorMessage(raw))
+    private fun sessionFromJson(raw: String, fallbackEmail: String = ""): AuthSessionV11 {
         val j = JSONObject(raw)
-        AuthSessionV11(
-            j.optJSONObject("user")?.optString("email").orEmpty().ifBlank { email },
+        return AuthSessionV11(
+            j.optJSONObject("user")?.optString("email").orEmpty().ifBlank { fallbackEmail },
             j.getString("access_token"),
             j.getString("refresh_token")
         )
+    }
+
+    suspend fun signIn(email: String, password: String): Result<AuthSessionV11> = runCatching {
+        val (code, raw) = post("/auth/v1/token?grant_type=password", JSONObject().put("email", email).put("password", password))
+        if (code !in 200..299) error(errorMessage(raw))
+        sessionFromJson(raw, email)
+    }
+
+    suspend fun signInWithGoogleIdToken(idToken: String, nonce: String): Result<AuthSessionV11> = runCatching {
+        val body = JSONObject()
+            .put("provider", "google")
+            .put("id_token", idToken)
+            .put("nonce", nonce)
+        val (code, raw) = post("/auth/v1/token?grant_type=id_token", body)
+        if (code !in 200..299) error(errorMessage(raw))
+        sessionFromJson(raw)
     }
 
     suspend fun signUp(email: String, password: String): Result<AuthResultV11> = runCatching {
@@ -120,6 +141,30 @@ private fun emailFromJwtV11(token: String): String {
         val json = String(Base64.decode(payload, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING))
         JSONObject(json).optString("email")
     }.getOrDefault("")
+}
+
+private fun sha256HexV13(value: String): String {
+    val digest = MessageDigest.getInstance("SHA-256").digest(value.toByteArray())
+    return digest.joinToString("") { "%02x".format(it) }
+}
+
+private suspend fun signInWithGoogleNativeV13(activity: Activity): Result<AuthSessionV11> = runCatching {
+    val rawNonce = UUID.randomUUID().toString()
+    val hashedNonce = sha256HexV13(rawNonce)
+    val googleIdOption = GetGoogleIdOption.Builder()
+        .setFilterByAuthorizedAccounts(false)
+        .setServerClientId(GOOGLE_WEB_CLIENT_ID_V13)
+        .setNonce(hashedNonce)
+        .build()
+    val request = GetCredentialRequest.Builder()
+        .addCredentialOption(googleIdOption)
+        .build()
+    val result = CredentialManager.create(activity).getCredential(
+        request = request,
+        context = activity
+    )
+    val googleCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
+    SupabaseAuthV11.signInWithGoogleIdToken(googleCredential.idToken, rawNonce).getOrThrow()
 }
 
 fun openAccountV11(context: Context) {
@@ -190,11 +235,7 @@ fun AuthGateV11(activity: Activity, content: @Composable () -> Unit) {
                 skipped = false
                 forceLogin = true
             },
-            onGoogle = {
-                val redirect = URLEncoder.encode("turnioperai://auth-callback", "UTF-8")
-                val url = "$SUPABASE_URL_V11/auth/v1/authorize?provider=google&redirect_to=$redirect"
-                activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-            }
+            onGoogle = { signInWithGoogleNativeV13(activity) }
         )
     }
 }
@@ -207,7 +248,7 @@ private fun AuthScreenV11(
     onContinue: () -> Unit,
     onGuest: () -> Unit,
     onLogout: () -> Unit,
-    onGoogle: () -> Unit
+    onGoogle: suspend () -> Result<AuthSessionV11>
 ) {
     var mode by remember { mutableStateOf("login") }
     var email by remember(currentEmail) { mutableStateOf(currentEmail) }
@@ -233,7 +274,26 @@ private fun AuthScreenV11(
                         Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) { Text("Continua nell'app") }
                         OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) { Text("Esci dall'account") }
                     } else {
-                        OutlinedButton(onClick = onGoogle, modifier = Modifier.fillMaxWidth()) { Text("Continua con Google") }
+                        OutlinedButton(
+                            enabled = !loading,
+                            onClick = {
+                                loading = true
+                                message = ""
+                                scope.launch {
+                                    onGoogle()
+                                        .onSuccess(onSignedIn)
+                                        .onFailure { error ->
+                                            message = when (error) {
+                                                is GetCredentialException -> "Accesso Google annullato o non disponibile"
+                                                is GoogleIdTokenParsingException -> "Risposta Google non valida"
+                                                else -> error.message ?: "Accesso Google non riuscito"
+                                            }
+                                        }
+                                    loading = false
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(if (loading) "Attendi..." else "Continua con Google") }
                         Spacer(Modifier.height(14.dp))
                         Text("oppure", style = MaterialTheme.typography.bodySmall)
                         Spacer(Modifier.height(14.dp))
