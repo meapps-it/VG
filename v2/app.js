@@ -50,7 +50,7 @@
     $('#refreshBtn').addEventListener('click',async()=>{closeDrawer();await loadAll(true);toast('Dati sincronizzati');});
     $('#backupBtn').addEventListener('click',exportBackup);
     $$('.nav-btn').forEach(b=>b.addEventListener('click',()=>go(b.dataset.tab)));
-    $$('[data-secondary]').forEach(b=>b.addEventListener('click',()=>{closeDrawer();go(b.dataset.secondary);}));
+    $('[data-secondary]').forEach(b=>b.addEventListener('click',()=>{closeDrawer();if(b.dataset.secondary==='ricerca'){openGlobalSearch();return;}go(b.dataset.secondary);}));
     setInterval(updateClock,1000); updateClock();
   }
 
@@ -638,7 +638,6 @@
   }
 
   function openGlobalSearch(){
-    state.current='dashboard';
     const root=modal('Ricerca globale',`<input id="globalQ" style="width:100%;padding:14px;border:1.5px solid var(--border);border-radius:16px" placeholder="Cerca articoli, clienti, ordini, spedizioni…" autofocus><div id="globalResults" class="search-results"></div>`,{large:true});
     const input=$('#globalQ',root),out=$('#globalResults',root);
     const run=()=>{
