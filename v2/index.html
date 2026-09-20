@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1530">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Gestionale vendite per catalogo, clienti, ordini e spedizioni">
+  <title>Gestionale</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <section id="authScreen" class="auth-screen">
+    <div class="auth-card">
+      <div class="brand-mark">G</div>
+      <h1>Gestionale</h1>
+      <p>Catalogo, clienti, ordini e spedizioni. Tutto nello stesso posto.</p>
+      <form id="loginForm" class="stack">
+        <label>Email<input id="loginEmail" type="email" autocomplete="email" required></label>
+        <label>Password<input id="loginPassword" type="password" autocomplete="current-password" minlength="6" required></label>
+        <button class="btn btn-primary" type="submit">Accedi</button>
+      </form>
+      <div class="auth-actions">
+        <button id="registerBtn" class="btn btn-soft" type="button">Registrati</button>
+        <button id="resetBtn" class="btn btn-text" type="button">Password dimenticata</button>
+      </div>
+      <p id="authMessage" class="form-message" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <div id="appShell" class="app-shell" hidden>
+    <header class="topbar">
+      <div>
+        <h1>Gestionale</h1>
+        <div id="liveClock" class="live-clock"></div>
+      </div>
+      <button id="menuBtn" class="menu-btn" aria-label="Apri menu">☰</button>
+    </header>
+
+    <main id="view" class="view" aria-live="polite"></main>
+
+    <nav class="bottom-nav" aria-label="Navigazione principale">
+      <button data-tab="dashboard" class="nav-btn active">Dashboard</button>
+      <button data-tab="prodotti" class="nav-btn">Articoli</button>
+      <button data-tab="clienti" class="nav-btn">Clienti</button>
+      <button data-tab="ordini" class="nav-btn">Ordini</button>
+      <button data-tab="spedizioni" class="nav-btn">Spedizioni</button>
+    </nav>
+  </div>
+
+  <div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
+  <aside id="drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div><strong>Gestionale</strong><small id="drawerUser"></small></div>
+      <button id="drawerClose" class="icon-btn" aria-label="Chiudi menu">×</button>
+    </div>
+    <button data-secondary="statistiche" class="drawer-item">Statistiche</button>
+    <button data-secondary="ricerca" class="drawer-item">Ricerca globale</button>
+    <button id="backupBtn" class="drawer-item">Esporta backup JSON</button>
+    <button id="refreshBtn" class="drawer-item">Sincronizza dati</button>
+    <div class="drawer-spacer"></div>
+    <button id="logoutBtn" class="drawer-item danger">Esci</button>
+  </aside>
+
+  <div id="modalRoot"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabaseClient.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
