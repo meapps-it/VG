@@ -1,0 +1,8 @@
+{
+  "appId": "com.meapps.gestionalevendite",
+  "appName": "Gestionale Vendite",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
