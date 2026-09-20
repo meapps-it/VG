@@ -11,7 +11,16 @@
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <section id="authScreen" class="auth-screen">
+  <section id="bootScreen" class="boot-screen" aria-live="polite">
+    <div class="boot-card">
+      <div class="boot-icon">🔐</div>
+      <h1>Gestionale</h1>
+      <p>Verifica accesso in corso...</p>
+      <strong id="bootMessage">Accesso automatico...</strong>
+    </div>
+  </section>
+
+  <section id="authScreen" class="auth-screen" hidden>
     <div class="auth-card">
       <div class="brand-mark">G</div>
       <h1>Gestionale</h1>
@@ -57,6 +66,7 @@
     </div>
     <button data-secondary="statistiche" class="drawer-item">Statistiche</button>
     <button data-secondary="ricerca" class="drawer-item">Ricerca globale</button>
+    <button id="settingsBtn" class="drawer-item">Impostazioni</button>
     <button id="backupBtn" class="drawer-item">Esporta backup JSON</button>
     <button id="refreshBtn" class="drawer-item">Sincronizza dati</button>
     <div class="drawer-spacer"></div>

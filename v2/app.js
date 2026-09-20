@@ -21,8 +21,21 @@
     }
   };
 
+  function applyFontScale(value=localStorage.getItem('vg-font-scale')||'1'){
+    const scale=Math.min(1.30,Math.max(.85,Number(value)||1));
+    document.documentElement.style.setProperty('--font-scale',String(scale));
+    localStorage.setItem('vg-font-scale',String(scale));
+    return scale;
+  }
+
+  function hideBoot(){
+    const boot=$('#bootScreen');
+    if(boot) boot.hidden=true;
+  }
+
   async function init(){
     try{
+      applyFontScale();
       state.supabase = await window.VG_SUPABASE_READY;
       if(!state.supabase) throw new Error('Configurazione Supabase non disponibile.');
       bindShell();
@@ -37,6 +50,7 @@
       });
       if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});
     }catch(err){
+      hideBoot();
       showAuth();
       $('#authMessage').textContent = err.message || 'Errore di avvio.';
     }
@@ -51,6 +65,7 @@
     $('#drawerBackdrop').addEventListener('click',closeDrawer);
     $('#logoutBtn').addEventListener('click',()=>state.supabase.auth.signOut());
     $('#refreshBtn').addEventListener('click',async()=>{closeDrawer();await loadAll(true);toast('Dati sincronizzati');});
+    $('#settingsBtn').addEventListener('click',openSettings);
     $('#backupBtn').addEventListener('click',exportBackup);
     $$('.nav-btn').forEach(b=>b.addEventListener('click',()=>go(b.dataset.tab)));
     $('[data-secondary]').forEach(b=>b.addEventListener('click',()=>{closeDrawer();if(b.dataset.secondary==='ricerca'){openGlobalSearch();return;}go(b.dataset.secondary);}));
@@ -65,8 +80,19 @@
     el.textContent=`${date} • ${time}`;
   }
 
-  function showAuth(){ $('#authScreen').hidden=false; $('#appShell').hidden=true; }
-  function leave(){ state.user=null; $('#appShell').hidden=true; $('#authScreen').hidden=false; closeDrawer(); }
+  function showAuth(){
+    hideBoot();
+    $('#appShell').hidden=true;
+    $('#authScreen').hidden=false;
+    window.scrollTo({top:0,left:0,behavior:'auto'});
+  }
+  function leave(){
+    state.user=null;
+    $('#appShell').hidden=true;
+    $('#authScreen').hidden=false;
+    closeDrawer();
+    window.scrollTo({top:0,left:0,behavior:'auto'});
+  }
 
   async function login(e){
     e.preventDefault();
@@ -102,7 +128,10 @@
 
   async function enter(user){
     state.user=user;
-    $('#authScreen').hidden=true; $('#appShell').hidden=false;
+    $('#authScreen').hidden=true;
+    $('#appShell').hidden=false;
+    hideBoot();
+    window.scrollTo({top:0,left:0,behavior:'auto'});
     $('#drawerUser').textContent=user.email||'';
     $('#view').innerHTML='<section class="card"><h2>Caricamento dati…</h2><p>Accesso effettuato.</p></section>';
     try{
@@ -273,8 +302,7 @@
     $('#prodQ').addEventListener('input',debounce(refresh,180));
     ['prodCat','prodBrand','prodQuality','prodSupplier','prodMode'].forEach(id=>$('#'+id).addEventListener('change',refresh));
     $('#newProduct').addEventListener('click',()=>openProductForm());
-    $$('[data-edit-product]',v).forEach(b=>b.addEventListener('click',()=>openProductForm(b.dataset.editProduct)));
-    $$('[data-share]',v).forEach(b=>b.addEventListener('click',()=>shareProduct(b.dataset.product,b.dataset.share)));
+    $('[data-edit-product]',v).forEach(b=>b.addEventListener('click',()=>openProductForm(b.dataset.editProduct)));
   }
 
   function selectFilter(id,label,options,value){
@@ -290,7 +318,7 @@
       <div class="product-meta">Cod. ${esc(p.sku||'—')} • ${esc(p.qualita||'Standard')} • 📷 ${state.photos.filter(x=>x.prodotto_id===p.id).length} foto${noPhoto?' • senza foto':''}</div>
       <div class="product-price ${promo?'green':''}">${euro(productPrice(p))}</div>
       ${margin<20?`<div class="chip red">⚠ SOTTO MARGINE DI 20 €</div>`:''}
-      <div class="card-actions"><button class="btn btn-outline" data-edit-product="${p.id}">Modifica</button><button class="btn btn-primary" data-share="fb" data-product="${p.id}">FB</button><button class="btn btn-info" data-share="tg" data-product="${p.id}">TG</button></div>
+      <div class="card-actions"><button class="btn btn-outline" data-edit-product="${p.id}">Modifica</button></div>
     </article>`;
   }
 
@@ -376,6 +404,31 @@
 
   function openDrawer(){ $('#drawerBackdrop').hidden=false; $('#drawer').classList.add('open'); $('#drawer').setAttribute('aria-hidden','false'); }
   function closeDrawer(){ $('#drawerBackdrop').hidden=true; $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden','true'); }
+
+  function openSettings(){
+    closeDrawer();
+    const current=applyFontScale();
+    const pct=Math.round(current*100);
+    const root=modal('Impostazioni',`<div class="settings-panel">
+      <div>
+        <div class="font-size-row"><strong>Dimensione testo</strong><output id="fontScaleValue">${pct}%</output></div>
+        <p style="color:var(--muted);margin:6px 0 12px">Regola la dimensione dei caratteri dell’app.</p>
+        <input id="fontScaleRange" class="font-slider" type="range" min="85" max="130" step="5" value="${pct}">
+      </div>
+      <div class="btn-row">
+        <button id="fontScaleReset" class="btn btn-soft" type="button">Ripristina 100%</button>
+        <button id="settingsClose" class="btn btn-primary" type="button">Chiudi</button>
+      </div>
+    </div>`);
+    const range=$('#fontScaleRange',root), out=$('#fontScaleValue',root);
+    const set=v=>{
+      const scale=applyFontScale(Number(v)/100);
+      out.textContent=`${Math.round(scale*100)}%`;
+    };
+    range.addEventListener('input',()=>set(range.value));
+    $('#fontScaleReset',root).addEventListener('click',()=>{range.value='100';set(100);});
+    $('#settingsClose',root).addEventListener('click',closeModal);
+  }
 
   function modal(title,body,{large=false}={}){
     $('#modalRoot').innerHTML=`<div class="modal-backdrop"><section class="modal ${large?'large':''}"><div class="modal-head"><h2>${esc(title)}</h2><button class="icon-btn" data-close>×</button></div>${body}</section></div>`;
@@ -629,19 +682,6 @@
     const {error}=await state.supabase.from('spedizioni').delete().eq('id',id);
     if(error)return toast(error.message);
     closeModal();await loadAll();toast('Spedizione eliminata');
-  }
-
-  async function shareProduct(id,channel){
-    const p=state.products.find(x=>x.id===id);if(!p)return;
-    const text=`${p.nome}\nCod. ${p.sku||'—'}\nPrezzo ${euro(productPrice(p))}`, url=location.href.split('#')[0];
-    if(navigator.share){
-      try{await navigator.share({title:p.nome,text,url});return}
-      catch(e){if(e.name==='AbortError')return;}
-    }
-    const shareUrl=channel==='tg'
-      ?`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
-      :`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;
-    window.open(shareUrl,'_blank','noopener');
   }
 
   async function copyText(t){
