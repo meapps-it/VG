@@ -68,7 +68,7 @@
     $('#refreshBtn').addEventListener('click',async()=>{closeDrawer();await loadAll(true);toast('Dati sincronizzati');});
     $('#settingsBtn').addEventListener('click',openSettings);
     $('#backupBtn').addEventListener('click',exportBackup);
-    $$$('.nav-btn').forEach(b=>b.addEventListener('click',()=>go(b.dataset.tab)));
+    $$('.nav-btn').forEach(b=>b.addEventListener('click',()=>go(b.dataset.tab)));
     $$('[data-secondary]').forEach(b=>b.addEventListener('click',()=>{closeDrawer();if(b.dataset.secondary==='ricerca'){openGlobalSearch();return;}go(b.dataset.secondary);}));
     setInterval(updateClock,1000); updateClock();
   }
@@ -295,7 +295,7 @@
         <button class="btn btn-soft" data-quick="client">Nuovo cliente</button>
         <button class="btn btn-info" data-quick="shipment">Nuova spedizione</button>
       </div></section>`;
-    $$$('[data-quick]',v).forEach(b=>b.addEventListener('click',()=>({product:openProductForm,order:openOrderForm,client:openClientForm,shipment:openShipmentForm}[b.dataset.quick])()));
+    $$('[data-quick]',v).forEach(b=>b.addEventListener('click',()=>({product:openProductForm,order:openOrderForm,client:openClientForm,shipment:openShipmentForm}[b.dataset.quick])()));
   }
 
   function metric(title,value,note,color=''){
@@ -369,7 +369,7 @@
       <div class="list">${items.map(c=>`<article class="list-card" data-client="${c.id}"><div class="list-head"><div><h3>${esc([c.nome,c.cognome].filter(Boolean).join(' '))}</h3><p>${c.telefono?'Tel. '+esc(c.telefono):'Nessun telefono'}</p><p>${esc([c.citta,c.provincia].filter(Boolean).join(' • '))}</p></div><span class="chip">${esc(c.paese||'Italia')}</span></div></article>`).join('')||'<div class="empty">Nessun cliente trovato.</div>'}</div>`;
     $('#newClient').addEventListener('click',()=>openClientForm());
     $('#clientQ').addEventListener('input',debounce(()=>{f.q=$('#clientQ').value;renderClients(v)},180));
-    $$$('[data-client]',v).forEach(x=>x.addEventListener('click',()=>openClientDetail(x.dataset.client)));
+    $$('[data-client]',v).forEach(x=>x.addEventListener('click',()=>openClientDetail(x.dataset.client)));
   }
 
   function renderOrders(v){
@@ -385,7 +385,7 @@
     $('#newOrder').addEventListener('click',()=>openOrderForm());
     const rr=()=>{f.q=$('#orderQ').value;f.status=$('#orderStatus').value;renderOrders(v)};
     $('#orderQ').addEventListener('input',debounce(rr,180));$('#orderStatus').addEventListener('change',rr);
-    $$$('[data-order]',v).forEach(x=>x.addEventListener('click',()=>openOrderDetail(x.dataset.order)));
+    $$('[data-order]',v).forEach(x=>x.addEventListener('click',()=>openOrderDetail(x.dataset.order)));
   }
 
   function orderStates(){return [['nuovo','Nuovo'],['in_preparazione','In preparazione'],['ordinato_fornitore','Ordinato al fornitore'],['ricevuto','Ricevuto'],['pronto','Pronto'],['spedito','Spedito'],['consegnato','Consegnato'],['annullato','Annullato']];}
@@ -411,9 +411,9 @@
     $('#newShipment').addEventListener('click',()=>openShipmentForm());
     const rr=()=>{f.q=$('#shipQ').value;f.status=$('#shipStatus').value;renderShipments(v)};
     $('#shipQ').addEventListener('input',debounce(rr,180));$('#shipStatus').addEventListener('change',rr);
-    $$$('[data-shipment]',v).forEach(x=>x.addEventListener('click',e=>{if(e.target.closest('[data-copy],[data-track]'))return;openShipmentForm(x.dataset.shipment)}));
-    $$$('[data-copy]',v).forEach(b=>b.addEventListener('click',()=>copyText(b.dataset.copy)));
-    $$$('[data-track]',v).forEach(b=>b.addEventListener('click',()=>openTracking(b.dataset.track)));
+    $$('[data-shipment]',v).forEach(x=>x.addEventListener('click',e=>{if(e.target.closest('[data-copy],[data-track]'))return;openShipmentForm(x.dataset.shipment)}));
+    $$('[data-copy]',v).forEach(b=>b.addEventListener('click',()=>copyText(b.dataset.copy)));
+    $$('[data-track]',v).forEach(b=>b.addEventListener('click',()=>openTracking(b.dataset.track)));
   }
 
   function shipmentStates(){return [['da_spedire','Da spedire'],['preparata','Preparata'],['spedita','Spedita'],['in_transito','In transito'],['in_consegna','In consegna'],['consegnata','Consegnata'],['problema_spedizione','Problema spedizione']];}
@@ -620,7 +620,7 @@
     const add=()=>{
       const key=uid();lines.insertAdjacentHTML('beforeend',lineEditor(key));
       const row=$(`[data-line="${key}"]`,root);
-      $$$('select,input',row).forEach(x=>x.addEventListener('input',calcOrderForm));
+      $$('select,input',row).forEach(x=>x.addEventListener('input',calcOrderForm));
       $('[data-remove]',row).addEventListener('click',()=>{row.remove();calcOrderForm();});
       calcOrderForm();
     };
