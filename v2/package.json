@@ -1,0 +1,18 @@
+{
+  "name": "gestionale-vendite-v2",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "web:sync": "node scripts/prepare-www.mjs",
+    "android:add": "npx cap add android",
+    "android:sync": "npm run web:sync && npx cap sync android",
+    "android:debug": "npm run web:sync && npx cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/core": "^7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3"
+  }
+}
