@@ -13,6 +13,8 @@ for (const file of ['index.html','app.css','app.js','supabaseClient.js','manifes
   await cp(join(root, file), join(www, file));
 }
 
+await cp(join(root, 'node_modules', '@supabase', 'supabase-js', 'dist', 'umd', 'supabase.js'), join(www, 'supabase.js'));
+
 for (const icon of ['icon-v1-192.png','icon-v1-512.png','icon-v1-maskable-512.png']) {
   await cp(join(root, '..', icon), join(www, icon));
 }
