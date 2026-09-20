@@ -29,8 +29,11 @@
       const {data:{session}} = await state.supabase.auth.getSession();
       if(session?.user) await enter(session.user); else showAuth();
       state.supabase.auth.onAuthStateChange((_event,session)=>{
-        if(session?.user && (!state.user || session.user.id!==state.user.id)) enter(session.user);
-        if(!session?.user && state.user) leave();
+        // Non eseguire query Supabase dentro il callback auth: può bloccare il lock interno.
+        setTimeout(()=>{
+          if(session?.user && (!state.user || session.user.id!==state.user.id)) enter(session.user);
+          if(!session?.user && state.user) leave();
+        },0);
       });
       if('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});
     }catch(err){
@@ -69,8 +72,18 @@
     e.preventDefault();
     const email=$('#loginEmail').value.trim(), password=$('#loginPassword').value;
     $('#authMessage').textContent='Accesso…';
-    const {error}=await state.supabase.auth.signInWithPassword({email,password});
-    $('#authMessage').textContent=error ? error.message : '';
+    try{
+      const {data,error}=await state.supabase.auth.signInWithPassword({email,password});
+      if(error){ $('#authMessage').textContent=error.message; return; }
+      if(data?.user){
+        $('#authMessage').textContent='';
+        await enter(data.user);
+      }else{
+        $('#authMessage').textContent='Accesso non completato.';
+      }
+    }catch(err){
+      $('#authMessage').textContent=err?.message || 'Errore durante l’accesso.';
+    }
   }
 
   async function register(){
@@ -91,9 +104,15 @@
     state.user=user;
     $('#authScreen').hidden=true; $('#appShell').hidden=false;
     $('#drawerUser').textContent=user.email||'';
-    await loadAll();
-    const initial=(location.hash||'#dashboard').slice(1);
-    go(['dashboard','prodotti','clienti','ordini','spedizioni','statistiche'].includes(initial)?initial:'dashboard',false);
+    $('#view').innerHTML='<section class="card"><h2>Caricamento dati…</h2><p>Accesso effettuato.</p></section>';
+    try{
+      await loadAll(true);
+      const initial=(location.hash||'#dashboard').slice(1);
+      go(['dashboard','prodotti','clienti','ordini','spedizioni','statistiche'].includes(initial)?initial:'dashboard',false);
+    }catch(err){
+      $('#view').innerHTML='<section class="card"><h2>Errore caricamento</h2><p>'+esc(err?.message||'Errore sconosciuto')+'</p></section>';
+      toast(err?.message||'Errore caricamento dati');
+    }
   }
 
   async function loadAll(showErrors=false){
