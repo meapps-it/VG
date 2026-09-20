@@ -1,0 +1,60 @@
+name: Build Gestionale Vendite Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - gestionale-vendite-v2
+    paths:
+      - 'v2/**'
+      - '.github/workflows/build-gestionale-v2-android.yml'
+      - 'icon-v1-192.png'
+      - 'icon-v1-512.png'
+      - 'icon-v1-maskable-512.png'
+
+jobs:
+  build-debug-apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Prepare web assets
+        run: npm run web:sync
+
+      - name: Create Android project
+        run: npx cap add android
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build debug APK
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: gestionale-vendite-v2-debug-apk
+          path: v2/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
