@@ -12,7 +12,7 @@
   const monthKey = d => String(d||'').slice(0,7);
 
   const state = {
-    supabase:null,user:null,current:'dashboard',
+    supabase:null,user:null,current:'dashboard',navStack:[],
     categories:[],products:[],photos:[],clients:[],orders:[],lines:[],shipments:[],
     signedPhotos:new Map(),
     filters:{
@@ -39,6 +39,7 @@
       state.supabase = await window.VG_SUPABASE_READY;
       if(!state.supabase) throw new Error('Configurazione Supabase non disponibile.');
       bindShell();
+      bindAndroidBack();
       const {data:{session}} = await state.supabase.auth.getSession();
       if(session?.user) await enter(session.user); else showAuth();
       state.supabase.auth.onAuthStateChange((_event,session)=>{
@@ -67,8 +68,8 @@
     $('#refreshBtn').addEventListener('click',async()=>{closeDrawer();await loadAll(true);toast('Dati sincronizzati');});
     $('#settingsBtn').addEventListener('click',openSettings);
     $('#backupBtn').addEventListener('click',exportBackup);
-    $$('.nav-btn').forEach(b=>b.addEventListener('click',()=>go(b.dataset.tab)));
-    $('[data-secondary]').forEach(b=>b.addEventListener('click',()=>{closeDrawer();if(b.dataset.secondary==='ricerca'){openGlobalSearch();return;}go(b.dataset.secondary);}));
+    $$$('.nav-btn').forEach(b=>b.addEventListener('click',()=>go(b.dataset.tab)));
+    $$('[data-secondary]').forEach(b=>b.addEventListener('click',()=>{closeDrawer();if(b.dataset.secondary==='ricerca'){openGlobalSearch();return;}go(b.dataset.secondary);}));
     setInterval(updateClock,1000); updateClock();
   }
 
@@ -88,6 +89,7 @@
   }
   function leave(){
     state.user=null;
+    state.navStack=[];
     $('#appShell').hidden=true;
     $('#authScreen').hidden=false;
     closeDrawer();
@@ -128,6 +130,7 @@
 
   async function enter(user){
     state.user=user;
+    state.navStack=[];
     $('#authScreen').hidden=true;
     $('#appShell').hidden=false;
     hideBoot();
@@ -137,7 +140,7 @@
     try{
       await loadAll(true);
       const initial=(location.hash||'#dashboard').slice(1);
-      go(['dashboard','prodotti','clienti','ordini','spedizioni','statistiche'].includes(initial)?initial:'dashboard',false);
+      go(['dashboard','prodotti','clienti','ordini','spedizioni','statistiche'].includes(initial)?initial:'dashboard',false,false);
     }catch(err){
       $('#view').innerHTML='<section class="card"><h2>Errore caricamento</h2><p>'+esc(err?.message||'Errore sconosciuto')+'</p></section>';
       toast(err?.message||'Errore caricamento dati');
@@ -173,11 +176,47 @@
     }));
   }
 
-  function go(tab,push=true){
+  function go(tab,push=true,remember=true){
+    if(remember && state.user && state.current && state.current!==tab){
+      state.navStack.push(state.current);
+      if(state.navStack.length>30) state.navStack.shift();
+    }
     state.current=tab;
     if(push) location.hash=tab;
     $$('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
     render();
+  }
+
+  function handleAppBack(){
+    const modalRoot=$('#modalRoot');
+    if(modalRoot && modalRoot.innerHTML.trim()){
+      closeModal();
+      return;
+    }
+    if($('#drawer')?.classList.contains('open')){
+      closeDrawer();
+      return;
+    }
+    if(!state.user) return;
+    const previous=state.navStack.pop();
+    if(previous){
+      go(previous,false,false);
+      location.hash=previous;
+      return;
+    }
+    if(state.current!=='dashboard'){
+      go('dashboard',false,false);
+      location.hash='dashboard';
+      return;
+    }
+    // Alla schermata principale il tasto Indietro non chiude l'app.
+  }
+
+  function bindAndroidBack(){
+    const appPlugin=window.Capacitor?.Plugins?.App;
+    if(appPlugin?.addListener){
+      appPlugin.addListener('backButton',()=>handleAppBack());
+    }
   }
 
   addEventListener('hashchange',()=>{
@@ -256,7 +295,7 @@
         <button class="btn btn-soft" data-quick="client">Nuovo cliente</button>
         <button class="btn btn-info" data-quick="shipment">Nuova spedizione</button>
       </div></section>`;
-    $$('[data-quick]',v).forEach(b=>b.addEventListener('click',()=>({product:openProductForm,order:openOrderForm,client:openClientForm,shipment:openShipmentForm}[b.dataset.quick])()));
+    $$$('[data-quick]',v).forEach(b=>b.addEventListener('click',()=>({product:openProductForm,order:openOrderForm,client:openClientForm,shipment:openShipmentForm}[b.dataset.quick])()));
   }
 
   function metric(title,value,note,color=''){
@@ -302,7 +341,7 @@
     $('#prodQ').addEventListener('input',debounce(refresh,180));
     ['prodCat','prodBrand','prodQuality','prodSupplier','prodMode'].forEach(id=>$('#'+id).addEventListener('change',refresh));
     $('#newProduct').addEventListener('click',()=>openProductForm());
-    $('[data-edit-product]',v).forEach(b=>b.addEventListener('click',()=>openProductForm(b.dataset.editProduct)));
+    $$('[data-edit-product]',v).forEach(b=>b.addEventListener('click',()=>openProductForm(b.dataset.editProduct)));
   }
 
   function selectFilter(id,label,options,value){
@@ -330,7 +369,7 @@
       <div class="list">${items.map(c=>`<article class="list-card" data-client="${c.id}"><div class="list-head"><div><h3>${esc([c.nome,c.cognome].filter(Boolean).join(' '))}</h3><p>${c.telefono?'Tel. '+esc(c.telefono):'Nessun telefono'}</p><p>${esc([c.citta,c.provincia].filter(Boolean).join(' • '))}</p></div><span class="chip">${esc(c.paese||'Italia')}</span></div></article>`).join('')||'<div class="empty">Nessun cliente trovato.</div>'}</div>`;
     $('#newClient').addEventListener('click',()=>openClientForm());
     $('#clientQ').addEventListener('input',debounce(()=>{f.q=$('#clientQ').value;renderClients(v)},180));
-    $$('[data-client]',v).forEach(x=>x.addEventListener('click',()=>openClientDetail(x.dataset.client)));
+    $$$('[data-client]',v).forEach(x=>x.addEventListener('click',()=>openClientDetail(x.dataset.client)));
   }
 
   function renderOrders(v){
@@ -346,7 +385,7 @@
     $('#newOrder').addEventListener('click',()=>openOrderForm());
     const rr=()=>{f.q=$('#orderQ').value;f.status=$('#orderStatus').value;renderOrders(v)};
     $('#orderQ').addEventListener('input',debounce(rr,180));$('#orderStatus').addEventListener('change',rr);
-    $$('[data-order]',v).forEach(x=>x.addEventListener('click',()=>openOrderDetail(x.dataset.order)));
+    $$$('[data-order]',v).forEach(x=>x.addEventListener('click',()=>openOrderDetail(x.dataset.order)));
   }
 
   function orderStates(){return [['nuovo','Nuovo'],['in_preparazione','In preparazione'],['ordinato_fornitore','Ordinato al fornitore'],['ricevuto','Ricevuto'],['pronto','Pronto'],['spedito','Spedito'],['consegnato','Consegnato'],['annullato','Annullato']];}
@@ -372,9 +411,9 @@
     $('#newShipment').addEventListener('click',()=>openShipmentForm());
     const rr=()=>{f.q=$('#shipQ').value;f.status=$('#shipStatus').value;renderShipments(v)};
     $('#shipQ').addEventListener('input',debounce(rr,180));$('#shipStatus').addEventListener('change',rr);
-    $$('[data-shipment]',v).forEach(x=>x.addEventListener('click',e=>{if(e.target.closest('[data-copy],[data-track]'))return;openShipmentForm(x.dataset.shipment)}));
-    $$('[data-copy]',v).forEach(b=>b.addEventListener('click',()=>copyText(b.dataset.copy)));
-    $$('[data-track]',v).forEach(b=>b.addEventListener('click',()=>openTracking(b.dataset.track)));
+    $$$('[data-shipment]',v).forEach(x=>x.addEventListener('click',e=>{if(e.target.closest('[data-copy],[data-track]'))return;openShipmentForm(x.dataset.shipment)}));
+    $$$('[data-copy]',v).forEach(b=>b.addEventListener('click',()=>copyText(b.dataset.copy)));
+    $$$('[data-track]',v).forEach(b=>b.addEventListener('click',()=>openTracking(b.dataset.track)));
   }
 
   function shipmentStates(){return [['da_spedire','Da spedire'],['preparata','Preparata'],['spedita','Spedita'],['in_transito','In transito'],['in_consegna','In consegna'],['consegnata','Consegnata'],['problema_spedizione','Problema spedizione']];}
@@ -581,7 +620,7 @@
     const add=()=>{
       const key=uid();lines.insertAdjacentHTML('beforeend',lineEditor(key));
       const row=$(`[data-line="${key}"]`,root);
-      $$('select,input',row).forEach(x=>x.addEventListener('input',calcOrderForm));
+      $$$('select,input',row).forEach(x=>x.addEventListener('input',calcOrderForm));
       $('[data-remove]',row).addEventListener('click',()=>{row.remove();calcOrderForm();});
       calcOrderForm();
     };
