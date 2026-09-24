@@ -140,8 +140,11 @@ data class Product(
     val photos: List<ProductPhoto> = emptyList()
 ) {
     val totalCost: Double get() = purchasePrice + extraCosts
+    val effectiveSalePrice: Double get() = if (inPromotion && promotionalPrice > 0.0) promotionalPrice else salePrice
     val marginEuro: Double get() = salePrice - totalCost
+    val effectiveMarginEuro: Double get() = effectiveSalePrice - totalCost
     val marginPercent: Double get() = if (salePrice == 0.0) 0.0 else marginEuro / salePrice * 100.0
+    val effectiveMarginPercent: Double get() = if (effectiveSalePrice == 0.0) 0.0 else effectiveMarginEuro / effectiveSalePrice * 100.0
 }
 
 data class ProductDraft(
