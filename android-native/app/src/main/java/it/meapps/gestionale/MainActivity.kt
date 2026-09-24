@@ -605,10 +605,10 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                 Spacer(Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     FilledTonalButton(
-                        onClick = { shareProduct(context, product, null) },
+                        onClick = { shareProduct(context, product, "com.facebook.katana") },
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
-                    ) { Text("Condividi", fontSize = 10.sp, fontWeight = FontWeight.Black) }
+                    ) { Text("Facebook", fontSize = 10.sp, fontWeight = FontWeight.Black) }
                     FilledTonalButton(
                         onClick = { shareProduct(context, product, "org.telegram.messenger") },
                         modifier = Modifier.weight(1f),
@@ -669,6 +669,13 @@ private fun ProductCard(product: Product, vm: AppViewModel) {
 
 @Composable
 private fun CustomersScreen(vm: AppViewModel) {
+    var search by rememberSaveable { mutableStateOf("") }
+    val filteredCustomers = remember(vm.customers, search) {
+        val q = search.trim().lowercase()
+        if (q.isBlank()) vm.customers else vm.customers.filter {
+            listOf(it.displayName, it.phone, it.email, it.city, it.province).any { value -> value.lowercase().contains(q) }
+        }
+    }
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(18.dp),
@@ -678,15 +685,16 @@ private fun CustomersScreen(vm: AppViewModel) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Clienti", fontSize = 24.sp, fontWeight = FontWeight.Black, color = AppNavy)
-                    Text("${vm.customers.size} clienti", color = Color(0xFF64748B))
+                    Text("${filteredCustomers.size} di ${vm.customers.size} clienti", color = Color(0xFF64748B))
                 }
                 FilledTonalButton(onClick = { vm.openCustomer() }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
             }
         }
-        if (vm.customers.isEmpty()) {
-            item { EmptyState("Nessun cliente", "I clienti compariranno qui.") }
+        item { AppTextField(search, { search = it }, "Cerca cliente, telefono o città", leading = { Icon(Icons.Default.Search, null) }) }
+        if (filteredCustomers.isEmpty()) {
+            item { EmptyState("Nessun cliente", if (search.isBlank()) "I clienti compariranno qui." else "Nessun cliente corrisponde alla ricerca.") }
         } else {
-            items(vm.customers, key = { it.id }) { customer ->
+            items(filteredCustomers, key = { it.id }) { customer ->
                 Card(Modifier.fillMaxWidth().clickable { vm.openCustomer(customer) }, shape = RoundedCornerShape(22.dp)) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -710,6 +718,13 @@ private fun CustomersScreen(vm: AppViewModel) {
 
 @Composable
 private fun OrdersScreen(vm: AppViewModel) {
+    var search by rememberSaveable { mutableStateOf("") }
+    val filteredOrders = remember(vm.orders, search) {
+        val q = search.trim().lowercase()
+        if (q.isBlank()) vm.orders else vm.orders.filter {
+            listOf(it.customerName, it.number, it.status, it.trackingCode, it.courier, it.itemNames.joinToString(" ")).any { value -> value.lowercase().contains(q) }
+        }
+    }
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(18.dp),
@@ -719,15 +734,16 @@ private fun OrdersScreen(vm: AppViewModel) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Ordini", fontSize = 24.sp, fontWeight = FontWeight.Black, color = AppNavy)
-                    Text("${vm.orders.size} ordini", color = Color(0xFF64748B))
+                    Text("${filteredOrders.size} di ${vm.orders.size} ordini", color = Color(0xFF64748B))
                 }
                 FilledTonalButton(onClick = { }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
             }
         }
-        if (vm.orders.isEmpty()) {
-            item { EmptyState("Nessun ordine", "Gli ordini compariranno qui.") }
+        item { AppTextField(search, { search = it }, "Cerca cliente, ordine, tracking o articolo", leading = { Icon(Icons.Default.Search, null) }) }
+        if (filteredOrders.isEmpty()) {
+            item { EmptyState("Nessun ordine", if (search.isBlank()) "Gli ordini compariranno qui." else "Nessun ordine corrisponde alla ricerca.") }
         } else {
-            items(vm.orders, key = { it.id }) { order ->
+            items(filteredOrders, key = { it.id }) { order ->
                 Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -984,7 +1000,8 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                 NumberField(
                     d.promotionalPrice,
                     { vm.updateProductDraft(d.copy(promotionalPrice = it)) },
-                    "Prezzo promozionale €"
+                    "Prezzo promozionale €",
+                    Modifier.fillMaxWidth()
                 )
             }
             item {
