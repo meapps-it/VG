@@ -1,13 +1,13 @@
 package it.meapps.gestionale
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
@@ -145,7 +145,7 @@ private fun AuthenticatedApp(vm: AppViewModel) {
         val message = vm.errorMessage ?: vm.noticeMessage
         if (message != null) { snackbar.showSnackbar(message); vm.clearMessages() }
     }
-    val activity = LocalContext.current as? Activity
+    val activity = LocalActivity.current
     BackHandler(enabled = true) {
         if (!vm.navigateBack()) activity?.moveTaskToBack(true)
     }
