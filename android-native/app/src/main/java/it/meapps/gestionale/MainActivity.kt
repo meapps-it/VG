@@ -583,10 +583,10 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                 } else {
                     Text(money(product.salePrice), fontWeight = FontWeight.Black, fontSize = 19.sp, color = AppNavy)
                 }
-                if (product.marginEuro < 0) {
+                if (product.effectiveMarginEuro < 0) {
                     Surface(color = Color(0xFFFFECEA), shape = RoundedCornerShape(10.dp)) {
                         Text(
-                            "Sotto margine ${money(product.marginEuro)}",
+                            "Sotto margine ${money(product.effectiveMarginEuro)}",
                             Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
                             color = Negative,
                             fontSize = 10.sp,
@@ -594,7 +594,7 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                         )
                     }
                 } else {
-                    Text("Margine ${money(product.marginEuro)}", color = Positive, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("Margine ${money(product.effectiveMarginEuro)}", color = if (product.effectiveMarginEuro >= 0) Positive else Negative, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
                 Text(
                     if (product.available && product.quantity > 0) "Disponibili ${product.quantity}" else "Non disponibile",
@@ -1008,7 +1008,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                 val preview = d.toProduct(existing)
                 Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF4FF))) { Column(Modifier.padding(14.dp)) {
                     Text("Costo totale ${money(preview.totalCost)}")
-                    Text("Margine ${money(preview.marginEuro)} · ${"%.1f".format(Locale.ITALY, preview.marginPercent)}%", fontWeight = FontWeight.Bold, color = if (preview.marginEuro >= 0) Positive else Negative)
+                    Text("Margine ${money(preview.effectiveMarginEuro)} · ${"%.1f".format(Locale.ITALY, preview.effectiveMarginPercent)}%", fontWeight = FontWeight.Bold, color = if (preview.effectiveMarginEuro >= 0) Positive else Negative)
                 } }
             }
             item { Row(verticalAlignment = Alignment.CenterVertically) { Switch(d.available, { vm.updateProductDraft(d.copy(available = it)) }); Spacer(Modifier.width(10.dp)); Text(if (d.available) "Disponibile" else "Non disponibile") } }
@@ -1112,8 +1112,8 @@ private fun OrderEditorScreen(vm: AppViewModel) {
     val d = vm.orderDraft
     val selectedProduct = vm.products.firstOrNull { it.id == d.productId }
     val qty = d.quantity.toIntOrNull()?.coerceAtLeast(1) ?: 1
-    val total = (selectedProduct?.salePrice ?: 0.0) * qty
-    val profit = (selectedProduct?.marginEuro ?: 0.0) * qty
+    val total = (selectedProduct?.effectiveSalePrice ?: 0.0) * qty
+    val profit = (selectedProduct?.effectiveMarginEuro ?: 0.0) * qty
 
     Scaffold(
         topBar = {
