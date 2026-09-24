@@ -33,6 +33,37 @@ data class Category(
     val sortOrder: Int = 0
 )
 
+data class Customer(
+    val id: String = "",
+    val firstName: String = "",
+    val lastName: String = "",
+    val phone: String = "",
+    val email: String = "",
+    val address: String = "",
+    val city: String = "",
+    val postalCode: String = "",
+    val province: String = "",
+    val country: String = "Italia",
+    val notes: String = ""
+) {
+    val displayName: String get() = listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "Cliente" }
+}
+
+data class OrderSummary(
+    val id: String = "",
+    val number: String = "",
+    val customerId: String = "",
+    val customerName: String = "",
+    val date: String = "",
+    val status: String = "",
+    val total: Double = 0.0,
+    val totalPaid: Double = 0.0,
+    val profit: Double = 0.0,
+    val trackingCode: String = "",
+    val courier: String = "",
+    val itemNames: List<String> = emptyList()
+)
+
 data class ProductPhoto(
     val id: String,
     val productId: String,
@@ -128,7 +159,7 @@ data class ProductDraft(
     }
 }
 
-enum class MainTab { HOME, ARTICLES, ARCHIVES, SETTINGS }
+enum class MainTab { HOME, ARTICLES, CLIENTS, ORDERS, ARCHIVES, SETTINGS }
 enum class EntityKind { BRAND, SUPPLIER, CATEGORY }
 enum class AppThemeMode { SYSTEM, LIGHT, DARK }
 
