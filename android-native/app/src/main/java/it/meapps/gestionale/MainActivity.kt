@@ -860,8 +860,6 @@ private fun PhotoTile(model: Any?, onDelete: () -> Unit) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CustomerEditorScreen(vm: AppViewModel) {
     val d = vm.customerDraft
@@ -966,8 +964,7 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                         "consegnato" to "Consegnato",
                         "annullato" to "Annullato"
                     ),
-                    { value -> if (value != null) vm.updateOrderDraft(d.copy(status = value)) },
-                    allowEmpty = false
+                    { value -> if (value != null) vm.updateOrderDraft(d.copy(status = value)) }
                 )
             }
             item {
@@ -995,6 +992,7 @@ private fun OrderEditorScreen(vm: AppViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EntityEditorScreen(vm: AppViewModel, kind: EntityKind) {
     val d = vm.entityDraft
