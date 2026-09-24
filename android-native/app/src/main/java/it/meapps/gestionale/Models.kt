@@ -173,6 +173,7 @@ data class ProductDraft(
         purchasePrice.toDoubleOrNull()?.let { it < 0 } == true -> "Il prezzo di acquisto non può essere negativo"
         salePrice.toDoubleOrNull()?.let { it < 0 } == true -> "Il prezzo di vendita non può essere negativo"
         extraCosts.toDoubleOrNull()?.let { it < 0 } == true -> "I costi aggiuntivi non possono essere negativi"
+        inPromotion && (promotionalPrice.toDoubleOrNull() ?: 0.0) <= 0.0 -> "Inserisci un prezzo promozionale valido"
         quantity.toIntOrNull() == null || quantity.toInt() < 0 -> "La quantità deve essere un numero non negativo"
         else -> null
     }
