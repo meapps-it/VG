@@ -154,6 +154,7 @@ private fun AuthenticatedApp(vm: AppViewModel) {
         val label = when (target) {
             is DeleteTarget.ProductTarget -> target.product.name
             is DeleteTarget.EntityTarget -> target.name
+            is DeleteTarget.CustomerTarget -> target.customer.displayName
             is DeleteTarget.PhotoTarget -> "questa foto"
         }
         AlertDialog(
@@ -1129,6 +1130,15 @@ private fun CustomerEditorScreen(vm: AppViewModel) {
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(18.dp)
                 ) { Text(if (vm.saving) "Salvataggio…" else "Salva cliente", fontWeight = FontWeight.Black) }
+            }
+            if (d.id.isNotBlank()) item {
+                val customer = vm.customers.firstOrNull { it.id == d.id }
+                if (customer != null) {
+                    OutlinedButton(
+                        onClick = { vm.requestDelete(DeleteTarget.CustomerTarget(customer)) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Elimina cliente", color = Negative) }
+                }
             }
         }
     }
