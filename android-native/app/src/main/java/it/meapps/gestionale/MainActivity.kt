@@ -635,7 +635,10 @@ private fun shareProduct(context: android.content.Context, product: Product, tar
         append(product.name)
         val code = product.code.ifBlank { product.sku }
         if (code.isNotBlank()) append("\nCodice: ").append(code)
-        if (product.salePrice > 0) append("\nPrezzo: ").append(money(product.salePrice))
+        if (product.effectiveSalePrice > 0) {
+            append("\nPrezzo: ").append(money(product.effectiveSalePrice))
+            if (product.inPromotion && product.promotionalPrice > 0) append(" (promo)")
+        }
         if (product.productUrl.isNotBlank()) append("\n").append(product.productUrl)
     }
     val intent = Intent(Intent.ACTION_SEND).apply {
