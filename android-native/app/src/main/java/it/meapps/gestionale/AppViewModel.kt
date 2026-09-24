@@ -418,6 +418,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             errorMessage = when {
                 t.message?.contains("duplicate", true) == true -> "Esiste già un elemento con questo nome o codice"
+                t.message?.contains("foreign key", true) == true || t.message?.contains("violates", true) == true ->
+                    "Questo elemento è collegato ad altri dati e non può essere eliminato finché è in uso."
                 t is java.net.UnknownHostException -> "Connessione assente. Controlla Internet e riprova."
                 else -> t.message ?: "Operazione non riuscita"
             }
