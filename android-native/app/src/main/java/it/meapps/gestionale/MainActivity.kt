@@ -168,8 +168,6 @@ private fun AuthenticatedApp(vm: AppViewModel) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -953,6 +951,8 @@ private fun money(value: Double): String = NumberFormat.getCurrencyInstance(Loca
 private fun tabTitle(tab: MainTab): String = when (tab) {
     MainTab.HOME -> "Dashboard"
     MainTab.ARTICLES -> "Articoli"
+    MainTab.CLIENTS -> "Clienti"
+    MainTab.ORDERS -> "Ordini"
     MainTab.ARCHIVES -> "Anagrafiche"
     MainTab.SETTINGS -> "Impostazioni"
 }
