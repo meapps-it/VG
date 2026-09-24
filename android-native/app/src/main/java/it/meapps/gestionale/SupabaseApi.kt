@@ -355,6 +355,10 @@ class SupabaseApi(private val context: Context) {
 
     private suspend fun fetchSingleProduct(id: String): Product = fetchProducts().first { it.id == id }
 
+    suspend fun deleteCustomer(id: String) {
+        delete("clienti?id=eq.$id")
+    }
+
     suspend fun deleteEntity(kind: EntityKind, id: String) {
         val table = when (kind) { EntityKind.BRAND -> "marche"; EntityKind.SUPPLIER -> "fornitori"; EntityKind.CATEGORY -> "categorie" }
         delete("$table?id=eq.$id")
