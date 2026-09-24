@@ -221,6 +221,8 @@ class SupabaseApi(private val context: Context) {
                 purchasePrice = it.number("prezzo_acquisto"), salePrice = it.number("prezzo_vendita"),
                 extraCosts = it.number("costi_aggiuntivi"), quantity = it.optInt("giacenza"),
                 available = it.optBoolean("disponibile", it.optBoolean("attivo", true)),
+                inPromotion = it.optBoolean("in_promozione", false),
+                promotionalPrice = it.number("prezzo_promozionale"),
                 notes = it.string("note").ifBlank { it.string("note_interne") },
                 productUrl = it.string("link_prodotto"), createdAt = it.string("created_at"),
                 updatedAt = it.string("updated_at"), photos = photos[it.string("id")].orEmpty()
@@ -336,6 +338,8 @@ class SupabaseApi(private val context: Context) {
             .put("prezzo_acquisto", value.purchasePrice).put("prezzo_vendita", value.salePrice)
             .put("costi_aggiuntivi", value.extraCosts).put("giacenza", value.quantity)
             .put("disponibile", value.available).put("attivo", value.available)
+            .put("in_promozione", value.inPromotion)
+            .put("prezzo_promozionale", value.promotionalPrice)
             .putNullable("note", value.notes).putNullable("link_prodotto", value.productUrl)
         val result = if (value.id.isBlank()) {
             body.put("user_id", requireSession().userId)
