@@ -7,6 +7,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -51,6 +52,7 @@ private val AppBackground = Color(0xFFF7F8FC)
 private val Positive = Color(0xFF087443)
 private val Negative = Color(0xFFB42318)
 
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     private val viewModel by viewModels<AppViewModel>()
 
@@ -146,6 +148,7 @@ private fun AuthenticatedApp(vm: AppViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
     Scaffold(
@@ -158,9 +161,9 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
         },
         bottomBar = {
             NavigationBar {
-                NavigationBarItem(vm.selectedTab == MainTab.ARTICLES, { vm.selectTab(MainTab.ARTICLES) }, { Icon(Icons.Default.Inventory2, null) }, { Text("Articoli") })
-                NavigationBarItem(vm.selectedTab == MainTab.ARCHIVES, { vm.selectTab(MainTab.ARCHIVES) }, { Icon(Icons.Default.ListAlt, null) }, { Text("Anagrafiche") })
-                NavigationBarItem(vm.selectedTab == MainTab.SETTINGS, { vm.selectTab(MainTab.SETTINGS) }, { Icon(Icons.Default.Settings, null) }, { Text("Impostazioni") })
+                NavigationBarItem(selected = vm.selectedTab == MainTab.ARTICLES, onClick = { vm.selectTab(MainTab.ARTICLES) }, icon = { Icon(Icons.Default.Inventory2, null) }, label = { Text("Articoli") })
+                NavigationBarItem(selected = vm.selectedTab == MainTab.ARCHIVES, onClick = { vm.selectTab(MainTab.ARCHIVES) }, icon = { Icon(Icons.Default.ListAlt, null) }, label = { Text("Anagrafiche") })
+                NavigationBarItem(selected = vm.selectedTab == MainTab.SETTINGS, onClick = { vm.selectTab(MainTab.SETTINGS) }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Impostazioni") })
             }
         },
         floatingActionButton = {
@@ -224,6 +227,7 @@ private fun ProductCard(product: Product, vm: AppViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ArchivesScreen(vm: AppViewModel) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
@@ -241,7 +245,7 @@ private fun ArchivesScreen(vm: AppViewModel) {
             EntityKind.SUPPLIER -> vm.suppliers.map { Triple(it.id, it.name, listOf(it.contact, it.phone, it.email).filter(String::isNotBlank).joinToString(" · ")) }
             EntityKind.CATEGORY -> vm.categories.sortedBy { it.sortOrder }.map { Triple(it.id, it.name, "Ordine ${it.sortOrder}${it.description.takeIf(String::isNotBlank)?.let { d -> " · $d" }.orEmpty()}") }
         }
-        if (rows.isEmpty()) EmptyState("Nessun dato", "Aggiungi una voce. L’app non carica marche o fornitori decisi da lei.")
+        if (rows.isEmpty()) EmptyState("Nessun dato", "Aggiungi una voce. L’app non carica marche o fornitori predefiniti.")
         else LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(rows, key = { it.first }) { row ->
                 Card(Modifier.fillMaxWidth().clickable { vm.openEntity(vm.archiveKind, row.first) }) {
@@ -288,6 +292,7 @@ private fun SettingsScreen(vm: AppViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProductEditorScreen(vm: AppViewModel) {
     val d = vm.productDraft
@@ -299,8 +304,9 @@ private fun ProductEditorScreen(vm: AppViewModel) {
         if (granted) {
             val dir = File(context.cacheDir, "camera").apply { mkdirs() }
             val file = File(dir, "photo-${System.currentTimeMillis()}.jpg")
-            cameraUri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
-            takePicture.launch(cameraUri)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
+            cameraUri = uri
+            takePicture.launch(uri)
         }
     }
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(6)) { it.forEach(vm::addPendingPhoto) }
@@ -308,8 +314,9 @@ private fun ProductEditorScreen(vm: AppViewModel) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             val dir = File(context.cacheDir, "camera").apply { mkdirs() }
             val file = File(dir, "photo-${System.currentTimeMillis()}.jpg")
-            cameraUri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
-            takePicture.launch(cameraUri)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
+            cameraUri = uri
+            takePicture.launch(uri)
         } else cameraPermission.launch(Manifest.permission.CAMERA)
     }
 
@@ -392,6 +399,7 @@ private fun PhotoTile(model: Any?, onDelete: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EntityEditorScreen(vm: AppViewModel, kind: EntityKind) {
     val d = vm.entityDraft
