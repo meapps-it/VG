@@ -314,7 +314,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
             deleteTarget = null
             loadAllInternal()
-            if (target is DeleteTarget.ProductTarget) closeEditor()
+            if (target is DeleteTarget.ProductTarget || target is DeleteTarget.CustomerTarget) closeEditor()
             noticeMessage = "Eliminazione completata"
         }
     }
