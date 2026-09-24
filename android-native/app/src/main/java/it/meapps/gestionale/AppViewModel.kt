@@ -374,6 +374,35 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         fun categoryJson(value: Category) = JSONObject().apply {
             put("id", value.id); put("name", value.name); put("description", value.description); put("sort_order", value.sortOrder)
         }
+        fun customerJson(value: Customer) = JSONObject().apply {
+            put("id", value.id)
+            put("first_name", value.firstName)
+            put("last_name", value.lastName)
+            put("phone", value.phone)
+            put("email", value.email)
+            put("address", value.address)
+            put("city", value.city)
+            put("postal_code", value.postalCode)
+            put("province", value.province)
+            put("country", value.country)
+            put("notes", value.notes)
+        }
+        fun orderJson(value: OrderSummary) = JSONObject().apply {
+            put("id", value.id)
+            put("number", value.number)
+            put("customer_id", value.customerId)
+            put("customer_name", value.customerName)
+            put("date", value.date)
+            put("status", value.status)
+            put("total", value.total)
+            put("total_paid", value.totalPaid)
+            put("paid", value.paid)
+            put("payment_status", value.paymentStatus)
+            put("profit", value.profit)
+            put("tracking_code", value.trackingCode)
+            put("courier", value.courier)
+            put("items", JSONArray(value.itemNames))
+        }
         fun productJson(value: Product) = JSONObject().apply {
             put("id", value.id); put("name", value.name); put("code", value.code); put("sku", value.sku)
             put("brand_id", value.brandId); put("category_id", value.categoryId); put("supplier_id", value.supplierId)
@@ -394,6 +423,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             put("brands", JSONArray(brands.map(::brandJson)))
             put("suppliers", JSONArray(suppliers.map(::supplierJson)))
             put("categories", JSONArray(categories.map(::categoryJson)))
+            put("customers", JSONArray(customers.map(::customerJson)))
+            put("orders", JSONArray(orders.map(::orderJson)))
             put("products", JSONArray(products.map(::productJson)))
         }.toString(2)
     }
