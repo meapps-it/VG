@@ -790,8 +790,18 @@ private fun OrdersScreen(vm: AppViewModel) {
                             )
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Totale pagato: ${money(if (order.totalPaid > 0) order.totalPaid else order.total)}", fontWeight = FontWeight.Bold, color = Positive)
-                            Text("Guadagno ${money(order.profit)}", fontWeight = FontWeight.Bold, color = Positive)
+                            val amountLabel = if (order.paid || order.totalPaid > 0) "Pagato" else "Totale"
+                            val amount = if (order.totalPaid > 0) order.totalPaid else order.total
+                            Text("$amountLabel: ${money(amount)}", fontWeight = FontWeight.Bold, color = if (order.paid || order.totalPaid > 0) Positive else AppNavy)
+                            Text("Guadagno ${money(order.profit)}", fontWeight = FontWeight.Bold, color = if (order.profit >= 0) Positive else Negative)
+                        }
+                        if (order.paymentStatus.isNotBlank()) {
+                            Text(
+                                "Pagamento: " + order.paymentStatus.replace('_', ' '),
+                                color = Color(0xFF64748B),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                         if (order.trackingCode.isNotBlank()) Text("Tracking: ${order.trackingCode}", color = Color(0xFF64748B))
                     }
