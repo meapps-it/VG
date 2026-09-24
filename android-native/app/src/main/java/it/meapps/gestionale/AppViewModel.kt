@@ -271,7 +271,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setFontScale(value: Float) {
+    fun updateFontScale(value: Float) {
         fontScale = value.coerceIn(.85f, 1.35f)
         prefs.edit().putFloat("font_scale", fontScale).apply()
     }

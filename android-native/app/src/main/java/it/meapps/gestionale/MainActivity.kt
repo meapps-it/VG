@@ -271,7 +271,7 @@ private fun SettingsScreen(vm: AppViewModel) {
             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(18.dp)) {
                 Text("Dimensione testo", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Text("${(vm.fontScale * 100).toInt()}%", color = Color(0xFF667085))
-                Slider(value = vm.fontScale, onValueChange = vm::setFontScale, valueRange = .85f..1.35f, steps = 9)
+                Slider(value = vm.fontScale, onValueChange = vm::updateFontScale, valueRange = .85f..1.35f, steps = 9)
             } }
         }
         item {
