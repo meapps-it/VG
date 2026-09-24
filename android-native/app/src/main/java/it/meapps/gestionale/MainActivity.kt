@@ -1,6 +1,7 @@
 package it.meapps.gestionale
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -144,7 +145,10 @@ private fun AuthenticatedApp(vm: AppViewModel) {
         val message = vm.errorMessage ?: vm.noticeMessage
         if (message != null) { snackbar.showSnackbar(message); vm.clearMessages() }
     }
-    BackHandler(enabled = vm.canNavigateBack()) { vm.navigateBack() }
+    val activity = LocalContext.current as? Activity
+    BackHandler(enabled = true) {
+        if (!vm.navigateBack()) activity?.moveTaskToBack(true)
+    }
 
     vm.deleteTarget?.let { target ->
         val label = when (target) {
