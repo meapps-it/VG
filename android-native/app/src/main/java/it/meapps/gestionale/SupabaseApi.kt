@@ -164,6 +164,49 @@ class SupabaseApi(private val context: Context) {
         Category(it.string("id"), it.string("nome"), it.string("descrizione"), it.optInt("sort_order"))
     }
 
+    suspend fun fetchCustomers(): List<Customer> =
+        getArray("clienti?select=*&order=nome.asc,cognome.asc").objects().map {
+            Customer(
+                id = it.string("id"),
+                firstName = it.string("nome"),
+                lastName = it.string("cognome"),
+                phone = it.string("telefono"),
+                email = it.string("email"),
+                address = it.string("indirizzo"),
+                city = it.string("citta"),
+                postalCode = it.string("cap"),
+                province = it.string("provincia"),
+                country = it.string("paese").ifBlank { "Italia" },
+                notes = it.string("note")
+            )
+        }
+
+    suspend fun fetchOrders(): List<OrderSummary> {
+        val customers = fetchCustomers().associateBy { it.id }
+        val products = getArray("prodotti?select=id,nome").objects().associate { it.string("id") to it.string("nome") }
+        val rowsByOrder = getArray("righe_ordine?select=ordine_id,prodotto_id,quantita").objects()
+            .groupBy { it.string("ordine_id") }
+        return getArray("ordini?select=*&order=data_ordine.desc,created_at.desc").objects().map { o ->
+            val names = rowsByOrder[o.string("id")].orEmpty().mapNotNull { row ->
+                products[row.string("prodotto_id")]?.takeIf { it.isNotBlank() }
+            }
+            OrderSummary(
+                id = o.string("id"),
+                number = o.string("numero_ordine"),
+                customerId = o.string("cliente_id"),
+                customerName = customers[o.string("cliente_id")]?.displayName.orEmpty(),
+                date = o.string("data_ordine"),
+                status = o.string("stato"),
+                total = o.number("totale"),
+                totalPaid = o.number("totale_pagato"),
+                profit = o.number("guadagno"),
+                trackingCode = o.string("tracking_code"),
+                courier = o.string("corriere"),
+                itemNames = names
+            )
+        }
+    }
+
     suspend fun fetchProducts(): List<Product> {
         val photos = getArray("prodotti_foto?select=*&order=ordine.asc").objects().map {
             ProductPhoto(it.string("id"), it.string("prodotto_id"), it.string("path"), it.optInt("ordine"))
