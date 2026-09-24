@@ -228,6 +228,73 @@ class SupabaseApi(private val context: Context) {
         }
     }
 
+    suspend fun saveCustomer(value: Customer): Customer {
+        val body = JSONObject()
+            .put("nome", value.firstName.trim())
+            .putNullable("cognome", value.lastName)
+            .putNullable("telefono", value.phone)
+            .putNullable("email", value.email)
+            .putNullable("indirizzo", value.address)
+            .putNullable("citta", value.city)
+            .putNullable("cap", value.postalCode)
+            .putNullable("provincia", value.province)
+            .putNullable("paese", value.country.ifBlank { "Italia" })
+            .putNullable("note", value.notes)
+        val result = if (value.id.isBlank()) {
+            body.put("user_id", requireSession().userId)
+            postObject("clienti", body)
+        } else {
+            patchObject("clienti?id=eq.${value.id}", body)
+        }
+        return Customer(
+            id = result.string("id"),
+            firstName = result.string("nome"),
+            lastName = result.string("cognome"),
+            phone = result.string("telefono"),
+            email = result.string("email"),
+            address = result.string("indirizzo"),
+            city = result.string("citta"),
+            postalCode = result.string("cap"),
+            province = result.string("provincia"),
+            country = result.string("paese").ifBlank { "Italia" },
+            notes = result.string("note")
+        )
+    }
+
+    suspend fun createOrder(draft: OrderDraft, product: Product): String {
+        val current = requireSession()
+        val qty = draft.quantity.toIntOrNull()?.coerceAtLeast(1) ?: 1
+        val total = product.salePrice * qty
+        val profit = product.marginEuro * qty
+        val orderBody = JSONObject()
+            .put("user_id", current.userId)
+            .put("numero_ordine", "ORD-" + System.currentTimeMillis())
+            .put("cliente_id", draft.customerId)
+            .put("data_ordine", draft.date)
+            .put("stato", draft.status)
+            .put("totale", total)
+            .put("totale_pagato", 0)
+            .put("guadagno", profit)
+            .put("stato_pagamento", "da_pagare")
+            .put("pagato", false)
+            .putNullable("tracking_code", draft.trackingCode)
+            .putNullable("corriere", draft.courier)
+            .putNullable("note", draft.notes)
+        val order = postObject("ordini", orderBody)
+        val orderId = order.string("id")
+        val rowBody = JSONObject()
+            .put("user_id", current.userId)
+            .put("ordine_id", orderId)
+            .put("prodotto_id", product.id)
+            .put("quantita", qty)
+            .put("prezzo_unitario", product.salePrice)
+            .put("costo_unitario", product.totalCost)
+            .put("guadagno_riga", profit)
+            .put("sconto", 0)
+        postObject("righe_ordine", rowBody)
+        return orderId
+    }
+
     suspend fun saveBrand(value: Brand): Brand {
         val body = JSONObject().put("nome", value.name.trim()).putNullable("note", value.notes)
         return if (value.id.isBlank()) {
