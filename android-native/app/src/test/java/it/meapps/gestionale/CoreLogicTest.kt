@@ -30,4 +30,27 @@ class CoreLogicTest {
         assertNotNull(ProductDraft(name = "Test", quantity = "x").validate())
         assertNull(ProductDraft(name = "Test", quantity = "0").validate())
     }
+    @Test fun promotionChangesEffectivePriceAndMargin() {
+        val p = Product(
+            purchasePrice = 60.0,
+            extraCosts = 10.0,
+            salePrice = 100.0,
+            inPromotion = true,
+            promotionalPrice = 80.0
+        )
+        assertEquals(80.0, p.effectiveSalePrice, 0.001)
+        assertEquals(10.0, p.effectiveMarginEuro, 0.001)
+        assertEquals(12.5, p.effectiveMarginPercent, 0.001)
+    }
+
+    @Test fun regularPriceRemainsEffectiveWhenPromotionIsDisabled() {
+        val p = Product(
+            purchasePrice = 50.0,
+            salePrice = 90.0,
+            inPromotion = false,
+            promotionalPrice = 70.0
+        )
+        assertEquals(90.0, p.effectiveSalePrice, 0.001)
+        assertEquals(40.0, p.effectiveMarginEuro, 0.001)
+    }
 }
