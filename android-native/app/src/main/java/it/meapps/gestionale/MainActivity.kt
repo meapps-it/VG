@@ -438,6 +438,13 @@ private fun ProductsScreen(vm: AppViewModel) {
             SelectionField("Categoria", vm.categoryFilter, vm.categories.map { it.id to it.name }, { vm.categoryFilter = it }, compact = true)
             SelectionField("Marca", vm.brandFilter, vm.brands.map { it.id to it.name }, { vm.brandFilter = it }, compact = true)
             SelectionField("Fornitore", vm.supplierFilter, vm.suppliers.map { it.id to it.name }, { vm.supplierFilter = it }, compact = true)
+            SelectionField(
+                "Qualità",
+                vm.qualityFilter,
+                vm.products.map { it.quality.trim() }.filter { it.isNotBlank() }.distinct().sorted().map { it to it },
+                { vm.qualityFilter = it },
+                compact = true
+            )
         }
 
         Spacer(Modifier.height(8.dp))
@@ -571,6 +578,9 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                 }
                 Text(product.name, fontWeight = FontWeight.Black, maxLines = 2, minLines = if (vm.compactMode) 1 else 2, color = AppNavy)
                 Text(code, color = Color(0xFF64748B), fontSize = 11.sp, maxLines = 1)
+                if (product.quality.isNotBlank()) {
+                    Text(product.quality, color = Color(0xFF475569), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                }
                 Spacer(Modifier.height(2.dp))
                 if (product.inPromotion && product.promotionalPrice > 0) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -979,6 +989,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
             item { SelectionField("Marca (facoltativa)", d.brandId, vm.brands.map { it.id to it.name }, { vm.updateProductDraft(d.copy(brandId = it)) }) }
             item { SelectionField("Categoria (facoltativa)", d.categoryId, vm.categories.map { it.id to it.name }, { vm.updateProductDraft(d.copy(categoryId = it)) }) }
             item { SelectionField("Fornitore (facoltativo)", d.supplierId, vm.suppliers.map { it.id to it.name }, { vm.updateProductDraft(d.copy(supplierId = it)) }) }
+            item { AppTextField(d.quality, { vm.updateProductDraft(d.copy(quality = it)) }, "Qualità (facoltativa)") }
             item { AppTextField(d.description, { vm.updateProductDraft(d.copy(description = it)) }, "Descrizione", minLines = 3) }
             item { SectionTitle("Prezzi e disponibilità") }
             item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
