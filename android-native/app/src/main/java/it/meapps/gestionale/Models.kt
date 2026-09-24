@@ -100,6 +100,9 @@ data class OrderDraft(
     val quantity: String = "1",
     val date: String = java.time.LocalDate.now().toString(),
     val status: String = "in_lavorazione",
+    val paid: Boolean = false,
+    val amountPaid: String = "",
+    val paymentMethod: String = "altro",
     val trackingCode: String = "",
     val courier: String = "",
     val notes: String = ""
@@ -108,6 +111,7 @@ data class OrderDraft(
         customerId.isNullOrBlank() -> "Seleziona un cliente"
         productId.isNullOrBlank() -> "Seleziona un articolo"
         quantity.toIntOrNull() == null || quantity.toInt() <= 0 -> "La quantità deve essere maggiore di zero"
+        paid && amountPaid.isNotBlank() && (amountPaid.toDoubleOrNull() ?: -1.0) < 0.0 -> "L'importo pagato non è valido"
         else -> null
     }
 }
