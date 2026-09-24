@@ -49,6 +49,8 @@ import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import java.io.File
 import java.text.DateFormat
+import java.time.LocalDate
+import java.time.YearMonth
 import java.text.NumberFormat
 import java.util.Date
 import java.util.Locale
@@ -166,35 +168,87 @@ private fun AuthenticatedApp(vm: AppViewModel) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
+    var menuOpen by remember { mutableStateOf(false) }
+    val nowText = remember { DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.SHORT, Locale.ITALIAN).format(Date()) }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            TopAppBar(
-                title = { Column { Text("Gestionale", fontWeight = FontWeight.Black); Text(tabTitle(vm.selectedTab), fontSize = 12.sp, color = Color(0xFFCBD5E1)) } },
-                actions = { IconButton(onClick = vm::loadAll) { Icon(Icons.Default.Refresh, "Aggiorna", tint = Color.White) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = AppNavy, titleContentColor = Color.White)
-            )
+            Surface(color = AppNavy, shadowElevation = 2.dp) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Gestionale", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                        Text(nowText, color = Color(0xFFD6D9E2), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Box {
+                        FilledTonalIconButton(
+                            onClick = { menuOpen = true },
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = Color(0xFF1E293B),
+                                contentColor = Color.White
+                            )
+                        ) { Icon(Icons.Default.Menu, "Menu") }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Anagrafiche") },
+                                leadingIcon = { Icon(Icons.Default.ListAlt, null) },
+                                onClick = { menuOpen = false; vm.selectTab(MainTab.ARCHIVES) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Impostazioni") },
+                                leadingIcon = { Icon(Icons.Default.Settings, null) },
+                                onClick = { menuOpen = false; vm.selectTab(MainTab.SETTINGS) }
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Aggiorna dati") },
+                                leadingIcon = { Icon(Icons.Default.Refresh, null) },
+                                onClick = { menuOpen = false; vm.loadAll() }
+                            )
+                        }
+                    }
+                }
+            }
         },
         bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                NavigationBarItem(selected = vm.selectedTab == MainTab.HOME, onClick = { vm.selectTab(MainTab.HOME) }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Home") })
-                NavigationBarItem(selected = vm.selectedTab == MainTab.ARTICLES, onClick = { vm.selectTab(MainTab.ARTICLES) }, icon = { Icon(Icons.Default.Inventory2, null) }, label = { Text("Articoli") })
-                NavigationBarItem(selected = vm.selectedTab == MainTab.ARCHIVES, onClick = { vm.selectTab(MainTab.ARCHIVES) }, icon = { Icon(Icons.Default.ListAlt, null) }, label = { Text("Anagrafiche") })
-                NavigationBarItem(selected = vm.selectedTab == MainTab.SETTINGS, onClick = { vm.selectTab(MainTab.SETTINGS) }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Impost.") })
+            Surface(shadowElevation = 12.dp, color = Color.White) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    BottomPill("Dashboard", vm.selectedTab == MainTab.HOME, Modifier.weight(1f)) { vm.selectTab(MainTab.HOME) }
+                    BottomPill("Articoli", vm.selectedTab == MainTab.ARTICLES, Modifier.weight(1f)) { vm.selectTab(MainTab.ARTICLES) }
+                    BottomPill("Clienti", vm.selectedTab == MainTab.CLIENTS, Modifier.weight(1f)) { vm.selectTab(MainTab.CLIENTS) }
+                    BottomPill("Ordini", vm.selectedTab == MainTab.ORDERS, Modifier.weight(1f)) { vm.selectTab(MainTab.ORDERS) }
+                }
             }
         },
         floatingActionButton = {
-            if (vm.selectedTab == MainTab.ARTICLES || vm.selectedTab == MainTab.ARCHIVES) FloatingActionButton(onClick = {
-                if (vm.selectedTab == MainTab.ARTICLES) vm.openProduct() else vm.openEntity(vm.archiveKind)
-            }, containerColor = AppAmber, contentColor = AppNavy) { Icon(Icons.Default.Add, "Aggiungi") }
+            if (vm.selectedTab == MainTab.ARTICLES || vm.selectedTab == MainTab.ARCHIVES) {
+                FloatingActionButton(
+                    onClick = {
+                        if (vm.selectedTab == MainTab.ARTICLES) vm.openProduct()
+                        else vm.openEntity(vm.archiveKind)
+                    },
+                    containerColor = AppAmber,
+                    contentColor = AppNavy
+                ) { Icon(Icons.Default.Add, "Aggiungi") }
+            }
         }
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             when (vm.selectedTab) {
                 MainTab.HOME -> HomeScreen(vm)
                 MainTab.ARTICLES -> ProductsScreen(vm)
+                MainTab.CLIENTS -> CustomersScreen(vm)
+                MainTab.ORDERS -> OrdersScreen(vm)
                 MainTab.ARCHIVES -> ArchivesScreen(vm)
                 MainTab.SETTINGS -> SettingsScreen(vm)
             }
@@ -204,70 +258,143 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
 }
 
 @Composable
+private fun BottomPill(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Surface(
+        modifier = modifier.height(52.dp).clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        color = if (selected) Color(0xFFFFF3CF) else Color.White,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (selected) AppAmber else Color(0xFFCBD5E1)
+        )
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(label, fontWeight = FontWeight.Black, fontSize = 13.sp, color = AppNavy, maxLines = 1)
+        }
+    }
+}
+
+@Composable
 private fun HomeScreen(vm: AppViewModel) {
-    val available = vm.products.count { it.available && it.quantity > 0 }
-    val unavailable = vm.products.size - available
-    val inventoryCost = vm.products.sumOf { it.totalCost * it.quantity }
-    val salesValue = vm.products.sumOf { it.salePrice * it.quantity }
-    val expectedMargin = salesValue - inventoryCost
+    val orders = vm.orders
+    val currentMonth = YearMonth.now()
+    val monthProfit = orders.filter {
+        runCatching { YearMonth.from(LocalDate.parse(it.date)) == currentMonth }.getOrDefault(false)
+    }.sumOf { it.profit }
+    val totalProfit = orders.sumOf { it.profit }
+    val activeOrders = orders.count { it.status != "consegnato" && it.status != "annullato" }
+    val averageOrder = if (orders.isEmpty()) 0.0 else orders.sumOf { if (it.totalPaid > 0) it.totalPaid else it.total } / orders.size
+
+    val monthNames = listOf("Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic")
+    val sixMonths = (5 downTo 0).map { currentMonth.minusMonths(it.toLong()) }
+    val monthValues = sixMonths.map { month ->
+        orders.filter { runCatching { YearMonth.from(LocalDate.parse(it.date)) == month }.getOrDefault(false) }
+            .sumOf { if (it.totalPaid > 0) it.totalPaid else it.total }
+    }
+    val maxValue = (monthValues.maxOrNull() ?: 0.0).coerceAtLeast(1.0)
+
     LazyColumn(
-        Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = WarmSurface),
-                shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF8)),
+                shape = RoundedCornerShape(28.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("PANORAMICA", color = Color(0xFF92400E), fontWeight = FontWeight.Black, fontSize = 11.sp)
-                    Text("Il tuo catalogo, senza fronzoli", color = AppNavy, fontWeight = FontWeight.Black, fontSize = 24.sp)
-                    Text("Articoli, disponibilità e margini aggiornati dal cloud.", color = Color(0xFF475569))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { vm.openProduct() }, colors = ButtonDefaults.buttonColors(containerColor = AppNavy)) {
-                            Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo articolo")
+                    Text("NOVITÀ IN PRIMO PIANO", color = Color(0xFF64748B), fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Text(
+                        if (orders.size < 4) "Vendite sotto media" else "Andamento vendite",
+                        fontSize = 25.sp, fontWeight = FontWeight.Black, color = AppNavy
+                    )
+                    Text(
+                        if (orders.size < 4) "Meno di una vendita a settimana: serve più movimento."
+                        else "Qui vedi l'andamento reale degli ultimi sei mesi.",
+                        color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("ANDAMENTO ULTIMI 6 MESI", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color(0xFF64748B))
+                        Text("INCASSATO", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color(0xFF64748B))
+                    }
+                    Row(
+                        Modifier.fillMaxWidth().height(110.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        sixMonths.forEachIndexed { index, month ->
+                            val h = (18 + (monthValues[index] / maxValue * 72)).dp
+                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    Modifier.fillMaxWidth().height(h)
+                                        .background(if (index == 5) AppAmber else AppBlue, RoundedCornerShape(14.dp))
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                Text(monthNames[month.monthValue - 1], fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                            }
                         }
-                        OutlinedButton(onClick = { vm.selectTab(MainTab.ARTICLES) }) { Text("Apri catalogo") }
                     }
                 }
             }
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                DashboardStat("Articoli", vm.products.size.toString(), AppBlue, Modifier.weight(1f))
-                DashboardStat("Disponibili", available.toString(), Positive, Modifier.weight(1f))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                LegacyStatCard("ORDINI IN CORSO", activeOrders.toString(), "non ancora consegnati", Modifier.weight(1f))
+                LegacyStatCard("GUADAGNO MESE", money(monthProfit), "margine del mese corrente", Modifier.weight(1f), Positive)
             }
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                DashboardStat("Non disponibili", unavailable.toString(), Negative, Modifier.weight(1f))
-                DashboardStat("Quantità", vm.products.sumOf { it.quantity }.toString(), AppAmber, Modifier.weight(1f))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                LegacyStatCard("MEDIA ORDINI", money(averageOrder), "valore medio per ordine", Modifier.weight(1f))
+                LegacyStatCard("GUADAGNO TOTALE", money(totalProfit), "margine complessivo", Modifier.weight(1f), Positive)
             }
         }
         item {
-            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Valore del catalogo", fontWeight = FontWeight.Black, fontSize = 18.sp)
-                    ValueRow("Costo inventario", money(inventoryCost))
-                    ValueRow("Vendite potenziali", money(salesValue))
-                    HorizontalDivider()
-                    ValueRow("Margine potenziale", money(expectedMargin), if (expectedMargin >= 0) Positive else Negative)
+                    Text("Azioni rapide", fontSize = 22.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                    Button(
+                        onClick = { vm.openProduct() },
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
+                    ) { Text("Nuovo articolo", fontWeight = FontWeight.Black) }
+                    OutlinedButton(
+                        onClick = { vm.selectTab(MainTab.ORDERS) },
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(18.dp)
+                    ) { Text("Nuovo ordine", fontWeight = FontWeight.Black, color = AppNavy) }
+                    OutlinedButton(
+                        onClick = { vm.selectTab(MainTab.CLIENTS) },
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(18.dp)
+                    ) { Text("Nuovo cliente", fontWeight = FontWeight.Black, color = AppNavy) }
                 }
             }
         }
-        item {
-            Text("Anagrafiche", fontWeight = FontWeight.Black, fontSize = 19.sp)
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                QuickArchive("Marche", vm.brands.size, Icons.Default.Label, Modifier.weight(1f)) { vm.archiveKind = EntityKind.BRAND; vm.selectTab(MainTab.ARCHIVES) }
-                QuickArchive("Fornitori", vm.suppliers.size, Icons.Default.LocalShipping, Modifier.weight(1f)) { vm.archiveKind = EntityKind.SUPPLIER; vm.selectTab(MainTab.ARCHIVES) }
-                QuickArchive("Categorie", vm.categories.size, Icons.Default.Category, Modifier.weight(1f)) { vm.archiveKind = EntityKind.CATEGORY; vm.selectTab(MainTab.ARCHIVES) }
-            }
-        }
-        item { Spacer(Modifier.height(72.dp)) }
+        item { Spacer(Modifier.height(12.dp)) }
     }
 }
 
+@Composable
+private fun LegacyStatCard(
+    title: String,
+    value: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    valueColor: Color = AppNavy
+) {
+    Card(modifier, shape = RoundedCornerShape(22.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFF475569))
+            Text(value, fontSize = 25.sp, fontWeight = FontWeight.Black, color = valueColor, maxLines = 1)
+            Text(subtitle, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF64748B))
+        }
+    }
+}
 @Composable
 private fun DashboardStat(label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
     Card(modifier, shape = RoundedCornerShape(18.dp)) {
@@ -376,6 +503,116 @@ private fun ProductCard(product: Product, vm: AppViewModel) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+
+@Composable
+private fun CustomersScreen(vm: AppViewModel) {
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Clienti", fontSize = 24.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                    Text("${vm.customers.size} clienti", color = Color(0xFF64748B))
+                }
+                FilledTonalButton(onClick = { }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
+            }
+        }
+        if (vm.customers.isEmpty()) {
+            item { EmptyState("Nessun cliente", "I clienti compariranno qui.") }
+        } else {
+            items(vm.customers, key = { it.id }) { customer ->
+                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
+                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(customer.displayName, fontSize = 19.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                            if (customer.phone.isNotBlank()) Text("Tel. ${customer.phone}", color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold)
+                            val place = listOf(customer.city, customer.province).filter { it.isNotBlank() }.joinToString(" • ")
+                            if (place.isNotBlank()) Text(place, color = Color(0xFF64748B))
+                        }
+                        if (customer.country.isNotBlank()) {
+                            Surface(shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1)), color = Color.White) {
+                                Text(customer.country, Modifier.padding(horizontal = 13.dp, vertical = 8.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        item { Spacer(Modifier.height(16.dp)) }
+    }
+}
+
+@Composable
+private fun OrdersScreen(vm: AppViewModel) {
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Ordini", fontSize = 24.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                    Text("${vm.orders.size} ordini", color = Color(0xFF64748B))
+                }
+                FilledTonalButton(onClick = { }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
+            }
+        }
+        if (vm.orders.isEmpty()) {
+            item { EmptyState("Nessun ordine", "Gli ordini compariranno qui.") }
+        } else {
+            items(vm.orders, key = { it.id }) { order ->
+                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(order.customerName.ifBlank { "Cliente" }, fontSize = 19.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                                Text(order.date, color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold)
+                            }
+                            val delivered = order.status == "consegnato"
+                            Surface(
+                                color = if (delivered) Color(0xFFE9FFF3) else Color(0xFFFFF7E5),
+                                shape = RoundedCornerShape(18.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (delivered) Color(0xFF86EFAC) else Color(0xFFFCD34D))
+                            ) {
+                                Text(
+                                    orderStatusLabel(order.status),
+                                    Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                    color = if (delivered) Positive else Color(0xFF92400E),
+                                    fontWeight = FontWeight.Black, fontSize = 12.sp
+                                )
+                            }
+                        }
+                        if (order.itemNames.isNotEmpty()) {
+                            Text(
+                                "Articoli: " + order.itemNames.joinToString(" · "),
+                                color = Color(0xFF64748B),
+                                maxLines = 3
+                            )
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Totale pagato: ${money(if (order.totalPaid > 0) order.totalPaid else order.total)}", fontWeight = FontWeight.Bold, color = Positive)
+                            Text("Guadagno ${money(order.profit)}", fontWeight = FontWeight.Bold, color = Positive)
+                        }
+                        if (order.trackingCode.isNotBlank()) Text("Tracking: ${order.trackingCode}", color = Color(0xFF64748B))
+                    }
+                }
+            }
+        }
+        item { Spacer(Modifier.height(16.dp)) }
+    }
+}
+
+private fun orderStatusLabel(status: String): String = when (status) {
+    "consegnato" -> "✓ Consegnato"
+    "spedito" -> "Spedito"
+    "annullato" -> "Annullato"
+    else -> "In lavorazione"
+}
+
 @Composable
 private fun ArchivesScreen(vm: AppViewModel) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
