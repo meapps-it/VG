@@ -64,6 +64,52 @@ data class OrderSummary(
     val itemNames: List<String> = emptyList()
 )
 
+data class CustomerDraft(
+    val id: String = "",
+    val firstName: String = "",
+    val lastName: String = "",
+    val phone: String = "",
+    val email: String = "",
+    val address: String = "",
+    val city: String = "",
+    val postalCode: String = "",
+    val province: String = "",
+    val country: String = "Italia",
+    val notes: String = ""
+) {
+    fun validate(): String? = if (firstName.isBlank() && lastName.isBlank()) "Inserisci almeno il nome del cliente" else null
+
+    fun toCustomer() = Customer(
+        id = id, firstName = firstName.trim(), lastName = lastName.trim(), phone = phone.trim(),
+        email = email.trim(), address = address.trim(), city = city.trim(), postalCode = postalCode.trim(),
+        province = province.trim(), country = country.trim().ifBlank { "Italia" }, notes = notes.trim()
+    )
+
+    companion object {
+        fun from(value: Customer?) = value?.let {
+            CustomerDraft(it.id, it.firstName, it.lastName, it.phone, it.email, it.address, it.city, it.postalCode, it.province, it.country, it.notes)
+        } ?: CustomerDraft()
+    }
+}
+
+data class OrderDraft(
+    val customerId: String? = null,
+    val productId: String? = null,
+    val quantity: String = "1",
+    val date: String = java.time.LocalDate.now().toString(),
+    val status: String = "in_lavorazione",
+    val trackingCode: String = "",
+    val courier: String = "",
+    val notes: String = ""
+) {
+    fun validate(): String? = when {
+        customerId.isNullOrBlank() -> "Seleziona un cliente"
+        productId.isNullOrBlank() -> "Seleziona un articolo"
+        quantity.toIntOrNull() == null || quantity.toInt() <= 0 -> "La quantità deve essere maggiore di zero"
+        else -> null
+    }
+}
+
 data class ProductPhoto(
     val id: String,
     val productId: String,
@@ -166,6 +212,8 @@ enum class AppThemeMode { SYSTEM, LIGHT, DARK }
 sealed interface Editor {
     data class ProductEditor(val productId: String?) : Editor
     data class EntityEditor(val kind: EntityKind, val entityId: String?) : Editor
+    data class CustomerEditor(val customerId: String?) : Editor
+    data object OrderEditor : Editor
 }
 
 class NavigationHistory(initial: MainTab = MainTab.HOME) {
