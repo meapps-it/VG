@@ -34,6 +34,7 @@ data class EntityDraft(
 sealed interface DeleteTarget {
     data class ProductTarget(val product: Product) : DeleteTarget
     data class EntityTarget(val kind: EntityKind, val id: String, val name: String) : DeleteTarget
+    data class CustomerTarget(val customer: Customer) : DeleteTarget
     data class PhotoTarget(val photo: ProductPhoto) : DeleteTarget
 }
 
@@ -308,6 +309,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             when (target) {
                 is DeleteTarget.ProductTarget -> api.deleteProduct(target.product)
                 is DeleteTarget.EntityTarget -> api.deleteEntity(target.kind, target.id)
+                is DeleteTarget.CustomerTarget -> api.deleteCustomer(target.customer.id)
                 is DeleteTarget.PhotoTarget -> api.deletePhoto(target.photo)
             }
             deleteTarget = null
