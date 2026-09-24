@@ -88,6 +88,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var brandFilter by mutableStateOf<String?>(null)
     var supplierFilter by mutableStateOf<String?>(null)
     var categoryFilter by mutableStateOf<String?>(null)
+    var promoOnly by mutableStateOf(false)
     var fontScale by mutableStateOf(prefs.getFloat("font_scale", 1f).coerceIn(.85f, 1.35f))
         private set
     var themeMode by mutableStateOf(
@@ -112,7 +113,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 (needle.isBlank() || listOf(p.name, p.code, p.sku, p.description).any { it.lowercase().contains(needle) }) &&
                     (brandFilter == null || p.brandId == brandFilter) &&
                     (supplierFilter == null || p.supplierId == supplierFilter) &&
-                    (categoryFilter == null || p.categoryId == categoryFilter)
+                    (categoryFilter == null || p.categoryId == categoryFilter) &&
+                    (!promoOnly || p.inPromotion)
             }
         }
 
