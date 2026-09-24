@@ -163,6 +163,8 @@ private fun AuthenticatedApp(vm: AppViewModel) {
     when (val editor = vm.editor) {
         is Editor.ProductEditor -> ProductEditorScreen(vm)
         is Editor.EntityEditor -> EntityEditorScreen(vm, editor.kind)
+        is Editor.CustomerEditor -> CustomerEditorScreen(vm)
+        Editor.OrderEditor -> OrderEditorScreen(vm)
         null -> MainScaffold(vm, snackbar)
     }
 }
@@ -361,12 +363,12 @@ private fun HomeScreen(vm: AppViewModel) {
                         colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
                     ) { Text("Nuovo articolo", fontWeight = FontWeight.Black) }
                     OutlinedButton(
-                        onClick = { vm.selectTab(MainTab.ORDERS) },
+                        onClick = { vm.openOrder() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(18.dp)
                     ) { Text("Nuovo ordine", fontWeight = FontWeight.Black, color = AppNavy) }
                     OutlinedButton(
-                        onClick = { vm.selectTab(MainTab.CLIENTS) },
+                        onClick = { vm.openCustomer() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(18.dp)
                     ) { Text("Nuovo cliente", fontWeight = FontWeight.Black, color = AppNavy) }
@@ -515,14 +517,14 @@ private fun CustomersScreen(vm: AppViewModel) {
                     Text("Clienti", fontSize = 24.sp, fontWeight = FontWeight.Black, color = AppNavy)
                     Text("${vm.customers.size} clienti", color = Color(0xFF64748B))
                 }
-                FilledTonalButton(onClick = { }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
+                FilledTonalButton(onClick = { vm.openCustomer() }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
             }
         }
         if (vm.customers.isEmpty()) {
             item { EmptyState("Nessun cliente", "I clienti compariranno qui.") }
         } else {
             items(vm.customers, key = { it.id }) { customer ->
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
+                Card(Modifier.fillMaxWidth().clickable { vm.openCustomer(customer) }, shape = RoundedCornerShape(22.dp)) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text(customer.displayName, fontSize = 19.sp, fontWeight = FontWeight.Black, color = AppNavy)
@@ -858,6 +860,141 @@ private fun PhotoTile(model: Any?, onDelete: () -> Unit) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CustomerEditorScreen(vm: AppViewModel) {
+    val d = vm.customerDraft
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(if (d.id.isBlank()) "Nuovo cliente" else "Modifica cliente", fontWeight = FontWeight.Bold) },
+                navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
+                actions = { TextButton(onClick = vm::saveCustomer, enabled = !vm.saving) { Text("Salva", fontWeight = FontWeight.Bold) } }
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            Modifier.padding(padding).fillMaxSize().imePadding(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item { SectionTitle("Anagrafica cliente") }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AppTextField(d.firstName, { vm.updateCustomerDraft(d.copy(firstName = it)) }, "Nome", Modifier.weight(1f))
+                    AppTextField(d.lastName, { vm.updateCustomerDraft(d.copy(lastName = it)) }, "Cognome", Modifier.weight(1f))
+                }
+            }
+            item { AppTextField(d.phone, { vm.updateCustomerDraft(d.copy(phone = it)) }, "Telefono", keyboardType = KeyboardType.Phone) }
+            item { AppTextField(d.email, { vm.updateCustomerDraft(d.copy(email = it)) }, "Email", keyboardType = KeyboardType.Email) }
+            item { AppTextField(d.address, { vm.updateCustomerDraft(d.copy(address = it)) }, "Indirizzo") }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AppTextField(d.city, { vm.updateCustomerDraft(d.copy(city = it)) }, "Città", Modifier.weight(1.3f))
+                    AppTextField(d.province, { vm.updateCustomerDraft(d.copy(province = it)) }, "Provincia", Modifier.weight(.7f))
+                }
+            }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AppTextField(d.postalCode, { vm.updateCustomerDraft(d.copy(postalCode = it.filter(Char::isDigit))) }, "CAP", Modifier.weight(.7f), keyboardType = KeyboardType.Number)
+                    AppTextField(d.country, { vm.updateCustomerDraft(d.copy(country = it)) }, "Paese", Modifier.weight(1.3f))
+                }
+            }
+            item { AppTextField(d.notes, { vm.updateCustomerDraft(d.copy(notes = it)) }, "Note", minLines = 3) }
+            item {
+                Button(
+                    onClick = vm::saveCustomer,
+                    enabled = !vm.saving,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(18.dp)
+                ) { Text(if (vm.saving) "Salvataggio…" else "Salva cliente", fontWeight = FontWeight.Black) }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun OrderEditorScreen(vm: AppViewModel) {
+    val d = vm.orderDraft
+    val selectedProduct = vm.products.firstOrNull { it.id == d.productId }
+    val qty = d.quantity.toIntOrNull()?.coerceAtLeast(1) ?: 1
+    val total = (selectedProduct?.salePrice ?: 0.0) * qty
+    val profit = (selectedProduct?.marginEuro ?: 0.0) * qty
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Nuovo ordine", fontWeight = FontWeight.Bold) },
+                navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
+                actions = { TextButton(onClick = vm::saveOrder, enabled = !vm.saving) { Text("Salva", fontWeight = FontWeight.Bold) } }
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            Modifier.padding(padding).fillMaxSize().imePadding(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item { SectionTitle("Cliente e articolo") }
+            item {
+                SelectionField(
+                    "Cliente *",
+                    d.customerId,
+                    vm.customers.map { it.id to it.displayName },
+                    { vm.updateOrderDraft(d.copy(customerId = it)) }
+                )
+            }
+            item {
+                SelectionField(
+                    "Articolo *",
+                    d.productId,
+                    vm.products.map { it.id to (it.name + if (it.code.isNotBlank()) " · " + it.code else "") },
+                    { vm.updateOrderDraft(d.copy(productId = it)) }
+                )
+            }
+            item { AppTextField(d.quantity, { vm.updateOrderDraft(d.copy(quantity = it.filter(Char::isDigit))) }, "Quantità", keyboardType = KeyboardType.Number) }
+            item { AppTextField(d.date, { vm.updateOrderDraft(d.copy(date = it)) }, "Data ordine (AAAA-MM-GG)") }
+            item {
+                SelectionField(
+                    "Stato",
+                    d.status,
+                    listOf(
+                        "in_lavorazione" to "In lavorazione",
+                        "spedito" to "Spedito",
+                        "consegnato" to "Consegnato",
+                        "annullato" to "Annullato"
+                    ),
+                    { value -> if (value != null) vm.updateOrderDraft(d.copy(status = value)) },
+                    allowEmpty = false
+                )
+            }
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF4FF)), shape = RoundedCornerShape(18.dp)) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Riepilogo", fontWeight = FontWeight.Black)
+                        ValueRow("Totale ordine", money(total))
+                        ValueRow("Guadagno previsto", money(profit), if (profit >= 0) Positive else Negative)
+                    }
+                }
+            }
+            item { SectionTitle("Spedizione") }
+            item { AppTextField(d.courier, { vm.updateOrderDraft(d.copy(courier = it)) }, "Corriere") }
+            item { AppTextField(d.trackingCode, { vm.updateOrderDraft(d.copy(trackingCode = it)) }, "Tracking") }
+            item { AppTextField(d.notes, { vm.updateOrderDraft(d.copy(notes = it)) }, "Note", minLines = 3) }
+            item {
+                Button(
+                    onClick = vm::saveOrder,
+                    enabled = !vm.saving,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(18.dp)
+                ) { Text(if (vm.saving) "Salvataggio…" else "Crea ordine", fontWeight = FontWeight.Black) }
+            }
+        }
+    }
+}
+
 @Composable
 private fun EntityEditorScreen(vm: AppViewModel, kind: EntityKind) {
     val d = vm.entityDraft
