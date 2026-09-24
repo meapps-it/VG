@@ -199,6 +199,8 @@ class SupabaseApi(private val context: Context) {
                 status = o.string("stato"),
                 total = o.number("totale"),
                 totalPaid = o.number("totale_pagato"),
+                paid = o.optBoolean("pagato", false),
+                paymentStatus = o.string("stato_pagamento"),
                 profit = o.number("guadagno"),
                 trackingCode = o.string("tracking_code"),
                 courier = o.string("corriere"),
