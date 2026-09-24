@@ -14,6 +14,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -186,7 +187,10 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
         topBar = {
             Surface(color = AppNavy, shadowElevation = 2.dp) {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
@@ -224,10 +228,18 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
             }
         },
         bottomBar = {
-            Surface(shadowElevation = 12.dp, color = Color.White) {
+            Surface(
+                modifier = Modifier.navigationBarsPadding(),
+                shadowElevation = 12.dp,
+                color = Color.White
+            ) {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     BottomPill("Dashboard", vm.selectedTab == MainTab.HOME, Modifier.weight(1f)) { vm.selectTab(MainTab.HOME) }
                     BottomPill("Articoli", vm.selectedTab == MainTab.ARTICLES, Modifier.weight(1f)) { vm.selectTab(MainTab.ARTICLES) }
@@ -327,19 +339,49 @@ private fun HomeScreen(vm: AppViewModel) {
                         Text("INCASSATO", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color(0xFF64748B))
                     }
                     Row(
-                        Modifier.fillMaxWidth().height(110.dp),
+                        Modifier.fillMaxWidth().height(128.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.Bottom
                     ) {
                         sixMonths.forEachIndexed { index, month ->
                             val h = (18 + (monthValues[index] / maxValue * 72)).dp
-                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clickable { vm.openOrdersForMonth(month) },
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Bottom
+                            ) {
                                 Box(
-                                    Modifier.fillMaxWidth().height(h)
-                                        .background(if (index == 5) AppAmber else AppBlue, RoundedCornerShape(14.dp))
-                                )
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(94.dp),
+                                    contentAlignment = Alignment.BottomCenter
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(h)
+                                            .background(
+                                                if (index == 5) AppAmber else AppBlue,
+                                                RoundedCornerShape(14.dp)
+                                            )
+                                            .border(
+                                                1.5.dp,
+                                                Color.Black,
+                                                RoundedCornerShape(14.dp)
+                                            )
+                                    )
+                                }
                                 Spacer(Modifier.height(6.dp))
-                                Text(monthNames[month.monthValue - 1], fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                                Text(
+                                    monthNames[month.monthValue - 1],
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF64748B),
+                                    maxLines = 1
+                                )
                             }
                         }
                     }
@@ -348,8 +390,21 @@ private fun HomeScreen(vm: AppViewModel) {
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                LegacyStatCard("ORDINI IN CORSO", activeOrders.toString(), "non ancora consegnati", Modifier.weight(1f))
-                LegacyStatCard("GUADAGNO MESE", money(monthProfit), "margine del mese corrente", Modifier.weight(1f), Positive)
+                LegacyStatCard(
+                    "ORDINI IN CORSO",
+                    activeOrders.toString(),
+                    "non ancora consegnati",
+                    Modifier.weight(1f),
+                    onClick = { vm.openActiveOrders() }
+                )
+                LegacyStatCard(
+                    "GUADAGNO MESE",
+                    money(monthProfit),
+                    "margine del mese corrente",
+                    Modifier.weight(1f),
+                    Positive,
+                    onClick = { vm.openOrdersForMonth(currentMonth) }
+                )
             }
         }
         item {
@@ -391,9 +446,11 @@ private fun LegacyStatCard(
     value: String,
     subtitle: String,
     modifier: Modifier = Modifier,
-    valueColor: Color = AppNavy
+    valueColor: Color = AppNavy,
+    onClick: (() -> Unit)? = null
 ) {
-    Card(modifier, shape = RoundedCornerShape(22.dp)) {
+    val cardModifier = if (onClick != null) modifier.clickable(onClick = onClick) else modifier
+    Card(cardModifier, shape = RoundedCornerShape(22.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFF475569))
             Text(value, fontSize = 25.sp, fontWeight = FontWeight.Black, color = valueColor, maxLines = 1)
@@ -737,10 +794,24 @@ private fun CustomersScreen(vm: AppViewModel) {
 @Composable
 private fun OrdersScreen(vm: AppViewModel) {
     var search by rememberSaveable { mutableStateOf("") }
-    val filteredOrders = remember(vm.orders, search) {
+    val filteredOrders = remember(vm.orders, search, vm.orderMonthFilter, vm.orderActiveOnly) {
         val q = search.trim().lowercase()
-        if (q.isBlank()) vm.orders else vm.orders.filter {
-            listOf(it.customerName, it.number, it.status, it.trackingCode, it.courier, it.itemNames.joinToString(" ")).any { value -> value.lowercase().contains(q) }
+        vm.orders.filter { order ->
+            val matchesSearch = q.isBlank() || listOf(
+                order.customerName,
+                order.number,
+                order.status,
+                order.trackingCode,
+                order.courier,
+                order.itemNames.joinToString(" ")
+            ).any { value -> value.lowercase().contains(q) }
+
+            val matchesMonth = vm.orderMonthFilter == null || runCatching {
+                YearMonth.from(LocalDate.parse(order.date)).toString() == vm.orderMonthFilter
+            }.getOrDefault(false)
+
+            val matchesActive = !vm.orderActiveOnly || (order.status != "consegnato" && order.status != "annullato")
+            matchesSearch && matchesMonth && matchesActive
         }
     }
     LazyColumn(
@@ -758,6 +829,23 @@ private fun OrdersScreen(vm: AppViewModel) {
             }
         }
         item { AppTextField(search, { search = it }, "Cerca cliente, ordine, tracking o articolo", leading = { Icon(Icons.Default.Search, null) }) }
+        if (vm.orderMonthFilter != null || vm.orderActiveOnly) {
+            item {
+                AssistChip(
+                    onClick = { vm.clearOrderDrillDown() },
+                    label = {
+                        Text(
+                            when {
+                                vm.orderActiveOnly -> "Solo ordini in corso"
+                                vm.orderMonthFilter != null -> "Mese: " + vm.orderMonthFilter
+                                else -> "Filtro dashboard"
+                            }
+                        )
+                    },
+                    trailingIcon = { Icon(Icons.Default.Close, null) }
+                )
+            }
+        }
         if (filteredOrders.isEmpty()) {
             item { EmptyState("Nessun ordine", if (search.isBlank()) "Gli ordini compariranno qui." else "Nessun ordine corrisponde alla ricerca.") }
         } else {
