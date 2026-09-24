@@ -58,6 +58,8 @@ data class OrderSummary(
     val status: String = "",
     val total: Double = 0.0,
     val totalPaid: Double = 0.0,
+    val paid: Boolean = false,
+    val paymentStatus: String = "",
     val profit: Double = 0.0,
     val trackingCode: String = "",
     val courier: String = "",
