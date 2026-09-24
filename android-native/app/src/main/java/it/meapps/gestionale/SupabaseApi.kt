@@ -272,6 +272,9 @@ class SupabaseApi(private val context: Context) {
         val unitPrice = product.effectiveSalePrice
         val total = unitPrice * qty
         val profit = product.effectiveMarginEuro * qty
+        val amountPaid = if (draft.paid) {
+            draft.amountPaid.toDoubleOrNull()?.coerceAtLeast(0.0) ?: total
+        } else 0.0
         val orderBody = JSONObject()
             .put("user_id", current.userId)
             .put("numero_ordine", "ORD-" + System.currentTimeMillis())
@@ -279,10 +282,11 @@ class SupabaseApi(private val context: Context) {
             .put("data_ordine", draft.date)
             .put("stato", draft.status)
             .put("totale", total)
-            .put("totale_pagato", 0)
+            .put("totale_pagato", amountPaid)
             .put("guadagno", profit)
-            .put("stato_pagamento", "da_pagare")
-            .put("pagato", false)
+            .put("stato_pagamento", if (draft.paid) "pagato" else "da_pagare")
+            .put("pagato", draft.paid)
+            .putNullable("metodo_pagamento", if (draft.paid) draft.paymentMethod else null)
             .putNullable("tracking_code", draft.trackingCode)
             .putNullable("corriere", draft.courier)
             .putNullable("note", draft.notes)
