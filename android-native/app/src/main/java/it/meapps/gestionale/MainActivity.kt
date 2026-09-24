@@ -424,36 +424,96 @@ private fun QuickArchive(label: String, count: Int, icon: androidx.compose.ui.gr
     }
 }
 
+
 @Composable
 private fun ProductsScreen(vm: AppViewModel) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         AppTextField(vm.query, { vm.query = it }, "Cerca nome, codice o SKU", leading = { Icon(Icons.Default.Search, null) })
         Spacer(Modifier.height(8.dp))
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SelectionField("Marca", vm.brandFilter, vm.brands.map { it.id to it.name }, { vm.brandFilter = it }, compact = true)
+
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             SelectionField("Categoria", vm.categoryFilter, vm.categories.map { it.id to it.name }, { vm.categoryFilter = it }, compact = true)
+            SelectionField("Marca", vm.brandFilter, vm.brands.map { it.id to it.name }, { vm.brandFilter = it }, compact = true)
             SelectionField("Fornitore", vm.supplierFilter, vm.suppliers.map { it.id to it.name }, { vm.supplierFilter = it }, compact = true)
         }
+
         Spacer(Modifier.height(8.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = !vm.promoOnly,
+                onClick = { vm.promoOnly = false },
+                label = { Text("Tutto") }
+            )
+            FilterChip(
+                selected = vm.promoOnly,
+                onClick = { vm.promoOnly = true },
+                label = { Text("Solo promo") }
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            ArticleCounter("Totale articoli", vm.products.size.toString(), Modifier.weight(1f))
+            ArticleCounter("Senza foto", vm.products.count { it.photos.isEmpty() }.toString(), Modifier.weight(1f))
+        }
+
+        Spacer(Modifier.height(8.dp))
+
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("${vm.filteredProducts.size} articoli", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.weight(1f))
+            Text(
+                "${vm.filteredProducts.size} visualizzati",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp,
+                modifier = Modifier.weight(1f)
+            )
             IconButton(onClick = { vm.updateGridView(!vm.gridView) }) {
-                Icon(if (vm.gridView) Icons.Default.ViewList else Icons.Default.GridView, if (vm.gridView) "Vista elenco" else "Vista griglia")
+                Icon(
+                    if (vm.gridView) Icons.Default.ViewList else Icons.Default.GridView,
+                    if (vm.gridView) "Vista elenco" else "Vista griglia"
+                )
             }
         }
-        if (!vm.loading && vm.filteredProducts.isEmpty()) EmptyState("Nessun articolo", "Crea il primo articolo oppure modifica i filtri.")
-        else if (vm.gridView) LazyVerticalGrid(
-            columns = GridCells.Adaptive(if (vm.compactMode) 150.dp else 174.dp), modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(vertical = 8.dp, horizontal = 0.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) { gridItems(vm.filteredProducts, key = { it.id }) { product -> ProductGridCard(product, vm) }; item { Spacer(Modifier.height(88.dp)) } }
-        else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(vm.filteredProducts, key = { it.id }) { product -> ProductCard(product, vm) }
-            item { Spacer(Modifier.height(88.dp)) }
+
+        if (!vm.loading && vm.filteredProducts.isEmpty()) {
+            EmptyState("Nessun articolo", "Crea il primo articolo oppure modifica i filtri.")
+        } else if (vm.gridView) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(if (vm.compactMode) 150.dp else 174.dp),
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(vertical = 8.dp, horizontal = 0.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                gridItems(vm.filteredProducts, key = { it.id }) { product -> ProductGridCard(product, vm) }
+                item { Spacer(Modifier.height(88.dp)) }
+            }
+        } else {
+            LazyColumn(
+                Modifier.weight(1f),
+                contentPadding = PaddingValues(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(vm.filteredProducts, key = { it.id }) { product -> ProductCard(product, vm) }
+                item { Spacer(Modifier.height(88.dp)) }
+            }
         }
     }
 }
 
+@Composable
+private fun ArticleCounter(label: String, value: String, modifier: Modifier = Modifier) {
+    Card(modifier, shape = RoundedCornerShape(18.dp)) {
+        Column(Modifier.padding(14.dp)) {
+            Text(label, fontSize = 11.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+            Text(value, fontSize = 24.sp, color = AppNavy, fontWeight = FontWeight.Black)
+        }
+    }
+}
 @Composable
 private fun ProductGridCard(product: Product, vm: AppViewModel) {
     val context = LocalContext.current
@@ -512,7 +572,17 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                 Text(product.name, fontWeight = FontWeight.Black, maxLines = 2, minLines = if (vm.compactMode) 1 else 2, color = AppNavy)
                 Text(code, color = Color(0xFF64748B), fontSize = 11.sp, maxLines = 1)
                 Spacer(Modifier.height(2.dp))
-                Text(money(product.salePrice), fontWeight = FontWeight.Black, fontSize = 19.sp, color = AppNavy)
+                if (product.inPromotion && product.promotionalPrice > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Surface(color = Color(0xFFFFF3CF), shape = RoundedCornerShape(10.dp)) {
+                            Text("PROMO", Modifier.padding(horizontal = 7.dp, vertical = 3.dp), color = Color(0xFF92400E), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                        }
+                        Text(money(product.promotionalPrice), fontWeight = FontWeight.Black, fontSize = 19.sp, color = Negative)
+                    }
+                    Text(money(product.salePrice), fontSize = 11.sp, color = Color(0xFF64748B))
+                } else {
+                    Text(money(product.salePrice), fontWeight = FontWeight.Black, fontSize = 19.sp, color = AppNavy)
+                }
                 if (product.marginEuro < 0) {
                     Surface(color = Color(0xFFFFECEA), shape = RoundedCornerShape(10.dp)) {
                         Text(
@@ -903,6 +973,20 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                 NumberField(d.salePrice, { vm.updateProductDraft(d.copy(salePrice = it)) }, "Vendita €", Modifier.weight(1f))
                 AppTextField(d.quantity, { vm.updateProductDraft(d.copy(quantity = it.filter(Char::isDigit))) }, "Quantità", Modifier.weight(1f), keyboardType = KeyboardType.Number)
             } }
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(d.inPromotion, { vm.updateProductDraft(d.copy(inPromotion = it)) })
+                    Spacer(Modifier.width(10.dp))
+                    Text(if (d.inPromotion) "Articolo in promozione" else "Nessuna promozione")
+                }
+            }
+            if (d.inPromotion) item {
+                NumberField(
+                    d.promotionalPrice,
+                    { vm.updateProductDraft(d.copy(promotionalPrice = it)) },
+                    "Prezzo promozionale €"
+                )
+            }
             item {
                 val preview = d.toProduct(existing)
                 Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF4FF))) { Column(Modifier.padding(14.dp)) {
