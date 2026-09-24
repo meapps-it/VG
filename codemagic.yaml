@@ -1,6 +1,28 @@
 workflows:
+  android-native-debug:
+    name: Gestionale Android nativo - APK Debug
+    max_build_duration: 60
+    environment:
+      java: 17
+    scripts:
+      - name: Test unitari
+        script: |
+          cd android-native
+          chmod +x gradlew
+          ./gradlew :app:testDebugUnitTest
+      - name: Android lint
+        script: |
+          cd android-native
+          ./gradlew :app:lintDebug
+      - name: Compila APK nativo
+        script: |
+          cd android-native
+          ./gradlew :app:assembleDebug
+    artifacts:
+      - android-native/app/build/outputs/**/*.apk
+
   android-debug:
-    name: Gestionale - APK Debug
+    name: PWA legacy Capacitor - APK Debug
     max_build_duration: 60
     environment:
       node: 22

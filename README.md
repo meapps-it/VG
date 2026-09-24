@@ -1,4 +1,10 @@
-# Vanity Glamour — versione pronta per GitHub Pages
+# Gestionale — PWA legacy + Android nativo
+
+La nuova applicazione Android nativa è in [`android-native/`](android-native/). La PWA storica resta nella root per garantire recuperabilità e continuità durante la migrazione.
+
+L'analisi tecnica della Fase 1 è in [`docs/PHASE1_ANALYSIS.md`](docs/PHASE1_ANALYSIS.md).
+
+## PWA legacy
 
 ## Cosa fare
 1. Crea un repository su GitHub.
