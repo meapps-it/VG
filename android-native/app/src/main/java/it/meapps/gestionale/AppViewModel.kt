@@ -91,6 +91,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var categoryFilter by mutableStateOf<String?>(null)
     var qualityFilter by mutableStateOf<String?>(null)
     var promoOnly by mutableStateOf(false)
+    var orderMonthFilter by mutableStateOf<String?>(null)
+        private set
+    var orderActiveOnly by mutableStateOf(false)
+        private set
     var fontScale by mutableStateOf(prefs.getFloat("font_scale", 1f).coerceIn(.85f, 1.35f))
         private set
     var themeMode by mutableStateOf(
@@ -191,6 +195,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         @Suppress("UNCHECKED_CAST")
         orders = results[5] as List<OrderSummary>
         lastSyncAt = System.currentTimeMillis()
+    }
+
+    fun openOrdersForMonth(month: java.time.YearMonth) {
+        orderMonthFilter = month.toString()
+        orderActiveOnly = false
+        selectTab(MainTab.ORDERS)
+    }
+
+    fun openActiveOrders() {
+        orderMonthFilter = null
+        orderActiveOnly = true
+        selectTab(MainTab.ORDERS)
+    }
+
+    fun clearOrderDrillDown() {
+        orderMonthFilter = null
+        orderActiveOnly = false
     }
 
     fun selectTab(tab: MainTab) {
