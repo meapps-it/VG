@@ -131,6 +131,8 @@ data class Product(
     val extraCosts: Double = 0.0,
     val quantity: Int = 0,
     val available: Boolean = true,
+    val inPromotion: Boolean = false,
+    val promotionalPrice: Double = 0.0,
     val notes: String = "",
     val productUrl: String = "",
     val createdAt: String = "",
@@ -156,6 +158,8 @@ data class ProductDraft(
     val extraCosts: String = "",
     val quantity: String = "0",
     val available: Boolean = true,
+    val inPromotion: Boolean = false,
+    val promotionalPrice: String = "",
     val notes: String = "",
     val productUrl: String = ""
 ) {
@@ -182,6 +186,8 @@ data class ProductDraft(
         extraCosts = extraCosts.toDoubleOrNull() ?: 0.0,
         quantity = quantity.toIntOrNull() ?: 0,
         available = available,
+        inPromotion = inPromotion,
+        promotionalPrice = promotionalPrice.toDoubleOrNull() ?: 0.0,
         notes = notes.trim(),
         productUrl = productUrl.trim(),
         createdAt = existing?.createdAt.orEmpty(),
@@ -199,6 +205,8 @@ data class ProductDraft(
                 salePrice = it.salePrice.takeIf { value -> value != 0.0 }?.toString().orEmpty(),
                 extraCosts = it.extraCosts.takeIf { value -> value != 0.0 }?.toString().orEmpty(),
                 quantity = it.quantity.toString(), available = it.available,
+                inPromotion = it.inPromotion,
+                promotionalPrice = it.promotionalPrice.takeIf { value -> value != 0.0 }?.toString().orEmpty(),
                 notes = it.notes, productUrl = it.productUrl
             )
         } ?: ProductDraft()
