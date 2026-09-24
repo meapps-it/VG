@@ -27,8 +27,19 @@ jobs:
           cache: gradle
       - name: Prepare Android SDK
         run: |
+          SDK_ROOT="$RUNNER_TEMP/android-sdk"
+          curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip -o "$RUNNER_TEMP/android-tools.zip"
+          unzip -q "$RUNNER_TEMP/android-tools.zip" -d "$RUNNER_TEMP/android-tools"
+          mkdir -p "$SDK_ROOT/cmdline-tools/latest"
+          mv "$RUNNER_TEMP/android-tools/cmdline-tools/"* "$SDK_ROOT/cmdline-tools/latest/"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "$SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          export ANDROID_HOME="$SDK_ROOT"
+          export ANDROID_SDK_ROOT="$SDK_ROOT"
+          export PATH="$SDK_ROOT/cmdline-tools/latest/bin:$PATH"
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
       - name: Prepare Gradle wrapper
         run: chmod +x gradlew
       - name: Unit test
