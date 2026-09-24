@@ -77,6 +77,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var entityDraft by mutableStateOf(EntityDraft(kind = EntityKind.BRAND))
         private set
+    var customerDraft by mutableStateOf(CustomerDraft())
+        private set
+    var orderDraft by mutableStateOf(OrderDraft())
+        private set
     var deleteTarget by mutableStateOf<DeleteTarget?>(null)
         private set
 
@@ -196,6 +200,42 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (editor != null) { closeEditor(); return true }
         if (tabHistory.isNotEmpty()) { selectedTab = tabHistory.removeLast(); return true }
         return false
+    }
+
+    fun openCustomer(customer: Customer? = null) {
+        customerDraft = CustomerDraft.from(customer)
+        editor = Editor.CustomerEditor(customer?.id)
+    }
+
+    fun updateCustomerDraft(value: CustomerDraft) { customerDraft = value }
+
+    fun saveCustomer() {
+        customerDraft.validate()?.let { return showError(it) }
+        runSaving {
+            api.saveCustomer(customerDraft.toCustomer())
+            loadAllInternal()
+            closeEditor()
+            noticeMessage = "Cliente salvato"
+        }
+    }
+
+    fun openOrder() {
+        orderDraft = OrderDraft()
+        editor = Editor.OrderEditor
+    }
+
+    fun updateOrderDraft(value: OrderDraft) { orderDraft = value }
+
+    fun saveOrder() {
+        orderDraft.validate()?.let { return showError(it) }
+        val product = products.firstOrNull { it.id == orderDraft.productId }
+            ?: return showError("Articolo non disponibile")
+        runSaving {
+            api.createOrder(orderDraft, product)
+            loadAllInternal()
+            closeEditor()
+            noticeMessage = "Ordine creato"
+        }
     }
 
     fun openProduct(product: Product? = null) {
