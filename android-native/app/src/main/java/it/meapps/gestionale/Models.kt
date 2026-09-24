@@ -128,15 +128,16 @@ data class ProductDraft(
     }
 }
 
-enum class MainTab { ARTICLES, ARCHIVES, SETTINGS }
+enum class MainTab { HOME, ARTICLES, ARCHIVES, SETTINGS }
 enum class EntityKind { BRAND, SUPPLIER, CATEGORY }
+enum class AppThemeMode { SYSTEM, LIGHT, DARK }
 
 sealed interface Editor {
     data class ProductEditor(val productId: String?) : Editor
     data class EntityEditor(val kind: EntityKind, val entityId: String?) : Editor
 }
 
-class NavigationHistory(initial: MainTab = MainTab.ARTICLES) {
+class NavigationHistory(initial: MainTab = MainTab.HOME) {
     var current: MainTab = initial
         private set
     private val history = ArrayDeque<MainTab>()

@@ -22,7 +22,7 @@ class CoreLogicTest {
         assertTrue(nav.back())
         assertEquals(MainTab.ARCHIVES, nav.current)
         assertTrue(nav.back())
-        assertEquals(MainTab.ARTICLES, nav.current)
+        assertEquals(MainTab.HOME, nav.current)
         assertFalse(nav.back())
     }
 

@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -44,11 +47,16 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import java.io.File
+import java.text.DateFormat
 import java.text.NumberFormat
+import java.util.Date
 import java.util.Locale
 
-private val AppBlue = Color(0xFF155EEF)
-private val AppBackground = Color(0xFFF7F8FC)
+private val AppNavy = Color(0xFF0F172A)
+private val AppBlue = Color(0xFF2563EB)
+private val AppAmber = Color(0xFFF59E0B)
+private val AppBackground = Color(0xFFF8FAFC)
+private val WarmSurface = Color(0xFFFFFBEB)
 private val Positive = Color(0xFF087443)
 private val Negative = Color(0xFFB42318)
 
@@ -66,13 +74,21 @@ class MainActivity : ComponentActivity() {
 private fun GestionaleRoot(vm: AppViewModel) {
     val originalDensity = LocalDensity.current
     val scaledDensity = remember(originalDensity.density, vm.fontScale) { Density(originalDensity.density, vm.fontScale) }
-    val colors = lightColorScheme(
-        primary = AppBlue, background = AppBackground, surface = Color.White,
-        error = Negative, onPrimary = Color.White
+    val useDark = when (vm.themeMode) {
+        AppThemeMode.SYSTEM -> isSystemInDarkTheme()
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.DARK -> true
+    }
+    val colors = if (useDark) darkColorScheme(
+        primary = Color(0xFF93C5FD), secondary = Color(0xFFFBBF24), background = Color(0xFF020617),
+        surface = Color(0xFF0F172A), surfaceVariant = Color(0xFF1E293B), error = Color(0xFFFCA5A5)
+    ) else lightColorScheme(
+        primary = AppBlue, secondary = AppAmber, background = AppBackground, surface = Color.White,
+        surfaceVariant = Color(0xFFF1F5F9), error = Negative, onPrimary = Color.White
     )
     CompositionLocalProvider(LocalDensity provides scaledDensity) {
         MaterialTheme(colorScheme = colors, typography = Typography()) {
-            Surface(Modifier.fillMaxSize(), color = AppBackground) {
+            Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 when {
                     vm.checkingAuth -> LoadingScreen("Verifica accesso…")
                     vm.session == null -> LoginScreen(vm)
@@ -155,30 +171,126 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Column { Text("Gestionale", fontWeight = FontWeight.Bold); Text(vm.session?.email.orEmpty(), fontSize = 11.sp, color = Color(0xFF667085)) } },
-                actions = { IconButton(onClick = vm::loadAll) { Icon(Icons.Default.Refresh, "Aggiorna") } }
+                title = { Column { Text("Gestionale", fontWeight = FontWeight.Black); Text(tabTitle(vm.selectedTab), fontSize = 12.sp, color = Color(0xFFCBD5E1)) } },
+                actions = { IconButton(onClick = vm::loadAll) { Icon(Icons.Default.Refresh, "Aggiorna", tint = Color.White) } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = AppNavy, titleContentColor = Color.White)
             )
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                NavigationBarItem(selected = vm.selectedTab == MainTab.HOME, onClick = { vm.selectTab(MainTab.HOME) }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Home") })
                 NavigationBarItem(selected = vm.selectedTab == MainTab.ARTICLES, onClick = { vm.selectTab(MainTab.ARTICLES) }, icon = { Icon(Icons.Default.Inventory2, null) }, label = { Text("Articoli") })
                 NavigationBarItem(selected = vm.selectedTab == MainTab.ARCHIVES, onClick = { vm.selectTab(MainTab.ARCHIVES) }, icon = { Icon(Icons.Default.ListAlt, null) }, label = { Text("Anagrafiche") })
-                NavigationBarItem(selected = vm.selectedTab == MainTab.SETTINGS, onClick = { vm.selectTab(MainTab.SETTINGS) }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Impostazioni") })
+                NavigationBarItem(selected = vm.selectedTab == MainTab.SETTINGS, onClick = { vm.selectTab(MainTab.SETTINGS) }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Impost.") })
             }
         },
         floatingActionButton = {
-            if (vm.selectedTab != MainTab.SETTINGS) FloatingActionButton(onClick = {
+            if (vm.selectedTab == MainTab.ARTICLES || vm.selectedTab == MainTab.ARCHIVES) FloatingActionButton(onClick = {
                 if (vm.selectedTab == MainTab.ARTICLES) vm.openProduct() else vm.openEntity(vm.archiveKind)
-            }) { Icon(Icons.Default.Add, "Aggiungi") }
+            }, containerColor = AppAmber, contentColor = AppNavy) { Icon(Icons.Default.Add, "Aggiungi") }
         }
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             when (vm.selectedTab) {
+                MainTab.HOME -> HomeScreen(vm)
                 MainTab.ARTICLES -> ProductsScreen(vm)
                 MainTab.ARCHIVES -> ArchivesScreen(vm)
                 MainTab.SETTINGS -> SettingsScreen(vm)
             }
             if (vm.loading) LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
+        }
+    }
+}
+
+@Composable
+private fun HomeScreen(vm: AppViewModel) {
+    val available = vm.products.count { it.available && it.quantity > 0 }
+    val unavailable = vm.products.size - available
+    val inventoryCost = vm.products.sumOf { it.totalCost * it.quantity }
+    val salesValue = vm.products.sumOf { it.salePrice * it.quantity }
+    val expectedMargin = salesValue - inventoryCost
+    LazyColumn(
+        Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = WarmSurface),
+                shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("PANORAMICA", color = Color(0xFF92400E), fontWeight = FontWeight.Black, fontSize = 11.sp)
+                    Text("Il tuo catalogo, senza fronzoli", color = AppNavy, fontWeight = FontWeight.Black, fontSize = 24.sp)
+                    Text("Articoli, disponibilità e margini aggiornati dal cloud.", color = Color(0xFF475569))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { vm.openProduct() }, colors = ButtonDefaults.buttonColors(containerColor = AppNavy)) {
+                            Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo articolo")
+                        }
+                        OutlinedButton(onClick = { vm.selectTab(MainTab.ARTICLES) }) { Text("Apri catalogo") }
+                    }
+                }
+            }
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                DashboardStat("Articoli", vm.products.size.toString(), AppBlue, Modifier.weight(1f))
+                DashboardStat("Disponibili", available.toString(), Positive, Modifier.weight(1f))
+            }
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                DashboardStat("Non disponibili", unavailable.toString(), Negative, Modifier.weight(1f))
+                DashboardStat("Quantità", vm.products.sumOf { it.quantity }.toString(), AppAmber, Modifier.weight(1f))
+            }
+        }
+        item {
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Valore del catalogo", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    ValueRow("Costo inventario", money(inventoryCost))
+                    ValueRow("Vendite potenziali", money(salesValue))
+                    HorizontalDivider()
+                    ValueRow("Margine potenziale", money(expectedMargin), if (expectedMargin >= 0) Positive else Negative)
+                }
+            }
+        }
+        item {
+            Text("Anagrafiche", fontWeight = FontWeight.Black, fontSize = 19.sp)
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                QuickArchive("Marche", vm.brands.size, Icons.Default.Label, Modifier.weight(1f)) { vm.archiveKind = EntityKind.BRAND; vm.selectTab(MainTab.ARCHIVES) }
+                QuickArchive("Fornitori", vm.suppliers.size, Icons.Default.LocalShipping, Modifier.weight(1f)) { vm.archiveKind = EntityKind.SUPPLIER; vm.selectTab(MainTab.ARCHIVES) }
+                QuickArchive("Categorie", vm.categories.size, Icons.Default.Category, Modifier.weight(1f)) { vm.archiveKind = EntityKind.CATEGORY; vm.selectTab(MainTab.ARCHIVES) }
+            }
+        }
+        item { Spacer(Modifier.height(72.dp)) }
+    }
+}
+
+@Composable
+private fun DashboardStat(label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
+    Card(modifier, shape = RoundedCornerShape(18.dp)) {
+        Column(Modifier.padding(16.dp)) {
+            Box(Modifier.width(34.dp).height(5.dp).background(accent, RoundedCornerShape(50)))
+            Spacer(Modifier.height(10.dp))
+            Text(value, fontSize = 26.sp, fontWeight = FontWeight.Black)
+            Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun ValueRow(label: String, value: String, color: Color = MaterialTheme.colorScheme.onSurface) =
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontWeight = FontWeight.Black, color = color)
+    }
+
+@Composable
+private fun QuickArchive(label: String, count: Int, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier, onClick: () -> Unit) {
+    Card(modifier.clickable(onClick = onClick), shape = RoundedCornerShape(16.dp)) {
+        Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, null, tint = AppBlue); Text(count.toString(), fontWeight = FontWeight.Black, fontSize = 20.sp); Text(label, fontSize = 11.sp, maxLines = 1)
         }
     }
 }
@@ -194,11 +306,46 @@ private fun ProductsScreen(vm: AppViewModel) {
             SelectionField("Fornitore", vm.supplierFilter, vm.suppliers.map { it.id to it.name }, { vm.supplierFilter = it }, compact = true)
         }
         Spacer(Modifier.height(8.dp))
-        Text("${vm.filteredProducts.size} articoli", color = Color(0xFF667085), fontSize = 13.sp)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("${vm.filteredProducts.size} articoli", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.weight(1f))
+            IconButton(onClick = { vm.updateGridView(!vm.gridView) }) {
+                Icon(if (vm.gridView) Icons.Default.ViewList else Icons.Default.GridView, if (vm.gridView) "Vista elenco" else "Vista griglia")
+            }
+        }
         if (!vm.loading && vm.filteredProducts.isEmpty()) EmptyState("Nessun articolo", "Crea il primo articolo oppure modifica i filtri.")
-        else LazyColumn(contentPadding = PaddingValues(vertical = 10.dp, horizontal = 0.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        else if (vm.gridView) LazyVerticalGrid(
+            columns = GridCells.Adaptive(if (vm.compactMode) 150.dp else 174.dp), modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(vertical = 8.dp, horizontal = 0.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) { gridItems(vm.filteredProducts, key = { it.id }) { product -> ProductGridCard(product, vm) }; item { Spacer(Modifier.height(88.dp)) } }
+        else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(vm.filteredProducts, key = { it.id }) { product -> ProductCard(product, vm) }
             item { Spacer(Modifier.height(88.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun ProductGridCard(product: Product, vm: AppViewModel) {
+    val imagePath = product.photos.minByOrNull { it.order }?.path
+    if (imagePath != null) LaunchedEffect(imagePath) { vm.ensureSignedUrl(imagePath) }
+    val borderColor = if (!product.available || product.quantity <= 0) Negative.copy(alpha = .65f) else Color.Transparent
+    Card(
+        Modifier.fillMaxWidth().clickable { vm.openProduct(product) },
+        shape = RoundedCornerShape(18.dp), border = androidx.compose.foundation.BorderStroke(if (borderColor == Color.Transparent) 0.dp else 1.5.dp, borderColor)
+    ) {
+        Column(Modifier.padding(if (vm.compactMode) 9.dp else 11.dp)) {
+            Surface(Modifier.fillMaxWidth().aspectRatio(1f), shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                if (imagePath != null && vm.signedUrls[imagePath] != null) AsyncImage(vm.signedUrls[imagePath], null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                else Icon(Icons.Default.Image, null, Modifier.padding(38.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.height(9.dp))
+            Text(product.name, fontWeight = FontWeight.Black, maxLines = 2, minLines = if (vm.compactMode) 1 else 2)
+            Text(product.code.ifBlank { product.sku.ifBlank { "Senza codice" } }, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, maxLines = 1)
+            Spacer(Modifier.height(7.dp))
+            Text(money(product.salePrice), fontWeight = FontWeight.Black, fontSize = 18.sp)
+            Text("Margine ${money(product.marginEuro)}", color = if (product.marginEuro >= 0) Positive else Negative, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(if (product.available && product.quantity > 0) "Disponibili ${product.quantity}" else "Non disponibile", color = if (product.available && product.quantity > 0) Positive else Negative, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -266,31 +413,106 @@ private fun ArchivesScreen(vm: AppViewModel) {
 
 @Composable
 private fun SettingsScreen(vm: AppViewModel) {
-    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    val context = LocalContext.current
+    var pendingBackup by remember { mutableStateOf<String?>(null) }
+    var exportMessage by remember { mutableStateOf<String?>(null) }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) runCatching {
+            context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(pendingBackup.orEmpty()) }
+                ?: error("Impossibile aprire il file")
+        }.onSuccess { exportMessage = "Backup esportato correttamente" }
+            .onFailure { exportMessage = "Esportazione non riuscita: ${it.message}" }
+        pendingBackup = null
+    }
+    fun startExport(withPhotos: Boolean) {
+        pendingBackup = vm.createBackupJson(withPhotos)
+        val suffix = if (withPhotos) "completo" else "leggero"
+        exportLauncher.launch("gestionale-backup-$suffix-${System.currentTimeMillis()}.json")
+    }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(18.dp)) {
-                Text("Dimensione testo", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("${(vm.fontScale * 100).toInt()}%", color = Color(0xFF667085))
+            SettingsHeader("Aspetto", "Personalizza l’interfaccia senza impazzire dentro menu inutili.")
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Tema", fontWeight = FontWeight.Black, fontSize = 17.sp)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(AppThemeMode.SYSTEM to "Sistema", AppThemeMode.LIGHT to "Chiaro", AppThemeMode.DARK to "Scuro").forEach { option ->
+                        FilterChip(selected = vm.themeMode == option.first, onClick = { vm.updateThemeMode(option.first) }, label = { Text(option.second) })
+                    }
+                }
+                HorizontalDivider()
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) { Text("Dimensione testo", fontWeight = FontWeight.Bold); Text("${(vm.fontScale * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
                 Slider(value = vm.fontScale, onValueChange = vm::updateFontScale, valueRange = .85f..1.35f, steps = 9)
+                SettingSwitch("Modalità compatta", "Riduce spazi e dimensioni delle schede.", vm.compactMode, vm::updateCompactMode)
+                SettingSwitch("Catalogo a griglia", "Mostra gli articoli con foto grandi come nella vecchia app.", vm.gridView, vm::updateGridView)
             } }
         }
         item {
-            Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Account", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text(vm.session?.email.orEmpty())
-                OutlinedButton(onClick = vm::logout, enabled = !vm.saving) { Icon(Icons.Default.Logout, null); Spacer(Modifier.width(8.dp)); Text("Esci") }
+            SettingsHeader("Dati e backup", "Esporta una copia leggibile dei dati del tuo account.")
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(onClick = { startExport(true) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.CloudDownload, null); Spacer(Modifier.width(8.dp)); Text("Esporta backup completo") }
+                OutlinedButton(onClick = { startExport(false) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Download, null); Spacer(Modifier.width(8.dp)); Text("Esporta senza riferimenti foto") }
+                Text("Le immagini restano protette su Supabase; il backup completo include i riferimenti necessari per ritrovarle.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                exportMessage?.let { Text(it, color = if (it.startsWith("Backup")) Positive else Negative, fontWeight = FontWeight.Bold) }
             } }
         }
         item {
-            Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Informazioni app", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("Gestionale Android 0.1.0")
-                Text("Versione tecnica provvisoria · base Free + Premium", color = Color(0xFF667085), fontSize = 13.sp)
-                Text("Backup e ripristino saranno aggiunti in una fase successiva.", color = Color(0xFF667085), fontSize = 13.sp)
+            SettingsHeader("Anagrafiche", "Marche, fornitori e categorie creati da te.")
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(10.dp)) {
+                SettingsLink(Icons.Default.Label, "Marche", "${vm.brands.size} elementi") { vm.archiveKind = EntityKind.BRAND; vm.selectTab(MainTab.ARCHIVES) }
+                SettingsLink(Icons.Default.LocalShipping, "Fornitori", "${vm.suppliers.size} elementi") { vm.archiveKind = EntityKind.SUPPLIER; vm.selectTab(MainTab.ARCHIVES) }
+                SettingsLink(Icons.Default.Category, "Categorie", "${vm.categories.size} elementi") { vm.archiveKind = EntityKind.CATEGORY; vm.selectTab(MainTab.ARCHIVES) }
             } }
         }
+        item {
+            SettingsHeader("Diagnostica", "Stato reale dei dati caricati nell’app.")
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                ValueRow("Connessione cloud", if (vm.session != null) "Attiva" else "Disconnessa", if (vm.session != null) Positive else Negative)
+                ValueRow("Articoli", vm.products.size.toString())
+                ValueRow("Foto collegate", vm.products.sumOf { it.photos.size }.toString())
+                ValueRow("Ultimo aggiornamento", vm.lastSyncAt?.let { DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it)) } ?: "Mai")
+                OutlinedButton(onClick = vm::loadAll, enabled = !vm.loading, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Sync, null); Spacer(Modifier.width(8.dp)); Text("Aggiorna dal cloud") }
+            } }
+        }
+        item {
+            SettingsHeader("Account", "Sessione protetta e dati separati dagli altri utenti.")
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(vm.session?.email.orEmpty(), fontWeight = FontWeight.Bold)
+                Text("ID account: ${vm.session?.userId?.take(8)}…", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                OutlinedButton(onClick = vm::logout, enabled = !vm.saving, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Logout, null); Spacer(Modifier.width(8.dp)); Text("Disconnetti account") }
+            } }
+        }
+        item {
+            SettingsHeader("Informazioni", "Versione tecnica e protezione dei dati.")
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text("Gestionale Android 0.2.0", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                Text("Applicazione Android nativa · base Free + Premium", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                Text("Fotocamera facoltativa · archivio immagini privato · isolamento dati tramite Supabase RLS.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            } }
+        }
+        item { Spacer(Modifier.height(72.dp)) }
     }
 }
+
+@Composable private fun SettingsHeader(title: String, subtitle: String) = Column(Modifier.padding(horizontal = 2.dp)) {
+    Text(title, fontWeight = FontWeight.Black, fontSize = 20.sp)
+    Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+    Spacer(Modifier.height(7.dp))
+}
+
+@Composable private fun SettingSwitch(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) =
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) { Text(title, fontWeight = FontWeight.Bold); Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) }
+        Switch(checked, onChange)
+    }
+
+@Composable private fun SettingsLink(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String, onClick: () -> Unit) =
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Surface(Modifier.size(42.dp), color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(12.dp)) { Icon(icon, null, Modifier.padding(10.dp)) }
+        Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text(title, fontWeight = FontWeight.Bold); Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) }
+        Icon(Icons.Default.ChevronRight, null)
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -489,3 +711,10 @@ private fun LoadingScreen(label: String) = Box(Modifier.fillMaxSize(), contentAl
 }
 
 private fun money(value: Double): String = NumberFormat.getCurrencyInstance(Locale.ITALY).format(value)
+
+private fun tabTitle(tab: MainTab): String = when (tab) {
+    MainTab.HOME -> "Dashboard"
+    MainTab.ARTICLES -> "Articoli"
+    MainTab.ARCHIVES -> "Anagrafiche"
+    MainTab.SETTINGS -> "Impostazioni"
+}

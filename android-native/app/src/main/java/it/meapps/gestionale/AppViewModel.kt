@@ -12,6 +12,9 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
+import java.time.Instant
 
 data class EntityDraft(
     val id: String = "",
@@ -61,7 +64,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var categories by mutableStateOf<List<Category>>(emptyList())
         private set
 
-    var selectedTab by mutableStateOf(MainTab.ARTICLES)
+    var selectedTab by mutableStateOf(MainTab.HOME)
         private set
     var archiveKind by mutableStateOf(EntityKind.BRAND)
     var editor by mutableStateOf<Editor?>(null)
@@ -78,6 +81,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var supplierFilter by mutableStateOf<String?>(null)
     var categoryFilter by mutableStateOf<String?>(null)
     var fontScale by mutableStateOf(prefs.getFloat("font_scale", 1f).coerceIn(.85f, 1.35f))
+        private set
+    var themeMode by mutableStateOf(
+        runCatching { AppThemeMode.valueOf(prefs.getString("theme_mode", AppThemeMode.SYSTEM.name).orEmpty()) }
+            .getOrDefault(AppThemeMode.SYSTEM)
+    )
+        private set
+    var compactMode by mutableStateOf(prefs.getBoolean("compact_mode", false))
+        private set
+    var gridView by mutableStateOf(prefs.getBoolean("grid_view", true))
+        private set
+    var lastSyncAt by mutableStateOf<Long?>(null)
         private set
 
     val pendingPhotos = mutableStateListOf<Uri>()
@@ -157,6 +171,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         categories = results[2] as List<Category>
         @Suppress("UNCHECKED_CAST")
         products = results[3] as List<Product>
+        lastSyncAt = System.currentTimeMillis()
     }
 
     fun selectTab(tab: MainTab) {
@@ -274,6 +289,57 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun updateFontScale(value: Float) {
         fontScale = value.coerceIn(.85f, 1.35f)
         prefs.edit().putFloat("font_scale", fontScale).apply()
+    }
+
+    fun updateThemeMode(value: AppThemeMode) {
+        themeMode = value
+        prefs.edit().putString("theme_mode", value.name).apply()
+    }
+
+    fun updateCompactMode(value: Boolean) {
+        compactMode = value
+        prefs.edit().putBoolean("compact_mode", value).apply()
+    }
+
+    fun updateGridView(value: Boolean) {
+        gridView = value
+        prefs.edit().putBoolean("grid_view", value).apply()
+    }
+
+    fun createBackupJson(includePhotoMetadata: Boolean): String {
+        fun brandJson(value: Brand) = JSONObject().apply {
+            put("id", value.id); put("name", value.name); put("notes", value.notes)
+        }
+        fun supplierJson(value: Supplier) = JSONObject().apply {
+            put("id", value.id); put("name", value.name); put("contact", value.contact)
+            put("phone", value.phone); put("email", value.email); put("website", value.website)
+            put("catalog_url", value.catalogUrl); put("address", value.address); put("notes", value.notes)
+        }
+        fun categoryJson(value: Category) = JSONObject().apply {
+            put("id", value.id); put("name", value.name); put("description", value.description); put("sort_order", value.sortOrder)
+        }
+        fun productJson(value: Product) = JSONObject().apply {
+            put("id", value.id); put("name", value.name); put("code", value.code); put("sku", value.sku)
+            put("brand_id", value.brandId); put("category_id", value.categoryId); put("supplier_id", value.supplierId)
+            put("description", value.description); put("purchase_price", value.purchasePrice)
+            put("sale_price", value.salePrice); put("extra_costs", value.extraCosts); put("quantity", value.quantity)
+            put("available", value.available); put("notes", value.notes); put("product_url", value.productUrl)
+            put("created_at", value.createdAt); put("updated_at", value.updatedAt)
+            if (includePhotoMetadata) put("photos", JSONArray(value.photos.map { photo ->
+                JSONObject().apply { put("id", photo.id); put("path", photo.path); put("order", photo.order) }
+            }))
+        }
+        return JSONObject().apply {
+            put("format", "gestionale-android-backup")
+            put("version", 1)
+            put("exported_at", Instant.now().toString())
+            put("owner_id", session?.userId)
+            put("includes_photo_metadata", includePhotoMetadata)
+            put("brands", JSONArray(brands.map(::brandJson)))
+            put("suppliers", JSONArray(suppliers.map(::supplierJson)))
+            put("categories", JSONArray(categories.map(::categoryJson)))
+            put("products", JSONArray(products.map(::productJson)))
+        }.toString(2)
     }
 
     fun clearMessages() { errorMessage = null; noticeMessage = null }
