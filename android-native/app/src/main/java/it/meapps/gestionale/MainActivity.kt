@@ -1,6 +1,7 @@
 package it.meapps.gestionale
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -455,27 +456,119 @@ private fun ProductsScreen(vm: AppViewModel) {
 
 @Composable
 private fun ProductGridCard(product: Product, vm: AppViewModel) {
+    val context = LocalContext.current
     val imagePath = product.photos.minByOrNull { it.order }?.path
     if (imagePath != null) LaunchedEffect(imagePath) { vm.ensureSignedUrl(imagePath) }
-    val borderColor = if (!product.available || product.quantity <= 0) Negative.copy(alpha = .65f) else Color.Transparent
+    val borderColor = if (!product.available || product.quantity <= 0) Negative.copy(alpha = .65f) else Color(0xFFD9E1EC)
+    val brandName = vm.brands.firstOrNull { it.id == product.brandId }?.name.orEmpty()
+    val code = product.code.ifBlank { product.sku.ifBlank { "Senza codice" } }
+
     Card(
         Modifier.fillMaxWidth().clickable { vm.openProduct(product) },
-        shape = RoundedCornerShape(18.dp), border = androidx.compose.foundation.BorderStroke(if (borderColor == Color.Transparent) 0.dp else 1.5.dp, borderColor)
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor)
     ) {
-        Column(Modifier.padding(if (vm.compactMode) 9.dp else 11.dp)) {
-            Surface(Modifier.fillMaxWidth().aspectRatio(1f), shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-                if (imagePath != null && vm.signedUrls[imagePath] != null) AsyncImage(vm.signedUrls[imagePath], null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                else Icon(Icons.Default.Image, null, Modifier.padding(38.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column {
+            Box {
+                Surface(
+                    Modifier.fillMaxWidth().aspectRatio(1.15f),
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    if (imagePath != null && vm.signedUrls[imagePath] != null) {
+                        AsyncImage(vm.signedUrls[imagePath], null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    } else {
+                        Icon(Icons.Default.Image, null, Modifier.padding(38.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Surface(
+                    modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xE60F172A)
+                ) {
+                    Text(
+                        "${product.photos.size} foto",
+                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+                if (!product.available || product.quantity <= 0) {
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xE6B42318)
+                    ) {
+                        Text("NON DISP.", Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                    }
+                }
             }
-            Spacer(Modifier.height(9.dp))
-            Text(product.name, fontWeight = FontWeight.Black, maxLines = 2, minLines = if (vm.compactMode) 1 else 2)
-            Text(product.code.ifBlank { product.sku.ifBlank { "Senza codice" } }, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, maxLines = 1)
-            Spacer(Modifier.height(7.dp))
-            Text(money(product.salePrice), fontWeight = FontWeight.Black, fontSize = 18.sp)
-            Text("Margine ${money(product.marginEuro)}", color = if (product.marginEuro >= 0) Positive else Negative, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Text(if (product.available && product.quantity > 0) "Disponibili ${product.quantity}" else "Non disponibile", color = if (product.available && product.quantity > 0) Positive else Negative, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (brandName.isNotBlank()) {
+                    Text(brandName.uppercase(), color = AppBlue, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                }
+                Text(product.name, fontWeight = FontWeight.Black, maxLines = 2, minLines = if (vm.compactMode) 1 else 2, color = AppNavy)
+                Text(code, color = Color(0xFF64748B), fontSize = 11.sp, maxLines = 1)
+                Spacer(Modifier.height(2.dp))
+                Text(money(product.salePrice), fontWeight = FontWeight.Black, fontSize = 19.sp, color = AppNavy)
+                if (product.marginEuro < 0) {
+                    Surface(color = Color(0xFFFFECEA), shape = RoundedCornerShape(10.dp)) {
+                        Text(
+                            "Sotto margine ${money(product.marginEuro)}",
+                            Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                            color = Negative,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                } else {
+                    Text("Margine ${money(product.marginEuro)}", color = Positive, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+                Text(
+                    if (product.available && product.quantity > 0) "Disponibili ${product.quantity}" else "Non disponibile",
+                    color = if (product.available && product.quantity > 0) Positive else Negative,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilledTonalButton(
+                        onClick = { shareProduct(context, product, null) },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                    ) { Text("Condividi", fontSize = 10.sp, fontWeight = FontWeight.Black) }
+                    FilledTonalButton(
+                        onClick = { shareProduct(context, product, "org.telegram.messenger") },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                    ) { Text("Telegram", fontSize = 10.sp, fontWeight = FontWeight.Black) }
+                }
+            }
         }
     }
+}
+
+private fun shareProduct(context: android.content.Context, product: Product, targetPackage: String?) {
+    val text = buildString {
+        append(product.name)
+        val code = product.code.ifBlank { product.sku }
+        if (code.isNotBlank()) append("\nCodice: ").append(code)
+        if (product.salePrice > 0) append("\nPrezzo: ").append(money(product.salePrice))
+        if (product.productUrl.isNotBlank()) append("\n").append(product.productUrl)
+    }
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+        if (!targetPackage.isNullOrBlank()) setPackage(targetPackage)
+    }
+    val fallback = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    runCatching { context.startActivity(intent) }
+        .onFailure { context.startActivity(Intent.createChooser(fallback, "Condividi articolo")) }
 }
 
 @Composable
