@@ -1199,6 +1199,36 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                     { value -> if (value != null) vm.updateOrderDraft(d.copy(status = value)) }
                 )
             }
+            item { SectionTitle("Pagamento") }
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(d.paid, { vm.updateOrderDraft(d.copy(paid = it)) })
+                    Spacer(Modifier.width(10.dp))
+                    Text(if (d.paid) "Ordine pagato" else "Da pagare", fontWeight = FontWeight.Bold)
+                }
+            }
+            if (d.paid) item {
+                NumberField(
+                    d.amountPaid,
+                    { vm.updateOrderDraft(d.copy(amountPaid = it)) },
+                    "Importo pagato € (vuoto = totale)",
+                    Modifier.fillMaxWidth()
+                )
+            }
+            if (d.paid) item {
+                SelectionField(
+                    "Metodo pagamento",
+                    d.paymentMethod,
+                    listOf(
+                        "contanti" to "Contanti",
+                        "carta" to "Carta",
+                        "bonifico" to "Bonifico",
+                        "paypal" to "PayPal",
+                        "altro" to "Altro"
+                    ),
+                    { value -> if (value != null) vm.updateOrderDraft(d.copy(paymentMethod = value)) }
+                )
+            }
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF4FF)), shape = RoundedCornerShape(18.dp)) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
