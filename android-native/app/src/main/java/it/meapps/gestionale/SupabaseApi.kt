@@ -266,8 +266,9 @@ class SupabaseApi(private val context: Context) {
     suspend fun createOrder(draft: OrderDraft, product: Product): String {
         val current = requireSession()
         val qty = draft.quantity.toIntOrNull()?.coerceAtLeast(1) ?: 1
-        val total = product.salePrice * qty
-        val profit = product.marginEuro * qty
+        val unitPrice = product.effectiveSalePrice
+        val total = unitPrice * qty
+        val profit = product.effectiveMarginEuro * qty
         val orderBody = JSONObject()
             .put("user_id", current.userId)
             .put("numero_ordine", "ORD-" + System.currentTimeMillis())
@@ -289,7 +290,7 @@ class SupabaseApi(private val context: Context) {
             .put("ordine_id", orderId)
             .put("prodotto_id", product.id)
             .put("quantita", qty)
-            .put("prezzo_unitario", product.salePrice)
+            .put("prezzo_unitario", unitPrice)
             .put("costo_unitario", product.totalCost)
             .put("guadagno_riga", profit)
             .put("sconto", 0)
