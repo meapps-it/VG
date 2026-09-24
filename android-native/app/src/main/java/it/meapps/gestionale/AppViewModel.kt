@@ -63,6 +63,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var categories by mutableStateOf<List<Category>>(emptyList())
         private set
+    var customers by mutableStateOf<List<Customer>>(emptyList())
+        private set
+    var orders by mutableStateOf<List<OrderSummary>>(emptyList())
+        private set
 
     var selectedTab by mutableStateOf(MainTab.HOME)
         private set
@@ -146,7 +150,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun logout() = runSaving {
         api.signOut()
         session = null
-        products = emptyList(); brands = emptyList(); suppliers = emptyList(); categories = emptyList()
+        products = emptyList(); brands = emptyList(); suppliers = emptyList(); categories = emptyList(); customers = emptyList(); orders = emptyList()
         editor = null
     }
 
@@ -161,7 +165,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             viewModelScope.async { api.fetchBrands() },
             viewModelScope.async { api.fetchSuppliers() },
             viewModelScope.async { api.fetchCategories() },
-            viewModelScope.async { api.fetchProducts() }
+            viewModelScope.async { api.fetchProducts() },
+            viewModelScope.async { api.fetchCustomers() },
+            viewModelScope.async { api.fetchOrders() }
         ).awaitAll()
         @Suppress("UNCHECKED_CAST")
         brands = results[0] as List<Brand>
@@ -171,6 +177,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         categories = results[2] as List<Category>
         @Suppress("UNCHECKED_CAST")
         products = results[3] as List<Product>
+        @Suppress("UNCHECKED_CAST")
+        customers = results[4] as List<Customer>
+        @Suppress("UNCHECKED_CAST")
+        orders = results[5] as List<OrderSummary>
         lastSyncAt = System.currentTimeMillis()
     }
 
