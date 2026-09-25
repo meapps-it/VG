@@ -63,7 +63,7 @@
     <string name="available">Disponibile</string>
     <string name="unavailable">Non disponibile</string>
     <string name="add_order">Aggiungi ordine</string>
-    <string name="new">Nuovo</string>
+    <string name="new_label">Nuovo</string>
     <string name="search_customer">Cerca cliente, telefono o città</string>
     <string name="no_customer">Nessun cliente</string>
     <string name="search_order">Cerca cliente, ordine, tracking o articolo</string>
