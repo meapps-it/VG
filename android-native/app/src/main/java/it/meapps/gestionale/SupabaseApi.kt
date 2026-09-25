@@ -416,10 +416,15 @@ class SupabaseApi(private val context: Context) {
             runCatching { deletePhoto(photo) }
         }
         runCatching { delete("spedizioni?user_id=eq.${current.userId}") }
+        runCatching { delete("movimenti_cassa?user_id=eq.${current.userId}") }
         delete("righe_ordine?user_id=eq.${current.userId}")
         delete("ordini?user_id=eq.${current.userId}")
+        delete("prodotti_foto?user_id=eq.${current.userId}")
         delete("prodotti?user_id=eq.${current.userId}")
         delete("clienti?user_id=eq.${current.userId}")
+        delete("fornitori?user_id=eq.${current.userId}")
+        delete("marche?user_id=eq.${current.userId}")
+        delete("categorie?user_id=eq.${current.userId}")
     }
 
     suspend fun loadDemoData() {
