@@ -40,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -64,12 +65,12 @@ import java.text.NumberFormat
 import java.util.Date
 import java.util.Locale
 
-private val AppNavy = Color(0xFF0F172A)
-private val AppBlue = Color(0xFF2563EB)
-private val AppAmber = Color(0xFFF59E0B)
-private val AppBackground = Color(0xFFF8FAFC)
+private val AppNavy = Color(0xFF0B2B52)
+private val AppBlue = Color(0xFF1677FF)
+private val AppAmber = Color(0xFFFF8A1F)
+private val AppBackground = Color(0xFFF5F8FC)
 private val WarmSurface = Color(0xFFFFFBEB)
-private val Positive = Color(0xFF087443)
+private val Positive = Color(0xFF0AA66E)
 private val Negative = Color(0xFFB42318)
 private val LegacyBorder = Color(0xFFC9D0D9)
 
@@ -221,7 +222,11 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            Surface(color = AppNavy, shadowElevation = 2.dp) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .background(Brush.horizontalGradient(listOf(AppNavy, Color(0xFF0E4C92))))
+            ) {
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -280,10 +285,10 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    BottomPill(stringResource(R.string.dashboard), vm.selectedTab == MainTab.HOME, Modifier.weight(1f)) { vm.selectTab(MainTab.HOME) }
-                    BottomPill(stringResource(R.string.articles), vm.selectedTab == MainTab.ARTICLES, Modifier.weight(1f)) { vm.selectTab(MainTab.ARTICLES) }
-                    BottomPill(stringResource(R.string.customers), vm.selectedTab == MainTab.CLIENTS, Modifier.weight(1f)) { vm.selectTab(MainTab.CLIENTS) }
-                    BottomPill(stringResource(R.string.orders), vm.selectedTab == MainTab.ORDERS, Modifier.weight(1f)) { vm.selectTab(MainTab.ORDERS) }
+                    BottomPill(stringResource(R.string.dashboard), Icons.Default.Home, vm.selectedTab == MainTab.HOME, AppBlue, Modifier.weight(1f)) { vm.selectTab(MainTab.HOME) }
+                    BottomPill(stringResource(R.string.articles), Icons.Default.Inventory2, vm.selectedTab == MainTab.ARTICLES, AppBlue, Modifier.weight(1f)) { vm.selectTab(MainTab.ARTICLES) }
+                    BottomPill(stringResource(R.string.customers), Icons.Default.People, vm.selectedTab == MainTab.CLIENTS, AppAmber, Modifier.weight(1f)) { vm.selectTab(MainTab.CLIENTS) }
+                    BottomPill(stringResource(R.string.orders), Icons.Default.ShoppingCart, vm.selectedTab == MainTab.ORDERS, Positive, Modifier.weight(1f)) { vm.selectTab(MainTab.ORDERS) }
                 }
             }
         },
@@ -316,18 +321,33 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
 }
 
 @Composable
-private fun BottomPill(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun BottomPill(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    accent: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     Surface(
         modifier = modifier.height(52.dp).clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
-        color = if (selected) Color(0xFFFFF3CF) else Color.White,
-        border = androidx.compose.foundation.BorderStroke(
-            1.5.dp,
-            LegacyBorder
-        )
+        shape = RoundedCornerShape(18.dp),
+        color = if (selected) accent.copy(alpha = .12f) else Color.Transparent,
+        border = if (selected) androidx.compose.foundation.BorderStroke(1.2.dp, accent.copy(alpha = .40f)) else null
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(label, fontWeight = FontWeight.Black, fontSize = 13.sp, color = AppNavy, maxLines = 1)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(icon, null, Modifier.size(20.dp), tint = if (selected) accent else Color(0xFF64748B))
+            Spacer(Modifier.height(2.dp))
+            Text(
+                label,
+                fontWeight = if (selected) FontWeight.Black else FontWeight.Bold,
+                fontSize = 10.sp,
+                color = if (selected) AppNavy else Color(0xFF64748B),
+                maxLines = 1
+            )
         }
     }
 }
@@ -1197,6 +1217,7 @@ private fun SettingsScreen(vm: AppViewModel) {
     val context = LocalContext.current
     val languagePrefs = remember(context) { context.getSharedPreferences("preferences", android.content.Context.MODE_PRIVATE) }
     var appLanguage by remember { mutableStateOf(languagePrefs.getString("app_language", "system") ?: "system") }
+    var dataAction by remember { mutableStateOf<String?>(null) }
     var pendingBackup by remember { mutableStateOf<String?>(null) }
     var exportMessage by remember { mutableStateOf<String?>(null) }
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
@@ -1212,7 +1233,89 @@ private fun SettingsScreen(vm: AppViewModel) {
         val suffix = if (withPhotos) "completo" else "leggero"
         exportLauncher.launch("gestionale-backup-$suffix-${System.currentTimeMillis()}.json")
     }
+    dataAction?.let { action ->
+        val message = when (action) {
+            "replace" -> stringResource(R.string.replace_demo_confirm)
+            "demo" -> stringResource(R.string.delete_demo_confirm)
+            else -> stringResource(R.string.delete_all_confirm)
+        }
+        AlertDialog(
+            onDismissRequest = { dataAction = null },
+            title = { Text(stringResource(R.string.data_management), fontWeight = FontWeight.Black) },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        when (action) {
+                            "replace" -> vm.replaceWithDemoData()
+                            "demo" -> vm.deleteDemoData()
+                            else -> vm.deleteAllData()
+                        }
+                        dataAction = null
+                    }
+                ) { Text(if (action == "replace") stringResource(R.string.replace_demo) else stringResource(R.string.delete), color = if (action == "replace") AppBlue else Negative) }
+            },
+            dismissButton = { TextButton(onClick = { dataAction = null }) { Text(stringResource(R.string.cancel)) } }
+        )
+    }
+
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item {
+            SettingsHeader(stringResource(R.string.demo_data), stringResource(R.string.demo_data_sub))
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF)),
+                border = androidx.compose.foundation.BorderStroke(1.2.dp, AppBlue.copy(alpha = .25f))
+            ) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = vm::loadDemoData,
+                        enabled = !vm.saving,
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(15.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
+                    ) {
+                        Icon(Icons.Default.Dataset, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.load_demo), fontWeight = FontWeight.Black)
+                    }
+                    OutlinedButton(
+                        onClick = { dataAction = "replace" },
+                        enabled = !vm.saving,
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        shape = RoundedCornerShape(15.dp)
+                    ) {
+                        Icon(Icons.Default.RestartAlt, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.replace_demo), fontWeight = FontWeight.Bold)
+                    }
+                    OutlinedButton(
+                        onClick = { dataAction = "demo" },
+                        enabled = !vm.saving,
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        shape = RoundedCornerShape(15.dp)
+                    ) {
+                        Icon(Icons.Default.DeleteSweep, null, tint = Negative)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.delete_demo), color = Negative, fontWeight = FontWeight.Bold)
+                    }
+                    Text(stringResource(R.string.demo_notice), color = Color(0xFF64748B), fontSize = 12.sp)
+                    HorizontalDivider()
+                    OutlinedButton(
+                        onClick = { dataAction = "all" },
+                        enabled = !vm.saving,
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        shape = RoundedCornerShape(15.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.2.dp, Negative.copy(alpha = .55f))
+                    ) {
+                        Icon(Icons.Default.DeleteForever, null, tint = Negative)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.delete_all_data), color = Negative, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+        }
         item {
             SettingsHeader(stringResource(R.string.appearance), stringResource(R.string.appearance_sub))
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1297,7 +1400,7 @@ private fun SettingsScreen(vm: AppViewModel) {
         item {
             SettingsHeader(stringResource(R.string.information), "Versione tecnica e protezione dei dati.")
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("Gestionale Android 0.3.0", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                Text("Gestionale Android 0.5.0", fontWeight = FontWeight.Black, fontSize = 18.sp)
                 Text("Applicazione Android nativa · base Free + Premium", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 Text("Fotocamera facoltativa · archivio immagini privato · isolamento dati tramite Supabase RLS.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             } }
