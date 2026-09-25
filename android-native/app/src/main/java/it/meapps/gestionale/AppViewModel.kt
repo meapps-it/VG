@@ -46,6 +46,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val api = SupabaseApi(application)
     private val prefs = application.getSharedPreferences("preferences", Application.MODE_PRIVATE)
+    private val billing = BillingManager(
+        application,
+        onPremiumChanged = { isPremium = it },
+        onPriceChanged = { premiumPrice = it },
+        onMessage = { noticeMessage = it }
+    )
     private val tabHistory = ArrayDeque<MainTab>()
 
     var checkingAuth by mutableStateOf(true)
@@ -63,6 +69,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var premiumRequired by mutableStateOf(false)
         private set
     var isPremium by mutableStateOf(false)
+        private set
+    var premiumPrice by mutableStateOf<String?>(null)
         private set
 
     var products by mutableStateOf<List<Product>>(emptyList())
@@ -141,6 +149,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
 
     init {
+        billing.start()
         viewModelScope.launch {
             session = api.restoreSession()
             checkingAuth = false
@@ -318,6 +327,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun dismissPremiumPrompt() { premiumRequired = false }
 
     fun showPremiumPrompt() { premiumRequired = true }
+
+    fun purchasePremium(activity: android.app.Activity) {
+        premiumRequired = false
+        billing.launchPurchase(activity)
+    }
+
+    fun refreshPremium() {
+        billing.refresh()
+    }
 
     fun updateProductDraft(value: ProductDraft) { productDraft = value }
     fun addPendingPhoto(uri: Uri) { if (!pendingPhotos.contains(uri)) pendingPhotos.add(uri) }
@@ -544,6 +562,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             errorMessage = null
             try { block() } catch (t: Throwable) { handleError(t) } finally { saving = false }
         }
+    }
+
+    override fun onCleared() {
+        billing.end()
+        super.onCleared()
     }
 
     private fun handleError(t: Throwable) {
