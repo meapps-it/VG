@@ -177,4 +177,5 @@
     <string name="courier">Corriere</string>
     <string name="create_order">Crea ordine</string>
     <string name="save_changes">Salva modifiche</string>
+    <string name="none">Nessuna</string>
 </resources>
