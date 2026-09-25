@@ -258,6 +258,7 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
         floatingActionButton = {
             if (vm.selectedTab == MainTab.ARTICLES || vm.selectedTab == MainTab.ARCHIVES) {
                 FloatingActionButton(
+                    modifier = Modifier.border(1.5.dp, Color.Black, RoundedCornerShape(50)),
                     onClick = {
                         if (vm.selectedTab == MainTab.ARTICLES) vm.openProduct()
                         else vm.openEntity(vm.archiveKind)
@@ -327,6 +328,7 @@ private fun HomeScreen(vm: AppViewModel) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF8)),
                 shape = RoundedCornerShape(28.dp),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -416,8 +418,21 @@ private fun HomeScreen(vm: AppViewModel) {
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                LegacyStatCard("MEDIA ORDINI", money(averageOrder), "valore medio per ordine", Modifier.weight(1f))
-                LegacyStatCard("GUADAGNO TOTALE", money(totalProfit), "margine complessivo", Modifier.weight(1f), Positive)
+                LegacyStatCard(
+                    "MEDIA ORDINI",
+                    money(averageOrder),
+                    "valore medio per ordine",
+                    Modifier.weight(1f),
+                    onClick = { vm.clearOrderDrillDown(); vm.selectTab(MainTab.ORDERS) }
+                )
+                LegacyStatCard(
+                    "GUADAGNO TOTALE",
+                    money(totalProfit),
+                    "margine complessivo",
+                    Modifier.weight(1f),
+                    Positive,
+                    onClick = { vm.clearOrderDrillDown(); vm.selectTab(MainTab.ORDERS) }
+                )
             }
         }
         item {
@@ -428,17 +443,20 @@ private fun HomeScreen(vm: AppViewModel) {
                         onClick = { vm.openProduct() },
                         modifier = Modifier.fillMaxWidth().height(54.dp),
                         shape = RoundedCornerShape(18.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
+                        colors = ButtonDefaults.buttonColors(containerColor = AppBlue),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
                     ) { Text("Nuovo articolo", fontWeight = FontWeight.Black) }
                     OutlinedButton(
                         onClick = { vm.openOrder() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(18.dp)
+                        shape = RoundedCornerShape(18.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
                     ) { Text("Nuovo ordine", fontWeight = FontWeight.Black, color = AppNavy) }
                     OutlinedButton(
                         onClick = { vm.openCustomer() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(18.dp)
+                        shape = RoundedCornerShape(18.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
                     ) { Text("Nuovo cliente", fontWeight = FontWeight.Black, color = AppNavy) }
                 }
             }
@@ -610,7 +628,6 @@ private fun ArticleCounter(label: String, value: String, modifier: Modifier = Mo
 }
 @Composable
 private fun ProductGridCard(product: Product, vm: AppViewModel) {
-    val context = LocalContext.current
     val imagePath = product.photos.minByOrNull { it.order }?.path
     if (imagePath != null) LaunchedEffect(imagePath) { vm.ensureSignedUrl(imagePath) }
     val borderColor = if (!product.available || product.quantity <= 0) Negative.copy(alpha = .65f) else Color(0xFFD9E1EC)
@@ -1814,7 +1831,7 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                     onClick = vm::saveOrder,
                     enabled = !vm.saving,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(18.dp)
+                    shape = RoundedCornerShape(18.dp),
                     border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
                 ) { Text(if (vm.saving) "Salvataggio…" else if (d.id.isBlank()) "Crea ordine" else "Salva modifiche", fontWeight = FontWeight.Black) }
             }
