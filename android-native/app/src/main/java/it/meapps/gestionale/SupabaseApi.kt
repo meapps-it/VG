@@ -221,6 +221,8 @@ class SupabaseApi(private val context: Context) {
                 code = it.string("codice").ifBlank { it.string("sku") }, sku = it.string("sku"),
                 brandId = it.nullableString("marca_id"), categoryId = it.nullableString("categoria_id"),
                 supplierId = it.nullableString("fornitore_id"),
+                measureType = it.string("tipo_misura"),
+                measureValue = it.string("valore_misura"),
                 description = it.string("descrizione_app").ifBlank { it.string("descrizione") },
                 purchasePrice = it.number("prezzo_acquisto"), salePrice = it.number("prezzo_vendita"),
                 extraCosts = it.number("costi_aggiuntivi"), quantity = it.optInt("giacenza"),
@@ -367,6 +369,8 @@ class SupabaseApi(private val context: Context) {
             .putNullable("sku", value.sku.ifBlank { value.code })
             .putNullable("marca_id", value.brandId).putNullable("categoria_id", value.categoryId)
             .putNullable("fornitore_id", value.supplierId)
+            .putNullable("tipo_misura", value.measureType)
+            .putNullable("valore_misura", value.measureValue)
             .putNullable("descrizione_app", value.description).putNullable("descrizione", value.description)
             .put("prezzo_acquisto", value.purchasePrice).put("prezzo_vendita", value.salePrice)
             .put("costi_aggiuntivi", value.extraCosts).put("giacenza", value.quantity)
