@@ -414,6 +414,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         prefs.edit().putBoolean("grid_view", value).apply()
     }
 
+    fun loadDemoData() = runSaving {
+        api.loadDemoData()
+        loadAllInternal()
+        noticeMessage = "Dati di esempio caricati"
+    }
+
+    fun replaceWithDemoData() = runSaving {
+        api.replaceWithDemoData()
+        loadAllInternal()
+        noticeMessage = "Dati sostituiti con gli esempi"
+    }
+
+    fun deleteDemoData() = runSaving {
+        api.deleteDemoData()
+        loadAllInternal()
+        noticeMessage = "Dati di esempio eliminati"
+    }
+
+    fun deleteAllData() = runSaving {
+        api.deleteAllUserData()
+        loadAllInternal()
+        noticeMessage = "Tutti i dati sono stati eliminati"
+    }
+
     fun createBackupJson(includePhotoMetadata: Boolean): String {
         fun brandJson(value: Brand) = JSONObject().apply {
             put("id", value.id); put("name", value.name); put("notes", value.notes)
