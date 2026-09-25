@@ -163,6 +163,7 @@ data class Product(
     val productUrl: String = "",
     val createdAt: String = "",
     val updatedAt: String = "",
+    val isDemo: Boolean = false,
     val photos: List<ProductPhoto> = emptyList()
 ) {
     val totalCost: Double get() = purchasePrice + extraCosts
@@ -226,6 +227,7 @@ data class ProductDraft(
         productUrl = productUrl.trim(),
         createdAt = existing?.createdAt.orEmpty(),
         updatedAt = existing?.updatedAt.orEmpty(),
+        isDemo = existing?.isDemo ?: false,
         photos = existing?.photos.orEmpty()
     )
 
