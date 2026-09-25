@@ -1500,7 +1500,7 @@ private fun SettingsScreen(vm: AppViewModel) {
         item {
             SettingsHeader(stringResource(R.string.information), "Versione tecnica e protezione dei dati.")
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("Gestionale Android 0.7.0", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                Text("Gestionale Android 0.7.1", fontWeight = FontWeight.Black, fontSize = 18.sp)
                 Text("Applicazione Android nativa · base Free + Premium", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 Text("Fotocamera facoltativa · archivio immagini privato · isolamento dati tramite Supabase RLS.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             } }
