@@ -21,4 +21,15 @@
     <string name="data_management">Data management</string>
     <string name="demo_notice">Sample data uses DEMO codes and can be removed at any time.</string>
 
+
+    <string name="free_plan">Free plan</string>
+    <string name="premium_plan">Pro version</string>
+    <string name="free_limit_status">%1$d of %2$d products used</string>
+    <string name="premium_unlimited">Unlimited products and premium features</string>
+    <string name="upgrade_pro">Upgrade to Pro</string>
+    <string name="premium_limit_title">Free plan limit reached</string>
+    <string name="premium_limit_text">You reached the limit of 10 personal products. Sample products do not count. Pro removes this limit.</string>
+    <string name="premium_play_pending">Payments will be enabled through Google Play once the product setup is complete.</string>
+    <string name="later">Later</string>
+
 </resources>
