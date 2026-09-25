@@ -60,9 +60,11 @@ data class OrderSummary(
     val totalPaid: Double = 0.0,
     val paid: Boolean = false,
     val paymentStatus: String = "",
+    val paymentMethod: String = "",
     val profit: Double = 0.0,
     val trackingCode: String = "",
     val courier: String = "",
+    val notes: String = "",
     val itemNames: List<String> = emptyList()
 )
 
@@ -95,6 +97,7 @@ data class CustomerDraft(
 }
 
 data class OrderDraft(
+    val id: String = "",
     val customerId: String? = null,
     val productId: String? = null,
     val quantity: String = "1",
@@ -109,10 +112,25 @@ data class OrderDraft(
 ) {
     fun validate(): String? = when {
         customerId.isNullOrBlank() -> "Seleziona un cliente"
-        productId.isNullOrBlank() -> "Seleziona un articolo"
-        quantity.toIntOrNull() == null || quantity.toInt() <= 0 -> "La quantità deve essere maggiore di zero"
+        id.isBlank() && productId.isNullOrBlank() -> "Seleziona un articolo"
+        id.isBlank() && (quantity.toIntOrNull() == null || quantity.toInt() <= 0) -> "La quantità deve essere maggiore di zero"
         paid && amountPaid.isNotBlank() && (amountPaid.toDoubleOrNull() ?: -1.0) < 0.0 -> "L'importo pagato non è valido"
         else -> null
+    }
+
+    companion object {
+        fun from(order: OrderSummary) = OrderDraft(
+            id = order.id,
+            customerId = order.customerId,
+            date = order.date,
+            status = order.status,
+            paid = order.paid,
+            amountPaid = order.totalPaid.takeIf { it > 0 }?.toString().orEmpty(),
+            paymentMethod = order.paymentMethod.ifBlank { "altro" },
+            trackingCode = order.trackingCode,
+            courier = order.courier,
+            notes = order.notes
+        )
     }
 }
 
@@ -234,7 +252,13 @@ sealed interface Editor {
     data class ProductEditor(val productId: String?) : Editor
     data class EntityEditor(val kind: EntityKind, val entityId: String?) : Editor
     data class CustomerEditor(val customerId: String?) : Editor
-    data object OrderEditor : Editor
+    data class OrderEditor(val orderId: String?) : Editor
+}
+
+sealed interface Detail {
+    data class ProductDetail(val productId: String) : Detail
+    data class CustomerDetail(val customerId: String) : Detail
+    data class OrderDetail(val orderId: String) : Detail
 }
 
 class NavigationHistory(initial: MainTab = MainTab.HOME) {
