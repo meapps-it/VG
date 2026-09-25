@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -13,6 +12,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -71,11 +74,18 @@ private val Negative = Color(0xFFB42318)
 private val LegacyBorder = Color(0xFFC9D0D9)
 
 @OptIn(ExperimentalMaterial3Api::class)
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     private val viewModel by viewModels<AppViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val languageTag = getSharedPreferences("preferences", MODE_PRIVATE)
+            .getString("app_language", "system")
+            .orEmpty()
+        AppCompatDelegate.setApplicationLocales(
+            if (languageTag.isBlank() || languageTag == "system") LocaleListCompat.getEmptyLocaleList()
+            else LocaleListCompat.forLanguageTags(languageTag)
+        )
         setContent { GestionaleRoot(viewModel) }
     }
 }
@@ -100,7 +110,7 @@ private fun GestionaleRoot(vm: AppViewModel) {
         MaterialTheme(colorScheme = colors, typography = Typography()) {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 when {
-                    vm.checkingAuth -> LoadingScreen("Verifica accesso…")
+                    vm.checkingAuth -> LoadingScreen(stringResource(R.string.verify_access))
                     vm.session == null -> LoginScreen(vm)
                     else -> AuthenticatedApp(vm)
                 }
@@ -119,11 +129,11 @@ private fun LoginScreen(vm: AppViewModel) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Icon(Icons.Default.Inventory2, null, tint = AppBlue, modifier = Modifier.size(44.dp))
                 Text(if (register) "Crea account" else "Gestionale", fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                Text("Articoli, anagrafiche e margini. Senza cataloghi imposti.", color = Color(0xFF667085))
-                AppTextField(email, { email = it }, "Email", keyboardType = KeyboardType.Email)
+                Text(stringResource(R.string.tagline), color = Color(0xFF667085))
+                AppTextField(email, { email = it }, stringResource(R.string.email), keyboardType = KeyboardType.Email)
                 OutlinedTextField(
                     value = password, onValueChange = { password = it }, modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Password") }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
+                    label = { Text(stringResource(R.string.password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done)
                 )
                 Button(
@@ -134,7 +144,7 @@ private fun LoginScreen(vm: AppViewModel) {
                     Text(if (register) "Ho già un account" else "Crea un nuovo account")
                 }
                 if (!register) TextButton(onClick = { vm.resetPassword(email) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                    Text("Password dimenticata")
+                    Text(stringResource(R.string.forgot_password))
                 }
                 vm.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 vm.noticeMessage?.let { Text(it, color = Positive) }
@@ -165,10 +175,10 @@ private fun AuthenticatedApp(vm: AppViewModel) {
         }
         AlertDialog(
             onDismissRequest = vm::cancelDelete,
-            title = { Text("Conferma eliminazione") },
+            title = { Text(stringResource(R.string.confirm_delete)) },
             text = { Text("Eliminare $label? L’operazione non può essere annullata.") },
-            confirmButton = { TextButton(onClick = vm::confirmDelete, enabled = !vm.saving) { Text("Elimina", color = Negative) } },
-            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text("Annulla") } }
+            confirmButton = { TextButton(onClick = vm::confirmDelete, enabled = !vm.saving) { Text(stringResource(R.string.delete), color = Negative) } },
+            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text(stringResource(R.string.cancel)) } }
         )
     }
 
@@ -197,7 +207,7 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
             delay(1_000)
         }
     }
-    val nowText = remember(now) { DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.MEDIUM, Locale.ITALIAN).format(Date(now)) }
+    val nowText = remember(now) { DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.MEDIUM, Locale.getDefault()).format(Date(now)) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
@@ -211,7 +221,7 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Gestionale", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                        Text(stringResource(R.string.app_name), color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
                         Text(nowText, color = Color(0xFFD6D9E2), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     }
                     Box {
@@ -224,21 +234,21 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
                                 containerColor = Color(0xFF1E293B),
                                 contentColor = Color.White
                             )
-                        ) { Icon(Icons.Default.Menu, "Menu") }
+                        ) { Icon(Icons.Default.Menu, stringResource(R.string.menu)) }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             DropdownMenuItem(
-                                text = { Text("Anagrafiche") },
+                                text = { Text(stringResource(R.string.archives)) },
                                 leadingIcon = { Icon(Icons.Default.ListAlt, null) },
                                 onClick = { menuOpen = false; vm.selectTab(MainTab.ARCHIVES) }
                             )
                             DropdownMenuItem(
-                                text = { Text("Impostazioni") },
+                                text = { Text(stringResource(R.string.settings)) },
                                 leadingIcon = { Icon(Icons.Default.Settings, null) },
                                 onClick = { menuOpen = false; vm.selectTab(MainTab.SETTINGS) }
                             )
                             HorizontalDivider()
                             DropdownMenuItem(
-                                text = { Text("Aggiorna dati") },
+                                text = { Text(stringResource(R.string.refresh_data)) },
                                 leadingIcon = { Icon(Icons.Default.Refresh, null) },
                                 onClick = { menuOpen = false; vm.loadAll() }
                             )
@@ -261,10 +271,10 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    BottomPill("Dashboard", vm.selectedTab == MainTab.HOME, Modifier.weight(1f)) { vm.selectTab(MainTab.HOME) }
-                    BottomPill("Articoli", vm.selectedTab == MainTab.ARTICLES, Modifier.weight(1f)) { vm.selectTab(MainTab.ARTICLES) }
-                    BottomPill("Clienti", vm.selectedTab == MainTab.CLIENTS, Modifier.weight(1f)) { vm.selectTab(MainTab.CLIENTS) }
-                    BottomPill("Ordini", vm.selectedTab == MainTab.ORDERS, Modifier.weight(1f)) { vm.selectTab(MainTab.ORDERS) }
+                    BottomPill(stringResource(R.string.dashboard), vm.selectedTab == MainTab.HOME, Modifier.weight(1f)) { vm.selectTab(MainTab.HOME) }
+                    BottomPill(stringResource(R.string.articles), vm.selectedTab == MainTab.ARTICLES, Modifier.weight(1f)) { vm.selectTab(MainTab.ARTICLES) }
+                    BottomPill(stringResource(R.string.customers), vm.selectedTab == MainTab.CLIENTS, Modifier.weight(1f)) { vm.selectTab(MainTab.CLIENTS) }
+                    BottomPill(stringResource(R.string.orders), vm.selectedTab == MainTab.ORDERS, Modifier.weight(1f)) { vm.selectTab(MainTab.ORDERS) }
                 }
             }
         },
@@ -278,7 +288,7 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
                     },
                     containerColor = AppAmber,
                     contentColor = AppNavy
-                ) { Icon(Icons.Default.Add, "Aggiungi") }
+                ) { Icon(Icons.Default.Add, stringResource(R.string.add)) }
             }
         }
     ) { padding ->
@@ -345,20 +355,20 @@ private fun HomeScreen(vm: AppViewModel) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("NOVITÀ IN PRIMO PIANO", color = Color(0xFF64748B), fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Text(stringResource(R.string.featured), color = Color(0xFF64748B), fontSize = 12.sp, fontWeight = FontWeight.Black)
                     Text(
-                        if (orders.size < 4) "Vendite sotto media" else "Andamento vendite",
+                        if (orders.size < 4) "Vendite sotto media" else stringResource(R.string.sales_trend),
                         fontSize = 25.sp, fontWeight = FontWeight.Black, color = AppNavy
                     )
                     Text(
                         if (orders.size < 4) "Meno di una vendita a settimana: serve più movimento."
-                        else "Qui vedi l'andamento reale degli ultimi sei mesi.",
+                        else stringResource(R.string.sales_trend_hint),
                         color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold
                     )
                     Spacer(Modifier.height(6.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("ANDAMENTO ULTIMI 6 MESI", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color(0xFF64748B))
-                        Text("INCASSATO", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color(0xFF64748B))
+                        Text(stringResource(R.string.last_six_months), fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color(0xFF64748B))
+                        Text(stringResource(R.string.collected), fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color(0xFF64748B))
                     }
                     Row(
                         Modifier.fillMaxWidth().height(128.dp),
@@ -413,16 +423,16 @@ private fun HomeScreen(vm: AppViewModel) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 LegacyStatCard(
-                    "ORDINI IN CORSO",
+                    stringResource(R.string.active_orders),
                     activeOrders.toString(),
-                    "non ancora consegnati",
+                    stringResource(R.string.not_delivered_yet),
                     Modifier.weight(1f),
                     onClick = { vm.openActiveOrders() }
                 )
                 LegacyStatCard(
-                    "GUADAGNO MESE",
+                    stringResource(R.string.month_profit),
                     money(monthProfit),
-                    "margine del mese corrente",
+                    stringResource(R.string.month_margin),
                     Modifier.weight(1f),
                     Positive,
                     onClick = { vm.openOrdersForMonth(currentMonth) }
@@ -432,16 +442,16 @@ private fun HomeScreen(vm: AppViewModel) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 LegacyStatCard(
-                    "MEDIA ORDINI",
+                    stringResource(R.string.average_orders),
                     money(averageOrder),
-                    "valore medio per ordine",
+                    stringResource(R.string.average_order_value),
                     Modifier.weight(1f),
                     onClick = { vm.clearOrderDrillDown(); vm.selectTab(MainTab.ORDERS) }
                 )
                 LegacyStatCard(
-                    "GUADAGNO TOTALE",
+                    stringResource(R.string.total_profit),
                     money(totalProfit),
-                    "margine complessivo",
+                    stringResource(R.string.total_margin),
                     Modifier.weight(1f),
                     Positive,
                     onClick = { vm.clearOrderDrillDown(); vm.selectTab(MainTab.ORDERS) }
@@ -451,26 +461,26 @@ private fun HomeScreen(vm: AppViewModel) {
         item {
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Azioni rapide", fontSize = 22.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                    Text(stringResource(R.string.quick_actions), fontSize = 22.sp, fontWeight = FontWeight.Black, color = AppNavy)
                     Button(
                         onClick = { vm.openProduct() },
                         modifier = Modifier.fillMaxWidth().height(54.dp),
                         shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AppBlue),
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
-                    ) { Text("Nuovo articolo", fontWeight = FontWeight.Black) }
+                    ) { Text(stringResource(R.string.new_product), fontWeight = FontWeight.Black) }
                     OutlinedButton(
                         onClick = { vm.openOrder() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(18.dp),
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
-                    ) { Text("Nuovo ordine", fontWeight = FontWeight.Black, color = AppNavy) }
+                    ) { Text(stringResource(R.string.new_order), fontWeight = FontWeight.Black, color = AppNavy) }
                     OutlinedButton(
                         onClick = { vm.openCustomer() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(18.dp),
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
-                    ) { Text("Nuovo cliente", fontWeight = FontWeight.Black, color = AppNavy) }
+                    ) { Text(stringResource(R.string.new_customer), fontWeight = FontWeight.Black, color = AppNavy) }
                 }
             }
         }
@@ -545,7 +555,7 @@ private fun ProductsScreen(vm: AppViewModel) {
             onValueChange = { vm.query = it },
             modifier = Modifier.fillMaxWidth().height(48.dp),
             singleLine = true,
-            placeholder = { Text("Cerca nome, codice o SKU", fontSize = 13.sp) },
+            placeholder = { Text(stringResource(R.string.search_product), fontSize = 13.sp) },
             leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(20.dp)) },
             shape = RoundedCornerShape(14.dp)
         )
@@ -557,21 +567,21 @@ private fun ProductsScreen(vm: AppViewModel) {
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             SelectionField(
-                "Categorie",
+                stringResource(R.string.categories),
                 vm.categoryFilter,
                 vm.categories.map { it.id to it.name },
                 { vm.categoryFilter = it },
                 compact = true
             )
             SelectionField(
-                "Marche",
+                stringResource(R.string.brands),
                 vm.brandFilter,
                 vm.brands.map { it.id to it.name },
                 { vm.brandFilter = it },
                 compact = true
             )
             SelectionField(
-                "Fornitori",
+                stringResource(R.string.suppliers),
                 vm.supplierFilter,
                 vm.suppliers.map { it.id to it.name },
                 { vm.supplierFilter = it },
@@ -590,7 +600,7 @@ private fun ProductsScreen(vm: AppViewModel) {
                 selected = !vm.promoOnly,
                 onClick = { vm.promoOnly = false },
                 modifier = Modifier.height(34.dp),
-                label = { Text("Tutto", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                label = { Text(stringResource(R.string.all), fontSize = 11.sp, fontWeight = FontWeight.Bold) },
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true, selected = !vm.promoOnly,
                     borderColor = LegacyBorder, selectedBorderColor = LegacyBorder,
@@ -601,7 +611,7 @@ private fun ProductsScreen(vm: AppViewModel) {
                 selected = vm.promoOnly,
                 onClick = { vm.promoOnly = true },
                 modifier = Modifier.height(34.dp),
-                label = { Text("Solo promo", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                label = { Text(stringResource(R.string.promo_only), fontSize = 11.sp, fontWeight = FontWeight.Bold) },
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true, selected = vm.promoOnly,
                     borderColor = LegacyBorder, selectedBorderColor = LegacyBorder,
@@ -610,7 +620,7 @@ private fun ProductsScreen(vm: AppViewModel) {
             )
             Spacer(Modifier.weight(1f))
             Text(
-                "${vm.filteredProducts.size} articoli",
+                stringResource(R.string.articles_count, vm.filteredProducts.size),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
@@ -621,14 +631,14 @@ private fun ProductsScreen(vm: AppViewModel) {
             ) {
                 Icon(
                     if (vm.gridView) Icons.Default.ViewList else Icons.Default.GridView,
-                    if (vm.gridView) "Vista elenco" else "Vista griglia",
+                    if (vm.gridView) stringResource(R.string.list_view) else stringResource(R.string.grid_view),
                     Modifier.size(20.dp)
                 )
             }
         }
 
         if (!vm.loading && vm.filteredProducts.isEmpty()) {
-            EmptyState("Nessun articolo", "Crea il primo articolo oppure modifica i filtri.")
+            EmptyState(stringResource(R.string.no_products), stringResource(R.string.no_products_hint))
         } else if (vm.gridView) {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(if (vm.compactMode) 150.dp else 174.dp),
@@ -688,7 +698,7 @@ private fun ProductPhotoCarousel(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.Image, null, Modifier.size(42.dp), tint = Color(0xFF94A3B8))
                     Spacer(Modifier.height(4.dp))
-                    Text("Nessuna foto", fontSize = 10.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.no_photo), fontSize = 10.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -831,7 +841,7 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                         shape = RoundedCornerShape(12.dp),
                         color = Color(0xE6B42318)
                     ) {
-                        Text("NON DISP.", Modifier.padding(horizontal = 7.dp, vertical = 3.dp), color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                        Text(stringResource(R.string.unavailable_short), Modifier.padding(horizontal = 7.dp, vertical = 3.dp), color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
@@ -854,7 +864,7 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                 if (product.inPromotion && product.promotionalPrice > 0) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Surface(color = Color(0xFFFFF3CF), shape = RoundedCornerShape(10.dp)) {
-                            Text("PROMO", Modifier.padding(horizontal = 7.dp, vertical = 3.dp), color = Color(0xFF92400E), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                            Text(stringResource(R.string.promotion), Modifier.padding(horizontal = 7.dp, vertical = 3.dp), color = Color(0xFF92400E), fontSize = 9.sp, fontWeight = FontWeight.Black)
                         }
                         Text(money(product.promotionalPrice), fontWeight = FontWeight.Black, fontSize = 19.sp, color = Negative)
                     }
@@ -891,7 +901,7 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                 ) {
                     Icon(Icons.Default.ShoppingCart, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(5.dp))
-                    Text("Aggiungi ordine", fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                    Text(stringResource(R.string.add_order), fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1)
                 }
             }
         }
@@ -1193,9 +1203,9 @@ private fun SettingsScreen(vm: AppViewModel) {
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            SettingsHeader("Aspetto", "Personalizza l’interfaccia senza impazzire dentro menu inutili.")
+            SettingsHeader(stringResource(R.string.appearance), "Personalizza l’interfaccia senza impazzire dentro menu inutili.")
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Tema", fontWeight = FontWeight.Black, fontSize = 17.sp)
+                Text(stringResource(R.string.theme), fontWeight = FontWeight.Black, fontSize = 17.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(AppThemeMode.SYSTEM to "Sistema", AppThemeMode.LIGHT to "Chiaro", AppThemeMode.DARK to "Scuro").forEach { option ->
                         FilterChip(selected = vm.themeMode == option.first, onClick = { vm.updateThemeMode(option.first) }, label = { Text(option.second) })
@@ -1203,19 +1213,19 @@ private fun SettingsScreen(vm: AppViewModel) {
                 }
                 HorizontalDivider()
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) { Text("Dimensione testo", fontWeight = FontWeight.Bold); Text("${(vm.fontScale * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    Column(Modifier.weight(1f)) { Text(stringResource(R.string.text_size), fontWeight = FontWeight.Bold); Text("${(vm.fontScale * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
                 Slider(value = vm.fontScale, onValueChange = vm::updateFontScale, valueRange = .85f..1.35f, steps = 9)
-                SettingSwitch("Modalità compatta", "Riduce spazi e dimensioni delle schede.", vm.compactMode, vm::updateCompactMode)
-                SettingSwitch("Catalogo a griglia", "Mostra gli articoli con foto grandi come nella vecchia app.", vm.gridView, vm::updateGridView)
+                SettingSwitch(stringResource(R.string.compact_mode), "Riduce spazi e dimensioni delle schede.", vm.compactMode, vm::updateCompactMode)
+                SettingSwitch(stringResource(R.string.grid_catalog), "Mostra gli articoli con foto grandi come nella vecchia app.", vm.gridView, vm::updateGridView)
             } }
         }
         item {
-            SettingsHeader("Dati e backup", "Esporta una copia leggibile dei dati del tuo account.")
+            SettingsHeader(stringResource(R.string.data_backup), "Esporta una copia leggibile dei dati del tuo account.")
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = { startExport(true) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.CloudDownload, null); Spacer(Modifier.width(8.dp)); Text("Esporta backup completo") }
-                OutlinedButton(onClick = { startExport(false) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Download, null); Spacer(Modifier.width(8.dp)); Text("Esporta senza riferimenti foto") }
-                Text("Le immagini restano protette su Supabase; il backup completo include i riferimenti necessari per ritrovarle.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                Button(onClick = { startExport(true) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.CloudDownload, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.export_full_backup)) }
+                OutlinedButton(onClick = { startExport(false) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Download, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.export_without_photos)) }
+                Text(stringResource(R.string.backup_note), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 exportMessage?.let { Text(it, color = if (it.startsWith("Backup")) Positive else Negative, fontWeight = FontWeight.Bold) }
             } }
         }
@@ -1228,25 +1238,25 @@ private fun SettingsScreen(vm: AppViewModel) {
             } }
         }
         item {
-            SettingsHeader("Diagnostica", "Stato reale dei dati caricati nell’app.")
+            SettingsHeader(stringResource(R.string.diagnostics), "Stato reale dei dati caricati nell’app.")
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                ValueRow("Connessione cloud", if (vm.session != null) "Attiva" else "Disconnessa", if (vm.session != null) Positive else Negative)
+                ValueRow(stringResource(R.string.cloud_connection), if (vm.session != null) "Attiva" else "Disconnessa", if (vm.session != null) Positive else Negative)
                 ValueRow("Articoli", vm.products.size.toString())
-                ValueRow("Foto collegate", vm.products.sumOf { it.photos.size }.toString())
-                ValueRow("Ultimo aggiornamento", vm.lastSyncAt?.let { DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it)) } ?: "Mai")
-                OutlinedButton(onClick = vm::loadAll, enabled = !vm.loading, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Sync, null); Spacer(Modifier.width(8.dp)); Text("Aggiorna dal cloud") }
+                ValueRow(stringResource(R.string.linked_photos), vm.products.sumOf { it.photos.size }.toString())
+                ValueRow(stringResource(R.string.last_update), vm.lastSyncAt?.let { DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it)) } ?: "Mai")
+                OutlinedButton(onClick = vm::loadAll, enabled = !vm.loading, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Sync, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.refresh_cloud)) }
             } }
         }
         item {
-            SettingsHeader("Account", "Sessione protetta e dati separati dagli altri utenti.")
+            SettingsHeader(stringResource(R.string.account), "Sessione protetta e dati separati dagli altri utenti.")
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(vm.session?.email.orEmpty(), fontWeight = FontWeight.Bold)
                 Text("ID account: ${vm.session?.userId?.take(8)}…", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                OutlinedButton(onClick = vm::logout, enabled = !vm.saving, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Logout, null); Spacer(Modifier.width(8.dp)); Text("Disconnetti account") }
+                OutlinedButton(onClick = vm::logout, enabled = !vm.saving, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Logout, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.logout)) }
             } }
         }
         item {
-            SettingsHeader("Informazioni", "Versione tecnica e protezione dei dati.")
+            SettingsHeader(stringResource(R.string.information), "Versione tecnica e protezione dei dati.")
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text("Gestionale Android 0.3.0", fontWeight = FontWeight.Black, fontSize = 18.sp)
                 Text("Applicazione Android nativa · base Free + Premium", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
@@ -1298,7 +1308,7 @@ private fun DetailScaffold(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro", tint = Color.White)
                     }
                     Column(Modifier.weight(1f)) {
-                        Text("Gestionale", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                        Text(stringResource(R.string.app_name), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black)
                         Text(subtitle, color = Color(0xFFD6D9E2), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
                     IconButton(
@@ -1320,10 +1330,10 @@ private fun DetailScaffold(
                     Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    BottomPill("Dashboard", selectedTab == MainTab.HOME, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.HOME) }
-                    BottomPill("Articoli", selectedTab == MainTab.ARTICLES, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.ARTICLES) }
-                    BottomPill("Clienti", selectedTab == MainTab.CLIENTS, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.CLIENTS) }
-                    BottomPill("Ordini", selectedTab == MainTab.ORDERS, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.ORDERS) }
+                    BottomPill(stringResource(R.string.dashboard), selectedTab == MainTab.HOME, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.HOME) }
+                    BottomPill(stringResource(R.string.articles), selectedTab == MainTab.ARTICLES, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.ARTICLES) }
+                    BottomPill(stringResource(R.string.customers), selectedTab == MainTab.CLIENTS, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.CLIENTS) }
+                    BottomPill(stringResource(R.string.orders), selectedTab == MainTab.ORDERS, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.ORDERS) }
                 }
             }
         }
@@ -1360,7 +1370,7 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
     if (product == null) {
         DetailScaffold(vm, "Dettaglio articolo", MainTab.ARTICLES) { padding ->
             Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Articolo non trovato")
+                Text(stringResource(R.string.product_not_found))
             }
         }
         return
@@ -1443,7 +1453,7 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
                 ) {
                     Row(Modifier.fillMaxWidth().padding(16.dp)) {
                         Column(Modifier.weight(1f)) {
-                            Text("Prezzo di vendita", color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.sale_price), color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
                             Text(money(product.effectiveSalePrice), fontSize = 26.sp, fontWeight = FontWeight.Black, color = AppNavy)
                         }
                         VerticalDivider(Modifier.height(58.dp), color = Color(0xFFCBD5E1))
@@ -1469,7 +1479,7 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
                     ) {
                         Icon(Icons.Default.Edit, null)
                         Spacer(Modifier.width(6.dp))
-                        Text("Modifica", fontWeight = FontWeight.Black)
+                        Text(stringResource(R.string.edit), fontWeight = FontWeight.Black)
                     }
                     OutlinedButton(
                         onClick = { vm.requestDelete(DeleteTarget.ProductTarget(product)) },
@@ -1478,7 +1488,7 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
                     ) {
                         Icon(Icons.Default.Delete, null, tint = Negative)
                         Spacer(Modifier.width(6.dp))
-                        Text("Elimina", color = Negative, fontWeight = FontWeight.Black)
+                        Text(stringResource(R.string.delete), color = Negative, fontWeight = FontWeight.Black)
                     }
                 }
             }
@@ -1581,14 +1591,14 @@ private fun CustomerDetailScreen(vm: AppViewModel, customerId: String) {
                         modifier = Modifier.weight(1f).height(54.dp),
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                     ) {
-                        Icon(Icons.Default.Edit, null); Spacer(Modifier.width(6.dp)); Text("Modifica", fontWeight = FontWeight.Black)
+                        Icon(Icons.Default.Edit, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.edit), fontWeight = FontWeight.Black)
                     }
                     OutlinedButton(
                         onClick = { vm.requestDelete(DeleteTarget.CustomerTarget(customer)) },
                         modifier = Modifier.weight(1f).height(54.dp),
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, Negative)
                     ) {
-                        Icon(Icons.Default.Delete, null, tint = Negative); Spacer(Modifier.width(6.dp)); Text("Elimina", color = Negative, fontWeight = FontWeight.Black)
+                        Icon(Icons.Default.Delete, null, tint = Negative); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.delete), color = Negative, fontWeight = FontWeight.Black)
                     }
                 }
             }
@@ -1661,14 +1671,14 @@ private fun OrderDetailScreen(vm: AppViewModel, orderId: String) {
                         modifier = Modifier.weight(1f).height(54.dp),
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                     ) {
-                        Icon(Icons.Default.Edit, null); Spacer(Modifier.width(6.dp)); Text("Modifica", fontWeight = FontWeight.Black)
+                        Icon(Icons.Default.Edit, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.edit), fontWeight = FontWeight.Black)
                     }
                     OutlinedButton(
                         onClick = { vm.requestDelete(DeleteTarget.OrderTarget(order)) },
                         modifier = Modifier.weight(1f).height(54.dp),
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, Negative)
                     ) {
-                        Icon(Icons.Default.Delete, null, tint = Negative); Spacer(Modifier.width(6.dp)); Text("Elimina", color = Negative, fontWeight = FontWeight.Black)
+                        Icon(Icons.Default.Delete, null, tint = Negative); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.delete), color = Negative, fontWeight = FontWeight.Black)
                     }
                 }
             }
@@ -1707,18 +1717,18 @@ private fun ProductEditorScreen(vm: AppViewModel) {
     Scaffold(topBar = {
         TopAppBar(
             title = { Text(if (d.id.isBlank()) "Nuovo articolo" else "Modifica articolo", fontWeight = FontWeight.Bold) },
-            navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
-            actions = { TextButton(onClick = vm::saveProduct, enabled = !vm.saving) { Text("Salva", fontWeight = FontWeight.Bold) } }
+            navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
+            actions = { TextButton(onClick = vm::saveProduct, enabled = !vm.saving) { Text(stringResource(R.string.save), fontWeight = FontWeight.Bold) } }
         )
     }) { padding ->
         LazyColumn(
             Modifier.padding(padding).fillMaxSize().imePadding(),
             contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { SectionTitle("Dati articolo") }
-            item { AppTextField(d.name, { vm.updateProductDraft(d.copy(name = it)) }, "Nome articolo *") }
+            item { SectionTitle(stringResource(R.string.product_data)) }
+            item { AppTextField(d.name, { vm.updateProductDraft(d.copy(name = it)) }, stringResource(R.string.product_name)) }
             item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                AppTextField(d.code, { vm.updateProductDraft(d.copy(code = it)) }, "Codice", Modifier.weight(1f))
+                AppTextField(d.code, { vm.updateProductDraft(d.copy(code = it)) }, stringResource(R.string.code), Modifier.weight(1f))
                 AppTextField(d.sku, { vm.updateProductDraft(d.copy(sku = it)) }, "SKU", Modifier.weight(1f))
             } }
             item { SelectionField("Marca (facoltativa)", d.brandId, vm.brands.map { it.id to it.name }, { vm.updateProductDraft(d.copy(brandId = it)) }) }
@@ -1730,7 +1740,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                         SelectionField(
                             "Misura / peso",
                             d.measureType.ifBlank { null },
-                            listOf("misura" to "Misura", "peso" to "Peso"),
+                            listOf("misura" to "Misura", "peso" to stringResource(R.string.weight)),
                             { value -> vm.updateProductDraft(d.copy(measureType = value.orEmpty())) }
                         )
                     }
@@ -1746,21 +1756,21 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                     )
                 }
             }
-            item { AppTextField(d.description, { vm.updateProductDraft(d.copy(description = it)) }, "Descrizione", minLines = 3) }
-            item { SectionTitle("Prezzi e disponibilità") }
+            item { AppTextField(d.description, { vm.updateProductDraft(d.copy(description = it)) }, stringResource(R.string.description), minLines = 3) }
+            item { SectionTitle(stringResource(R.string.prices_availability)) }
             item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                NumberField(d.purchasePrice, { vm.updateProductDraft(d.copy(purchasePrice = it)) }, "Acquisto €", Modifier.weight(1f))
-                NumberField(d.extraCosts, { vm.updateProductDraft(d.copy(extraCosts = it)) }, "Costi extra €", Modifier.weight(1f))
+                NumberField(d.purchasePrice, { vm.updateProductDraft(d.copy(purchasePrice = it)) }, stringResource(R.string.purchase_euro), Modifier.weight(1f))
+                NumberField(d.extraCosts, { vm.updateProductDraft(d.copy(extraCosts = it)) }, stringResource(R.string.extra_costs_euro), Modifier.weight(1f))
             } }
             item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                NumberField(d.salePrice, { vm.updateProductDraft(d.copy(salePrice = it)) }, "Vendita €", Modifier.weight(1f))
-                AppTextField(d.quantity, { vm.updateProductDraft(d.copy(quantity = it.filter(Char::isDigit))) }, "Quantità", Modifier.weight(1f), keyboardType = KeyboardType.Number)
+                NumberField(d.salePrice, { vm.updateProductDraft(d.copy(salePrice = it)) }, stringResource(R.string.sale_euro), Modifier.weight(1f))
+                AppTextField(d.quantity, { vm.updateProductDraft(d.copy(quantity = it.filter(Char::isDigit))) }, stringResource(R.string.quantity), Modifier.weight(1f), keyboardType = KeyboardType.Number)
             } }
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(d.inPromotion, { vm.updateProductDraft(d.copy(inPromotion = it)) })
                     Spacer(Modifier.width(10.dp))
-                    Text(if (d.inPromotion) "Articolo in promozione" else "Nessuna promozione")
+                    Text(if (d.inPromotion) "Articolo in promozione" else stringResource(R.string.no_promotion))
                 }
             }
             if (d.inPromotion) item {
@@ -1778,19 +1788,19 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                     Text("Margine ${money(preview.effectiveMarginEuro)} · ${"%.1f".format(Locale.ITALY, preview.effectiveMarginPercent)}%", fontWeight = FontWeight.Bold, color = if (preview.effectiveMarginEuro >= 0) Positive else Negative)
                 } }
             }
-            item { Row(verticalAlignment = Alignment.CenterVertically) { Switch(d.available, { vm.updateProductDraft(d.copy(available = it)) }); Spacer(Modifier.width(10.dp)); Text(if (d.available) "Disponibile" else "Non disponibile") } }
-            item { AppTextField(d.productUrl, { vm.updateProductDraft(d.copy(productUrl = it)) }, "Link prodotto", keyboardType = KeyboardType.Uri) }
-            item { AppTextField(d.notes, { vm.updateProductDraft(d.copy(notes = it)) }, "Note", minLines = 3) }
-            item { SectionTitle("Immagini") }
+            item { Row(verticalAlignment = Alignment.CenterVertically) { Switch(d.available, { vm.updateProductDraft(d.copy(available = it)) }); Spacer(Modifier.width(10.dp)); Text(if (d.available) "Disponibile" else stringResource(R.string.unavailable)) } }
+            item { AppTextField(d.productUrl, { vm.updateProductDraft(d.copy(productUrl = it)) }, stringResource(R.string.product_link), keyboardType = KeyboardType.Uri) }
+            item { AppTextField(d.notes, { vm.updateProductDraft(d.copy(notes = it)) }, stringResource(R.string.notes), minLines = 3) }
+            item { SectionTitle(stringResource(R.string.images)) }
             item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = { gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                     border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
-                ) { Icon(Icons.Default.PhotoLibrary, null); Spacer(Modifier.width(6.dp)); Text("Galleria") }
+                ) { Icon(Icons.Default.PhotoLibrary, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.gallery)) }
                 OutlinedButton(
                     onClick = ::launchCamera,
                     border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
-                ) { Icon(Icons.Default.CameraAlt, null); Spacer(Modifier.width(6.dp)); Text("Fotocamera") }
+                ) { Icon(Icons.Default.CameraAlt, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.camera)) }
             } }
             if (existing != null && existing.photos.isNotEmpty()) item {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1801,7 +1811,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                 }
             }
             if (vm.pendingPhotos.isNotEmpty()) item {
-                Text("Da caricare al salvataggio", fontSize = 12.sp, color = Color(0xFF667085))
+                Text(stringResource(R.string.pending_upload), fontSize = 12.sp, color = Color(0xFF667085))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(vm.pendingPhotos, key = { it.toString() }) { uri -> PhotoTile(uri, { vm.removePendingPhoto(uri) }) }
                 }
@@ -1812,9 +1822,9 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                     enabled = !vm.saving,
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                     border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
-                ) { Text(if (vm.saving) "Salvataggio…" else "Salva articolo") }
+                ) { Text(if (vm.saving) "Salvataggio…" else stringResource(R.string.save_product)) }
             }
-            if (existing != null) item { OutlinedButton(onClick = { vm.requestDelete(DeleteTarget.ProductTarget(existing)) }, modifier = Modifier.fillMaxWidth()) { Text("Elimina articolo", color = Negative) } }
+            if (existing != null) item { OutlinedButton(onClick = { vm.requestDelete(DeleteTarget.ProductTarget(existing)) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.delete_product), color = Negative) } }
             item { Spacer(Modifier.height(24.dp)) }
         }
     }
@@ -1841,8 +1851,8 @@ private fun CustomerEditorScreen(vm: AppViewModel) {
         topBar = {
             TopAppBar(
                 title = { Text(if (d.id.isBlank()) "Nuovo cliente" else "Modifica cliente", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
-                actions = { TextButton(onClick = vm::saveCustomer, enabled = !vm.saving) { Text("Salva", fontWeight = FontWeight.Bold) } }
+                navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
+                actions = { TextButton(onClick = vm::saveCustomer, enabled = !vm.saving) { Text(stringResource(R.string.save), fontWeight = FontWeight.Bold) } }
             )
         }
     ) { padding ->
@@ -1851,29 +1861,29 @@ private fun CustomerEditorScreen(vm: AppViewModel) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { SectionTitle("Anagrafica cliente") }
+            item { SectionTitle(stringResource(R.string.customer_data)) }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    AppTextField(d.firstName, { vm.updateCustomerDraft(d.copy(firstName = it)) }, "Nome", Modifier.weight(1f))
-                    AppTextField(d.lastName, { vm.updateCustomerDraft(d.copy(lastName = it)) }, "Cognome", Modifier.weight(1f))
+                    AppTextField(d.firstName, { vm.updateCustomerDraft(d.copy(firstName = it)) }, stringResource(R.string.name), Modifier.weight(1f))
+                    AppTextField(d.lastName, { vm.updateCustomerDraft(d.copy(lastName = it)) }, stringResource(R.string.surname), Modifier.weight(1f))
                 }
             }
-            item { AppTextField(d.phone, { vm.updateCustomerDraft(d.copy(phone = it)) }, "Telefono", keyboardType = KeyboardType.Phone) }
-            item { AppTextField(d.email, { vm.updateCustomerDraft(d.copy(email = it)) }, "Email", keyboardType = KeyboardType.Email) }
-            item { AppTextField(d.address, { vm.updateCustomerDraft(d.copy(address = it)) }, "Indirizzo") }
+            item { AppTextField(d.phone, { vm.updateCustomerDraft(d.copy(phone = it)) }, stringResource(R.string.phone), keyboardType = KeyboardType.Phone) }
+            item { AppTextField(d.email, { vm.updateCustomerDraft(d.copy(email = it)) }, stringResource(R.string.email), keyboardType = KeyboardType.Email) }
+            item { AppTextField(d.address, { vm.updateCustomerDraft(d.copy(address = it)) }, stringResource(R.string.address)) }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    AppTextField(d.city, { vm.updateCustomerDraft(d.copy(city = it)) }, "Città", Modifier.weight(1.3f))
-                    AppTextField(d.province, { vm.updateCustomerDraft(d.copy(province = it)) }, "Provincia", Modifier.weight(.7f))
+                    AppTextField(d.city, { vm.updateCustomerDraft(d.copy(city = it)) }, stringResource(R.string.city), Modifier.weight(1.3f))
+                    AppTextField(d.province, { vm.updateCustomerDraft(d.copy(province = it)) }, stringResource(R.string.province), Modifier.weight(.7f))
                 }
             }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    AppTextField(d.postalCode, { vm.updateCustomerDraft(d.copy(postalCode = it.filter(Char::isDigit))) }, "CAP", Modifier.weight(.7f), keyboardType = KeyboardType.Number)
-                    AppTextField(d.country, { vm.updateCustomerDraft(d.copy(country = it)) }, "Paese", Modifier.weight(1.3f))
+                    AppTextField(d.postalCode, { vm.updateCustomerDraft(d.copy(postalCode = it.filter(Char::isDigit))) }, stringResource(R.string.zip_code), Modifier.weight(.7f), keyboardType = KeyboardType.Number)
+                    AppTextField(d.country, { vm.updateCustomerDraft(d.copy(country = it)) }, stringResource(R.string.country), Modifier.weight(1.3f))
                 }
             }
-            item { AppTextField(d.notes, { vm.updateCustomerDraft(d.copy(notes = it)) }, "Note", minLines = 3) }
+            item { AppTextField(d.notes, { vm.updateCustomerDraft(d.copy(notes = it)) }, stringResource(R.string.notes), minLines = 3) }
             item {
                 Button(
                     onClick = vm::saveCustomer,
@@ -1889,7 +1899,7 @@ private fun CustomerEditorScreen(vm: AppViewModel) {
                     OutlinedButton(
                         onClick = { vm.requestDelete(DeleteTarget.CustomerTarget(customer)) },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text("Elimina cliente", color = Negative) }
+                    ) { Text(stringResource(R.string.delete_customer), color = Negative) }
                 }
             }
         }
@@ -1910,8 +1920,8 @@ private fun OrderEditorScreen(vm: AppViewModel) {
         topBar = {
             TopAppBar(
                 title = { Text(if (d.id.isBlank()) "Nuovo ordine" else "Modifica ordine", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
-                actions = { TextButton(onClick = vm::saveOrder, enabled = !vm.saving) { Text("Salva", fontWeight = FontWeight.Bold) } }
+                navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
+                actions = { TextButton(onClick = vm::saveOrder, enabled = !vm.saving) { Text(stringResource(R.string.save), fontWeight = FontWeight.Bold) } }
             )
         }
     ) { padding ->
@@ -1920,7 +1930,7 @@ private fun OrderEditorScreen(vm: AppViewModel) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { SectionTitle("Cliente e articolo") }
+            item { SectionTitle(stringResource(R.string.customer_and_product)) }
             item {
                 SelectionField(
                     "Cliente *",
@@ -1938,7 +1948,7 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                 )
             }
             if (d.id.isBlank()) item {
-                AppTextField(d.quantity, { vm.updateOrderDraft(d.copy(quantity = it.filter(Char::isDigit))) }, "Quantità", keyboardType = KeyboardType.Number)
+                AppTextField(d.quantity, { vm.updateOrderDraft(d.copy(quantity = it.filter(Char::isDigit))) }, stringResource(R.string.quantity), keyboardType = KeyboardType.Number)
             }
             if (d.id.isNotBlank() && existingOrder != null) item {
                 Card(
@@ -1946,12 +1956,12 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                     shape = RoundedCornerShape(18.dp)
                 ) {
                     Column(Modifier.padding(14.dp)) {
-                        Text("Articoli dell'ordine", fontWeight = FontWeight.Black, color = AppNavy)
+                        Text(stringResource(R.string.order_products), fontWeight = FontWeight.Black, color = AppNavy)
                         Text(existingOrder.itemNames.joinToString("\n").ifBlank { "Nessun articolo" }, color = Color(0xFF64748B))
                     }
                 }
             }
-            item { AppTextField(d.date, { vm.updateOrderDraft(d.copy(date = it)) }, "Data ordine (AAAA-MM-GG)") }
+            item { AppTextField(d.date, { vm.updateOrderDraft(d.copy(date = it)) }, stringResource(R.string.order_date)) }
             item {
                 SelectionField(
                     "Stato",
@@ -1965,7 +1975,7 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                     { value -> if (value != null) vm.updateOrderDraft(d.copy(status = value)) }
                 )
             }
-            item { SectionTitle("Pagamento") }
+            item { SectionTitle(stringResource(R.string.payment)) }
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(d.paid, { vm.updateOrderDraft(d.copy(paid = it)) })
@@ -2002,16 +2012,16 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                     border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Riepilogo", fontWeight = FontWeight.Black)
+                        Text(stringResource(R.string.summary), fontWeight = FontWeight.Black)
                         ValueRow("Totale ordine", money(total))
                         ValueRow("Guadagno previsto", money(profit), if (profit >= 0) Positive else Negative)
                     }
                 }
             }
-            item { SectionTitle("Spedizione") }
-            item { AppTextField(d.courier, { vm.updateOrderDraft(d.copy(courier = it)) }, "Corriere") }
+            item { SectionTitle(stringResource(R.string.shipping)) }
+            item { AppTextField(d.courier, { vm.updateOrderDraft(d.copy(courier = it)) }, stringResource(R.string.courier)) }
             item { AppTextField(d.trackingCode, { vm.updateOrderDraft(d.copy(trackingCode = it)) }, "Tracking") }
-            item { AppTextField(d.notes, { vm.updateOrderDraft(d.copy(notes = it)) }, "Note", minLines = 3) }
+            item { AppTextField(d.notes, { vm.updateOrderDraft(d.copy(notes = it)) }, stringResource(R.string.notes), minLines = 3) }
             item {
                 Button(
                     onClick = vm::saveOrder,
@@ -2033,31 +2043,31 @@ private fun EntityEditorScreen(vm: AppViewModel, kind: EntityKind) {
     Scaffold(topBar = {
         TopAppBar(
             title = { Text(if (d.id.isBlank()) "Nuova $title" else "Modifica $title", fontWeight = FontWeight.Bold) },
-            navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
-            actions = { TextButton(onClick = vm::saveEntity, enabled = !vm.saving) { Text("Salva", fontWeight = FontWeight.Bold) } }
+            navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
+            actions = { TextButton(onClick = vm::saveEntity, enabled = !vm.saving) { Text(stringResource(R.string.save), fontWeight = FontWeight.Bold) } }
         )
     }) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxSize().imePadding(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { AppTextField(d.name, { vm.updateEntityDraft(d.copy(name = it)) }, "Nome *") }
             when (kind) {
-                EntityKind.BRAND -> item { AppTextField(d.notes, { vm.updateEntityDraft(d.copy(notes = it)) }, "Note", minLines = 3) }
+                EntityKind.BRAND -> item { AppTextField(d.notes, { vm.updateEntityDraft(d.copy(notes = it)) }, stringResource(R.string.notes), minLines = 3) }
                 EntityKind.CATEGORY -> {
-                    item { AppTextField(d.description, { vm.updateEntityDraft(d.copy(description = it)) }, "Descrizione", minLines = 2) }
+                    item { AppTextField(d.description, { vm.updateEntityDraft(d.copy(description = it)) }, stringResource(R.string.description), minLines = 2) }
                     item { AppTextField(d.sortOrder, { vm.updateEntityDraft(d.copy(sortOrder = it.filter { c -> c.isDigit() || c == '-' })) }, "Ordine", keyboardType = KeyboardType.Number) }
                 }
                 EntityKind.SUPPLIER -> {
                     item { AppTextField(d.contact, { vm.updateEntityDraft(d.copy(contact = it)) }, "Referente") }
-                    item { AppTextField(d.phone, { vm.updateEntityDraft(d.copy(phone = it)) }, "Telefono", keyboardType = KeyboardType.Phone) }
-                    item { AppTextField(d.email, { vm.updateEntityDraft(d.copy(email = it)) }, "Email", keyboardType = KeyboardType.Email) }
+                    item { AppTextField(d.phone, { vm.updateEntityDraft(d.copy(phone = it)) }, stringResource(R.string.phone), keyboardType = KeyboardType.Phone) }
+                    item { AppTextField(d.email, { vm.updateEntityDraft(d.copy(email = it)) }, stringResource(R.string.email), keyboardType = KeyboardType.Email) }
                     item { AppTextField(d.website, { vm.updateEntityDraft(d.copy(website = it)) }, "Sito web", keyboardType = KeyboardType.Uri) }
                     item { AppTextField(d.catalogUrl, { vm.updateEntityDraft(d.copy(catalogUrl = it)) }, "Link catalogo", keyboardType = KeyboardType.Uri) }
-                    item { AppTextField(d.address, { vm.updateEntityDraft(d.copy(address = it)) }, "Indirizzo") }
-                    item { AppTextField(d.notes, { vm.updateEntityDraft(d.copy(notes = it)) }, "Note", minLines = 3) }
+                    item { AppTextField(d.address, { vm.updateEntityDraft(d.copy(address = it)) }, stringResource(R.string.address)) }
+                    item { AppTextField(d.notes, { vm.updateEntityDraft(d.copy(notes = it)) }, stringResource(R.string.notes), minLines = 3) }
                 }
             }
-            item { Button(onClick = vm::saveEntity, enabled = !vm.saving, modifier = Modifier.fillMaxWidth().height(50.dp)) { Text(if (vm.saving) "Salvataggio…" else "Salva") } }
+            item { Button(onClick = vm::saveEntity, enabled = !vm.saving, modifier = Modifier.fillMaxWidth().height(50.dp)) { Text(if (vm.saving) "Salvataggio…" else stringResource(R.string.save)) } }
             if (d.id.isNotBlank()) item {
-                OutlinedButton(onClick = { vm.requestDelete(DeleteTarget.EntityTarget(kind, d.id, d.name)) }, modifier = Modifier.fillMaxWidth()) { Text("Elimina", color = Negative) }
+                OutlinedButton(onClick = { vm.requestDelete(DeleteTarget.EntityTarget(kind, d.id, d.name)) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.delete), color = Negative) }
             }
         }
     }
