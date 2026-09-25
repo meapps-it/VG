@@ -231,7 +231,8 @@ class SupabaseApi(private val context: Context) {
                 promotionalPrice = it.number("prezzo_promozionale"),
                 notes = it.string("note").ifBlank { it.string("note_interne") },
                 productUrl = it.string("link_prodotto"), createdAt = it.string("created_at"),
-                updatedAt = it.string("updated_at"), photos = photos[it.string("id")].orEmpty()
+                updatedAt = it.string("updated_at"), isDemo = it.optBoolean("is_demo", false),
+                photos = photos[it.string("id")].orEmpty()
             )
         }
     }
