@@ -401,6 +401,140 @@ class SupabaseApi(private val context: Context) {
         delete("prodotti?id=eq.${product.id}")
     }
 
+    suspend fun deleteDemoData() {
+        val current = requireSession()
+        delete("righe_ordine?user_id=eq.${current.userId}&is_demo=eq.true")
+        delete("ordini?user_id=eq.${current.userId}&is_demo=eq.true")
+        delete("prodotti?user_id=eq.${current.userId}&is_demo=eq.true")
+        delete("clienti?user_id=eq.${current.userId}&is_demo=eq.true")
+    }
+
+    suspend fun deleteAllUserData() {
+        val current = requireSession()
+        fetchProducts().flatMap { it.photos }.forEach { photo ->
+            runCatching { deletePhoto(photo) }
+        }
+        runCatching { delete("spedizioni?user_id=eq.${current.userId}") }
+        delete("righe_ordine?user_id=eq.${current.userId}")
+        delete("ordini?user_id=eq.${current.userId}")
+        delete("prodotti?user_id=eq.${current.userId}")
+        delete("clienti?user_id=eq.${current.userId}")
+    }
+
+    suspend fun loadDemoData() {
+        val current = requireSession()
+        deleteDemoData()
+
+        suspend fun demoCustomer(first: String, last: String, phone: String, email: String, city: String, province: String): String {
+            return postObject(
+                "clienti",
+                JSONObject()
+                    .put("user_id", current.userId)
+                    .put("nome", first)
+                    .put("cognome", last)
+                    .put("telefono", phone)
+                    .put("email", email)
+                    .put("citta", city)
+                    .put("provincia", province)
+                    .put("paese", "Italia")
+                    .put("note", "Cliente dimostrativo")
+                    .put("is_demo", true)
+            ).string("id")
+        }
+
+        suspend fun demoProduct(
+            name: String, code: String, description: String,
+            purchase: Double, sale: Double, quantity: Int,
+            measureType: String, measureValue: String
+        ): String {
+            return postObject(
+                "prodotti",
+                JSONObject()
+                    .put("user_id", current.userId)
+                    .put("nome", name)
+                    .put("codice", code)
+                    .put("sku", code)
+                    .put("descrizione_app", description)
+                    .put("descrizione", description)
+                    .put("prezzo_acquisto", purchase)
+                    .put("prezzo_vendita", sale)
+                    .put("costi_aggiuntivi", 0)
+                    .put("giacenza", quantity)
+                    .put("disponibile", true)
+                    .put("attivo", true)
+                    .put("tipo_misura", measureType)
+                    .put("valore_misura", measureValue)
+                    .put("is_demo", true)
+            ).string("id")
+        }
+
+        val c1 = demoCustomer("Hotel", "Aurora", "0171 555101", "info@hotelaurora.example", "Cuneo", "CN")
+        val c2 = demoCustomer("Hotel", "Belvedere", "0141 555202", "info@belvedere.example", "Asti", "AT")
+        val c3 = demoCustomer("Hotel", "Riviera", "0183 555303", "info@hotelriviera.example", "Sanremo", "IM")
+        val c4 = demoCustomer("Hotel", "Sole", "019 555404", "info@hotelsole.example", "Finale Ligure", "SV")
+        val c5 = demoCustomer("Residence", "Mare", "019 555505", "info@residencemare.example", "Loano", "SV")
+        demoCustomer("Hotel", "Centrale", "0171 555606", "info@hotelcentrale.example", "Cuneo", "CN")
+
+        val p1 = demoProduct("Scatola Cubo", "ART-001", "Confezione regalo rigida", 0.35, 0.80, 120, "misura", "8 x 8 x 8 cm")
+        demoProduct("Fiocco in raso", "ART-002", "Fiocco decorativo in raso", 0.08, 0.25, 250, "misura", "25 mm")
+        val p3 = demoProduct("Tag personalizzato", "ART-003", "Cartellino personalizzabile", 0.05, 0.15, 500, "misura", "5 x 8 cm")
+        val p4 = demoProduct("Gelatine assortite", "ART-004", "Confezione di gelatine assortite", 2.10, 4.50, 80, "peso", "1 kg")
+        val p5 = demoProduct("Sacchetto organza", "ART-005", "Sacchetto decorativo con chiusura", 0.14, 0.35, 300, "misura", "10 x 15 cm")
+        demoProduct("Opalina stampata", "ART-006", "Cartoncino stampato per welcome kit", 0.09, 0.30, 400, "misura", "10 x 15 cm")
+        val p7 = demoProduct("Cioccolatino incartato", "ART-007", "Cioccolatino monodose incartato", 0.18, 0.45, 180, "peso", "12 g")
+        demoProduct("Adesivo personalizzato", "ART-008", "Adesivo con grafica personalizzata", 0.04, 0.18, 600, "misura", "5 cm")
+
+        suspend fun demoOrder(
+            number: String, customerId: String, productId: String, date: String, status: String,
+            qty: Int, unitPrice: Double, unitCost: Double, paid: Boolean
+        ) {
+            val total = qty * unitPrice
+            val profit = qty * (unitPrice - unitCost)
+            val order = postObject(
+                "ordini",
+                JSONObject()
+                    .put("user_id", current.userId)
+                    .put("numero_ordine", number)
+                    .put("cliente_id", customerId)
+                    .put("data_ordine", date)
+                    .put("stato", status)
+                    .put("totale", total)
+                    .put("totale_pagato", if (paid) total else 0.0)
+                    .put("guadagno", profit)
+                    .put("stato_pagamento", if (paid) "pagato" else "da_pagare")
+                    .put("pagato", paid)
+                    .putNullable("metodo_pagamento", if (paid) "bonifico" else null)
+                    .put("note", "Ordine dimostrativo")
+                    .put("is_demo", true)
+            )
+            postObject(
+                "righe_ordine",
+                JSONObject()
+                    .put("user_id", current.userId)
+                    .put("ordine_id", order.string("id"))
+                    .put("prodotto_id", productId)
+                    .put("quantita", qty)
+                    .put("prezzo_unitario", unitPrice)
+                    .put("costo_unitario", unitCost)
+                    .put("guadagno_riga", profit)
+                    .put("sconto", 0)
+                    .put("is_demo", true)
+            )
+        }
+
+        val today = java.time.LocalDate.now()
+        demoOrder("DEMO-0012", c1, p1, today.toString(), "consegnato", 400, 0.80, 0.35, true)
+        demoOrder("DEMO-0011", c2, p3, today.minusDays(1).toString(), "in_lavorazione", 1000, 0.15, 0.05, false)
+        demoOrder("DEMO-0010", c3, p4, today.minusDays(5).toString(), "consegnato", 62, 4.50, 2.10, true)
+        demoOrder("DEMO-0009", c4, p5, today.minusDays(7).toString(), "spedito", 1200, 0.35, 0.14, true)
+        demoOrder("DEMO-0008", c5, p7, today.minusDays(10).toString(), "consegnato", 211, 0.45, 0.18, true)
+    }
+
+    suspend fun replaceWithDemoData() {
+        deleteAllUserData()
+        loadDemoData()
+    }
+
     suspend fun uploadPhoto(productId: String, uri: Uri): ProductPhoto = withContext(Dispatchers.IO) {
         val bytes = optimizedJpeg(uri)
         if (bytes.size > 12 * 1024 * 1024) throw ApiException("Immagine troppo grande (massimo 12 MB)")
