@@ -201,9 +201,11 @@ class SupabaseApi(private val context: Context) {
                 totalPaid = o.number("totale_pagato"),
                 paid = o.optBoolean("pagato", false),
                 paymentStatus = o.string("stato_pagamento"),
+                paymentMethod = o.string("metodo_pagamento"),
                 profit = o.number("guadagno"),
                 trackingCode = o.string("tracking_code"),
                 courier = o.string("corriere"),
+                notes = o.string("note"),
                 itemNames = names
             )
         }
@@ -303,6 +305,30 @@ class SupabaseApi(private val context: Context) {
             .put("sconto", 0)
         postObject("righe_ordine", rowBody)
         return orderId
+    }
+
+    suspend fun updateOrder(draft: OrderDraft, existing: OrderSummary) {
+        val amountPaid = if (draft.paid) {
+            draft.amountPaid.toDoubleOrNull()?.coerceAtLeast(0.0) ?: existing.total
+        } else 0.0
+        val body = JSONObject()
+            .put("cliente_id", draft.customerId)
+            .put("data_ordine", draft.date)
+            .put("stato", draft.status)
+            .put("totale_pagato", amountPaid)
+            .put("stato_pagamento", if (draft.paid) "pagato" else "da_pagare")
+            .put("pagato", draft.paid)
+            .putNullable("metodo_pagamento", if (draft.paid) draft.paymentMethod else null)
+            .putNullable("tracking_code", draft.trackingCode)
+            .putNullable("corriere", draft.courier)
+            .putNullable("note", draft.notes)
+        patchObject("ordini?id=eq.${existing.id}", body)
+    }
+
+    suspend fun deleteOrder(id: String) {
+        runCatching { delete("spedizioni?ordine_id=eq.$id") }
+        delete("righe_ordine?ordine_id=eq.$id")
+        delete("ordini?id=eq.$id")
     }
 
     suspend fun saveBrand(value: Brand): Brand {
