@@ -26,7 +26,7 @@
     <string name="sales_below_average">Vendite sotto media</string>
     <string name="sales_trend">Andamento vendite</string>
     <string name="sales_low_hint">Meno di una vendita a settimana: serve più movimento.</string>
-    <string name="sales_trend_hint">Qui vedi l&apos;andamento reale degli ultimi sei mesi.</string>
+    <string name="sales_trend_hint">Qui vedi la tendenza reale degli ultimi sei mesi.</string>
     <string name="last_six_months">ANDAMENTO ULTIMI 6 MESI</string>
     <string name="collected">INCASSATO</string>
     <string name="active_orders">ORDINI IN CORSO</string>
