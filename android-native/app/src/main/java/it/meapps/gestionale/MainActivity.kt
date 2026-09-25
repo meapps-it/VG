@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
@@ -669,10 +670,109 @@ private fun ArticleCounter(label: String, value: String, modifier: Modifier = Mo
     }
 }
 @Composable
+private fun ProductPhotoCarousel(
+    product: Product,
+    vm: AppViewModel,
+    modifier: Modifier = Modifier,
+    aspectRatio: Float = 1.15f,
+    rounded: RoundedCornerShape = RoundedCornerShape(18.dp)
+) {
+    val photos = remember(product.photos) { product.photos.sortedBy { it.order } }
+    photos.forEach { photo ->
+        LaunchedEffect(photo.path) { vm.ensureSignedUrl(photo.path) }
+    }
+
+    if (photos.isEmpty()) {
+        Surface(
+            modifier = modifier.fillMaxWidth().aspectRatio(aspectRatio),
+            shape = rounded,
+            border = androidx.compose.foundation.BorderStroke(1.2.dp, LegacyBorder),
+            color = Color(0xFFF1F5F9)
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.Image, null, Modifier.size(42.dp), tint = Color(0xFF94A3B8))
+                    Spacer(Modifier.height(4.dp))
+                    Text("Nessuna foto", fontSize = 10.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        return
+    }
+
+    val state = rememberLazyListState()
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(aspectRatio)
+    ) {
+        val itemWidth = maxWidth
+        LazyRow(
+            state = state,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(photos, key = { it.id }) { photo ->
+                Surface(
+                    modifier = Modifier
+                        .width(itemWidth)
+                        .fillMaxHeight(),
+                    shape = rounded,
+                    border = androidx.compose.foundation.BorderStroke(1.2.dp, LegacyBorder),
+                    color = Color(0xFFF1F5F9)
+                ) {
+                    val url = vm.signedUrls[photo.path]
+                    if (url != null) {
+                        AsyncImage(
+                            model = url,
+                            contentDescription = product.name,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (photos.size > 1) {
+            Surface(
+                modifier = Modifier.align(Alignment.BottomEnd).padding(7.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xD90F172A)
+            ) {
+                Text(
+                    "${(state.firstVisibleItemIndex + 1).coerceAtMost(photos.size)}/${photos.size}",
+                    Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black
+                )
+            }
+
+            Row(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 7.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                photos.indices.forEach { index ->
+                    Box(
+                        Modifier
+                            .size(if (index == state.firstVisibleItemIndex) 7.dp else 5.dp)
+                            .background(
+                                if (index == state.firstVisibleItemIndex) Color.White else Color.White.copy(alpha = .55f),
+                                RoundedCornerShape(50)
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun ProductGridCard(product: Product, vm: AppViewModel) {
-    val imagePath = product.photos.minByOrNull { it.order }?.path
-    if (imagePath != null) LaunchedEffect(imagePath) { vm.ensureSignedUrl(imagePath) }
-    val borderColor = if (!product.available || product.quantity <= 0) Negative.copy(alpha = .65f) else Color(0xFFD9E1EC)
     val brandName = vm.brands.firstOrNull { it.id == product.brandId }?.name.orEmpty()
     val code = product.code.ifBlank { product.sku.ifBlank { "Senza codice" } }
 
@@ -683,42 +783,37 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
     ) {
         Column {
             Box {
+                ProductPhotoCarousel(
+                    product = product,
+                    vm = vm,
+                    aspectRatio = 1.08f,
+                    rounded = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                )
                 Surface(
-                    Modifier.fillMaxWidth().aspectRatio(1.15f),
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    if (imagePath != null && vm.signedUrls[imagePath] != null) {
-                        AsyncImage(vm.signedUrls[imagePath], null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    } else {
-                        Icon(Icons.Default.Image, null, Modifier.padding(38.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Surface(
-                    modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
-                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.align(Alignment.TopStart).padding(7.dp),
+                    shape = RoundedCornerShape(12.dp),
                     color = Color(0xE60F172A)
                 ) {
                     Text(
                         "${product.photos.size} foto",
-                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
                         color = Color.White,
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Black
                     )
                 }
                 if (!product.available || product.quantity <= 0) {
                     Surface(
-                        modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
-                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.align(Alignment.TopEnd).padding(7.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = Color(0xE6B42318)
                     ) {
-                        Text("NON DISP.", Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                        Text("NON DISP.", Modifier.padding(horizontal = 7.dp, vertical = 3.dp), color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
 
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(Modifier.padding(9.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 if (brandName.isNotBlank()) {
                     Text(brandName.uppercase(), color = AppBlue, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1)
                 }
@@ -758,10 +853,10 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                 Spacer(Modifier.height(4.dp))
                 OutlinedButton(
                     onClick = { vm.openOrder(product) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(38.dp),
                     border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
                     colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFFFF3CF)),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
                 ) {
                     Icon(Icons.Default.ShoppingCart, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(5.dp))
@@ -1239,8 +1334,6 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
         }
         return
     }
-    val imagePath = product.photos.minByOrNull { it.order }?.path
-    if (imagePath != null) LaunchedEffect(imagePath) { vm.ensureSignedUrl(imagePath) }
     val brand = vm.brands.firstOrNull { it.id == product.brandId }?.name.orEmpty()
     val category = vm.categories.firstOrNull { it.id == product.categoryId }?.name.orEmpty()
     val supplier = vm.suppliers.firstOrNull { it.id == product.supplierId }?.name.orEmpty()
@@ -1278,25 +1371,12 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
                                 )
                             }
                         }
-                        Surface(
-                            Modifier.fillMaxWidth().aspectRatio(1.4f),
-                            shape = RoundedCornerShape(20.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
-                            color = Color(0xFFF1F5F9)
-                        ) {
-                            if (imagePath != null && vm.signedUrls[imagePath] != null) {
-                                AsyncImage(
-                                    model = vm.signedUrls[imagePath],
-                                    contentDescription = product.name,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Image, null, Modifier.size(64.dp), tint = Color(0xFF94A3B8))
-                                }
-                            }
-                        }
+                        ProductPhotoCarousel(
+                            product = product,
+                            vm = vm,
+                            aspectRatio = 1.22f,
+                            rounded = RoundedCornerShape(20.dp)
+                        )
                     }
                 }
             }
