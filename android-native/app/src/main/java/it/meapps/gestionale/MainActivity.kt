@@ -831,7 +831,7 @@ private fun CustomersScreen(vm: AppViewModel) {
                             if (place.isNotBlank()) Text(place, color = Color(0xFF64748B))
                         }
                         if (customer.country.isNotBlank()) {
-                            Surface(shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1)), color = Color.White) {
+                            Surface(shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black), color = Color.White) {
                                 Text(customer.country, Modifier.padding(horizontal = 13.dp, vertical = 8.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
@@ -888,6 +888,11 @@ private fun OrdersScreen(vm: AppViewModel) {
             item {
                 AssistChip(
                     onClick = { vm.clearOrderDrillDown() },
+                    border = AssistChipDefaults.assistChipBorder(
+                        enabled = true,
+                        borderColor = Color.Black,
+                        borderWidth = 1.5.dp
+                    ),
                     label = {
                         Text(
                             when {
