@@ -20,4 +20,15 @@
     <string name="data_management">Datenverwaltung</string>
     <string name="demo_notice">Beispieldaten verwenden DEMO-Codes und können jederzeit entfernt werden.</string>
 
+
+    <string name="free_plan">Kostenloser Plan</string>
+    <string name="premium_plan">Pro-Version</string>
+    <string name="free_limit_status">%1$d von %2$d Artikeln verwendet</string>
+    <string name="premium_unlimited">Unbegrenzte Artikel und Premium-Funktionen</string>
+    <string name="upgrade_pro">Auf Pro upgraden</string>
+    <string name="premium_limit_title">Limit der kostenlosen Version erreicht</string>
+    <string name="premium_limit_text">Du hast das Limit von 10 eigenen Artikeln erreicht. Beispielartikel zählen nicht. Mit Pro entfällt dieses Limit.</string>
+    <string name="premium_play_pending">Die Zahlung wird über Google Play aktiviert, sobald die Produkteinrichtung abgeschlossen ist.</string>
+    <string name="later">Später</string>
+
 </resources>
