@@ -156,6 +156,7 @@ private fun AuthenticatedApp(vm: AppViewModel) {
             is DeleteTarget.ProductTarget -> target.product.name
             is DeleteTarget.EntityTarget -> target.name
             is DeleteTarget.CustomerTarget -> target.customer.displayName
+            is DeleteTarget.OrderTarget -> target.order.number.ifBlank { target.order.customerName }
             is DeleteTarget.PhotoTarget -> "questa foto"
         }
         AlertDialog(
@@ -171,8 +172,13 @@ private fun AuthenticatedApp(vm: AppViewModel) {
         is Editor.ProductEditor -> ProductEditorScreen(vm)
         is Editor.EntityEditor -> EntityEditorScreen(vm, editor.kind)
         is Editor.CustomerEditor -> CustomerEditorScreen(vm)
-        Editor.OrderEditor -> OrderEditorScreen(vm)
-        null -> MainScaffold(vm, snackbar)
+        is Editor.OrderEditor -> OrderEditorScreen(vm)
+        null -> when (val detail = vm.detail) {
+            is Detail.ProductDetail -> ProductDetailScreen(vm, detail.productId)
+            is Detail.CustomerDetail -> CustomerDetailScreen(vm, detail.customerId)
+            is Detail.OrderDetail -> OrderDetailScreen(vm, detail.orderId)
+            null -> MainScaffold(vm, snackbar)
+        }
     }
 }
 
@@ -200,6 +206,7 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
                     Box {
                         FilledTonalIconButton(
                             onClick = { menuOpen = true },
+                            modifier = Modifier.border(1.5.dp, Color.White, RoundedCornerShape(50)),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(
                                 containerColor = Color(0xFF1E293B),
                                 contentColor = Color.White
@@ -282,8 +289,8 @@ private fun BottomPill(label: String, selected: Boolean, modifier: Modifier = Mo
         shape = RoundedCornerShape(24.dp),
         color = if (selected) Color(0xFFFFF3CF) else Color.White,
         border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (selected) AppAmber else Color(0xFFCBD5E1)
+            1.5.dp,
+            Color.Black
         )
     ) {
         Box(contentAlignment = Alignment.Center) {
@@ -450,7 +457,11 @@ private fun LegacyStatCard(
     onClick: (() -> Unit)? = null
 ) {
     val cardModifier = if (onClick != null) modifier.clickable(onClick = onClick) else modifier
-    Card(cardModifier, shape = RoundedCornerShape(22.dp)) {
+    Card(
+        cardModifier,
+        shape = RoundedCornerShape(22.dp),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+    ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFF475569))
             Text(value, fontSize = 25.sp, fontWeight = FontWeight.Black, color = valueColor, maxLines = 1)
@@ -460,7 +471,11 @@ private fun LegacyStatCard(
 }
 @Composable
 private fun DashboardStat(label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
-    Card(modifier, shape = RoundedCornerShape(18.dp)) {
+    Card(
+        modifier,
+        shape = RoundedCornerShape(18.dp),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+    ) {
         Column(Modifier.padding(16.dp)) {
             Box(Modifier.width(34.dp).height(5.dp).background(accent, RoundedCornerShape(50)))
             Spacer(Modifier.height(10.dp))
@@ -515,12 +530,22 @@ private fun ProductsScreen(vm: AppViewModel) {
             FilterChip(
                 selected = !vm.promoOnly,
                 onClick = { vm.promoOnly = false },
-                label = { Text("Tutto") }
+                label = { Text("Tutto") },
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true, selected = !vm.promoOnly,
+                    borderColor = Color.Black, selectedBorderColor = Color.Black,
+                    borderWidth = 1.5.dp, selectedBorderWidth = 1.5.dp
+                )
             )
             FilterChip(
                 selected = vm.promoOnly,
                 onClick = { vm.promoOnly = true },
-                label = { Text("Solo promo") }
+                label = { Text("Solo promo") },
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true, selected = vm.promoOnly,
+                    borderColor = Color.Black, selectedBorderColor = Color.Black,
+                    borderWidth = 1.5.dp, selectedBorderWidth = 1.5.dp
+                )
             )
         }
 
@@ -593,9 +618,9 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
     val code = product.code.ifBlank { product.sku.ifBlank { "Senza codice" } }
 
     Card(
-        Modifier.fillMaxWidth().clickable { vm.openProduct(product) },
+        Modifier.fillMaxWidth().clickable { vm.openProductDetail(product) },
         shape = RoundedCornerShape(20.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor)
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
     ) {
         Column {
             Box {
@@ -675,17 +700,16 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FilledTonalButton(
-                        onClick = { shareProduct(context, product, "com.facebook.katana") },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
-                    ) { Text("Facebook", fontSize = 10.sp, fontWeight = FontWeight.Black) }
-                    FilledTonalButton(
-                        onClick = { shareProduct(context, product, "org.telegram.messenger") },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
-                    ) { Text("Telegram", fontSize = 10.sp, fontWeight = FontWeight.Black) }
+                OutlinedButton(
+                    onClick = { vm.openOrder(product) },
+                    modifier = Modifier.fillMaxWidth(),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFFFF3CF)),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    Icon(Icons.Default.ShoppingCart, null, Modifier.size(16.dp))
+                    Spacer(Modifier.width(5.dp))
+                    Text("Aggiungi ordine", fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1)
                 }
             }
         }
@@ -720,7 +744,11 @@ private fun shareProduct(context: android.content.Context, product: Product, tar
 private fun ProductCard(product: Product, vm: AppViewModel) {
     val imagePath = product.photos.minByOrNull { it.order }?.path
     if (imagePath != null) LaunchedEffect(imagePath) { vm.ensureSignedUrl(imagePath) }
-    Card(Modifier.fillMaxWidth().clickable { vm.openProduct(product) }, shape = RoundedCornerShape(18.dp)) {
+    Card(
+        Modifier.fillMaxWidth().clickable { vm.openProductDetail(product) },
+        shape = RoundedCornerShape(18.dp),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+    ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(Modifier.size(72.dp), color = Color(0xFFEFF4FF), shape = RoundedCornerShape(14.dp)) {
                 if (imagePath != null && vm.signedUrls[imagePath] != null) AsyncImage(
@@ -762,7 +790,10 @@ private fun CustomersScreen(vm: AppViewModel) {
                     Text("Clienti", fontSize = 24.sp, fontWeight = FontWeight.Black, color = AppNavy)
                     Text("${filteredCustomers.size} di ${vm.customers.size} clienti", color = Color(0xFF64748B))
                 }
-                FilledTonalButton(onClick = { vm.openCustomer() }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
+                OutlinedButton(
+                    onClick = { vm.openCustomer() },
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                ) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
             }
         }
         item { AppTextField(search, { search = it }, "Cerca cliente, telefono o città", leading = { Icon(Icons.Default.Search, null) }) }
@@ -770,7 +801,11 @@ private fun CustomersScreen(vm: AppViewModel) {
             item { EmptyState("Nessun cliente", if (search.isBlank()) "I clienti compariranno qui." else "Nessun cliente corrisponde alla ricerca.") }
         } else {
             items(filteredCustomers, key = { it.id }) { customer ->
-                Card(Modifier.fillMaxWidth().clickable { vm.openCustomer(customer) }, shape = RoundedCornerShape(22.dp)) {
+                Card(
+                    Modifier.fillMaxWidth().clickable { vm.openCustomerDetail(customer) },
+                    shape = RoundedCornerShape(22.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                ) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text(customer.displayName, fontSize = 19.sp, fontWeight = FontWeight.Black, color = AppNavy)
@@ -825,7 +860,10 @@ private fun OrdersScreen(vm: AppViewModel) {
                     Text("Ordini", fontSize = 24.sp, fontWeight = FontWeight.Black, color = AppNavy)
                     Text("${filteredOrders.size} di ${vm.orders.size} ordini", color = Color(0xFF64748B))
                 }
-                FilledTonalButton(onClick = { }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
+                OutlinedButton(
+                    onClick = { vm.openOrder() },
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                ) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
             }
         }
         item { AppTextField(search, { search = it }, "Cerca cliente, ordine, tracking o articolo", leading = { Icon(Icons.Default.Search, null) }) }
@@ -850,7 +888,11 @@ private fun OrdersScreen(vm: AppViewModel) {
             item { EmptyState("Nessun ordine", if (search.isBlank()) "Gli ordini compariranno qui." else "Nessun ordine corrisponde alla ricerca.") }
         } else {
             items(filteredOrders, key = { it.id }) { order ->
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
+                Card(
+                    Modifier.fillMaxWidth().clickable { vm.openOrderDetail(order) },
+                    shape = RoundedCornerShape(22.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
@@ -1384,7 +1426,11 @@ private fun EntityEditorScreen(vm: AppViewModel, kind: EntityKind) {
 private fun SelectionField(label: String, selected: String?, options: List<Pair<String, String>>, onSelect: (String?) -> Unit, compact: Boolean = false) {
     var open by remember { mutableStateOf(false) }
     Box {
-        OutlinedButton(onClick = { open = true }, modifier = if (compact) Modifier.widthIn(min = 150.dp) else Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { open = true },
+            modifier = if (compact) Modifier.widthIn(min = 150.dp) else Modifier.fillMaxWidth(),
+            border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+        ) {
             Text(options.firstOrNull { it.first == selected }?.second ?: if (compact) label else "$label: nessuna", maxLines = 1)
             Spacer(Modifier.width(6.dp)); Icon(Icons.Default.ArrowDropDown, null)
         }
