@@ -842,6 +842,14 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                 }
                 Text(product.name, fontWeight = FontWeight.Black, maxLines = 2, minLines = if (vm.compactMode) 1 else 2, color = AppNavy)
                 Text(code, color = Color(0xFF64748B), fontSize = 11.sp, maxLines = 1)
+                if (product.measureValue.isNotBlank()) {
+                    Text(
+                        (if (product.measureType == "peso") "Peso: " else if (product.measureType == "misura") "Misura: " else "") + product.measureValue,
+                        color = Color(0xFF64748B),
+                        fontSize = 10.sp,
+                        maxLines = 1
+                    )
+                }
                 Spacer(Modifier.height(2.dp))
                 if (product.inPromotion && product.promotionalPrice > 0) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1413,6 +1421,16 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
                         DetailInfoRow("Marca", brand)
                         DetailInfoRow("Categoria", category)
                         DetailInfoRow("Fornitore", supplier)
+                        if (product.measureType.isNotBlank() || product.measureValue.isNotBlank()) {
+                            DetailInfoRow(
+                                when (product.measureType) {
+                                    "peso" -> "Peso"
+                                    "misura" -> "Misura"
+                                    else -> "Misura / peso"
+                                },
+                                product.measureValue
+                            )
+                        }
                         DetailInfoRow("Descrizione", product.description)
                     }
                 }
@@ -1706,6 +1724,28 @@ private fun ProductEditorScreen(vm: AppViewModel) {
             item { SelectionField("Marca (facoltativa)", d.brandId, vm.brands.map { it.id to it.name }, { vm.updateProductDraft(d.copy(brandId = it)) }) }
             item { SelectionField("Categoria (facoltativa)", d.categoryId, vm.categories.map { it.id to it.name }, { vm.updateProductDraft(d.copy(categoryId = it)) }) }
             item { SelectionField("Fornitore (facoltativo)", d.supplierId, vm.suppliers.map { it.id to it.name }, { vm.updateProductDraft(d.copy(supplierId = it)) }) }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(Modifier.weight(1f)) {
+                        SelectionField(
+                            "Misura / peso",
+                            d.measureType.ifBlank { null },
+                            listOf("misura" to "Misura", "peso" to "Peso"),
+                            { value -> vm.updateProductDraft(d.copy(measureType = value.orEmpty())) }
+                        )
+                    }
+                    AppTextField(
+                        d.measureValue,
+                        { vm.updateProductDraft(d.copy(measureValue = it)) },
+                        when (d.measureType) {
+                            "peso" -> "Peso"
+                            "misura" -> "Misura"
+                            else -> "Valore"
+                        },
+                        Modifier.weight(1f)
+                    )
+                }
+            }
             item { AppTextField(d.description, { vm.updateProductDraft(d.copy(description = it)) }, "Descrizione", minLines = 3) }
             item { SectionTitle("Prezzi e disponibilità") }
             item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
