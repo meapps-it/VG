@@ -1580,8 +1580,14 @@ private fun ProductEditorScreen(vm: AppViewModel) {
             item { AppTextField(d.notes, { vm.updateProductDraft(d.copy(notes = it)) }, "Note", minLines = 3) }
             item { SectionTitle("Immagini") }
             item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) { Icon(Icons.Default.PhotoLibrary, null); Spacer(Modifier.width(6.dp)); Text("Galleria") }
-                OutlinedButton(onClick = ::launchCamera) { Icon(Icons.Default.CameraAlt, null); Spacer(Modifier.width(6.dp)); Text("Fotocamera") }
+                OutlinedButton(
+                    onClick = { gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                ) { Icon(Icons.Default.PhotoLibrary, null); Spacer(Modifier.width(6.dp)); Text("Galleria") }
+                OutlinedButton(
+                    onClick = ::launchCamera,
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                ) { Icon(Icons.Default.CameraAlt, null); Spacer(Modifier.width(6.dp)); Text("Fotocamera") }
             } }
             if (existing != null && existing.photos.isNotEmpty()) item {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1597,7 +1603,14 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                     items(vm.pendingPhotos, key = { it.toString() }) { uri -> PhotoTile(uri, { vm.removePendingPhoto(uri) }) }
                 }
             }
-            item { Button(onClick = vm::saveProduct, enabled = !vm.saving, modifier = Modifier.fillMaxWidth().height(50.dp)) { Text(if (vm.saving) "Salvataggio…" else "Salva articolo") } }
+            item {
+                Button(
+                    onClick = vm::saveProduct,
+                    enabled = !vm.saving,
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                ) { Text(if (vm.saving) "Salvataggio…" else "Salva articolo") }
+            }
             if (existing != null) item { OutlinedButton(onClick = { vm.requestDelete(DeleteTarget.ProductTarget(existing)) }, modifier = Modifier.fillMaxWidth()) { Text("Elimina articolo", color = Negative) } }
             item { Spacer(Modifier.height(24.dp)) }
         }
@@ -1663,7 +1676,8 @@ private fun CustomerEditorScreen(vm: AppViewModel) {
                     onClick = vm::saveCustomer,
                     enabled = !vm.saving,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(18.dp)
+                    shape = RoundedCornerShape(18.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
                 ) { Text(if (vm.saving) "Salvataggio…" else "Salva cliente", fontWeight = FontWeight.Black) }
             }
             if (d.id.isNotBlank()) item {
@@ -1683,15 +1697,16 @@ private fun CustomerEditorScreen(vm: AppViewModel) {
 @Composable
 private fun OrderEditorScreen(vm: AppViewModel) {
     val d = vm.orderDraft
+    val existingOrder = vm.orders.firstOrNull { it.id == d.id }
     val selectedProduct = vm.products.firstOrNull { it.id == d.productId }
     val qty = d.quantity.toIntOrNull()?.coerceAtLeast(1) ?: 1
-    val total = (selectedProduct?.effectiveSalePrice ?: 0.0) * qty
-    val profit = (selectedProduct?.effectiveMarginEuro ?: 0.0) * qty
+    val total = existingOrder?.total ?: ((selectedProduct?.effectiveSalePrice ?: 0.0) * qty)
+    val profit = existingOrder?.profit ?: ((selectedProduct?.effectiveMarginEuro ?: 0.0) * qty)
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Nuovo ordine", fontWeight = FontWeight.Bold) },
+                title = { Text(if (d.id.isBlank()) "Nuovo ordine" else "Modifica ordine", fontWeight = FontWeight.Bold) },
                 navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
                 actions = { TextButton(onClick = vm::saveOrder, enabled = !vm.saving) { Text("Salva", fontWeight = FontWeight.Bold) } }
             )
@@ -1711,7 +1726,7 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                     { vm.updateOrderDraft(d.copy(customerId = it)) }
                 )
             }
-            item {
+            if (d.id.isBlank()) item {
                 SelectionField(
                     "Articolo *",
                     d.productId,
@@ -1719,7 +1734,20 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                     { vm.updateOrderDraft(d.copy(productId = it)) }
                 )
             }
-            item { AppTextField(d.quantity, { vm.updateOrderDraft(d.copy(quantity = it.filter(Char::isDigit))) }, "Quantità", keyboardType = KeyboardType.Number) }
+            if (d.id.isBlank()) item {
+                AppTextField(d.quantity, { vm.updateOrderDraft(d.copy(quantity = it.filter(Char::isDigit))) }, "Quantità", keyboardType = KeyboardType.Number)
+            }
+            if (d.id.isNotBlank() && existingOrder != null) item {
+                Card(
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Column(Modifier.padding(14.dp)) {
+                        Text("Articoli dell'ordine", fontWeight = FontWeight.Black, color = AppNavy)
+                        Text(existingOrder.itemNames.joinToString("\n").ifBlank { "Nessun articolo" }, color = Color(0xFF64748B))
+                    }
+                }
+            }
             item { AppTextField(d.date, { vm.updateOrderDraft(d.copy(date = it)) }, "Data ordine (AAAA-MM-GG)") }
             item {
                 SelectionField(
@@ -1765,7 +1793,11 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                 )
             }
             item {
-                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF4FF)), shape = RoundedCornerShape(18.dp)) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF4FF)),
+                    shape = RoundedCornerShape(18.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Riepilogo", fontWeight = FontWeight.Black)
                         ValueRow("Totale ordine", money(total))
@@ -1783,7 +1815,8 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                     enabled = !vm.saving,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(18.dp)
-                ) { Text(if (vm.saving) "Salvataggio…" else "Crea ordine", fontWeight = FontWeight.Black) }
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                ) { Text(if (vm.saving) "Salvataggio…" else if (d.id.isBlank()) "Crea ordine" else "Salva modifiche", fontWeight = FontWeight.Black) }
             }
         }
     }
