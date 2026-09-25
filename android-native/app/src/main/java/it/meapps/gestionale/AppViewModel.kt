@@ -485,6 +485,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearMessages() { errorMessage = null; noticeMessage = null }
     private fun closeEditor() { editor = null; pendingPhotos.clear() }
+    fun closeDetail() { detail = null }
+
     private fun showError(message: String) { errorMessage = message }
 
     private fun runSaving(block: suspend () -> Unit) {
