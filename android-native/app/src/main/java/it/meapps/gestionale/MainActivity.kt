@@ -192,6 +192,29 @@ private fun AuthenticatedApp(vm: AppViewModel) {
         )
     }
 
+    if (vm.premiumRequired) {
+        AlertDialog(
+            onDismissRequest = vm::dismissPremiumPrompt,
+            icon = { Icon(Icons.Default.WorkspacePremium, null, tint = AppAmber) },
+            title = { Text(stringResource(R.string.premium_limit_title), fontWeight = FontWeight.Black) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.premium_limit_text))
+                    Text(stringResource(R.string.premium_play_pending), color = Color(0xFF64748B), fontSize = 12.sp)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = vm::dismissPremiumPrompt,
+                    colors = ButtonDefaults.buttonColors(containerColor = AppNavy)
+                ) { Text(stringResource(R.string.upgrade_pro)) }
+            },
+            dismissButton = {
+                TextButton(onClick = vm::dismissPremiumPrompt) { Text(stringResource(R.string.later)) }
+            }
+        )
+    }
+
     when (val editor = vm.editor) {
         is Editor.ProductEditor -> ProductEditorScreen(vm)
         is Editor.EntityEditor -> EntityEditorScreen(vm, editor.kind)
@@ -1261,6 +1284,67 @@ private fun SettingsScreen(vm: AppViewModel) {
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
+            SettingsHeader(
+                if (vm.isPremium) stringResource(R.string.premium_plan) else stringResource(R.string.free_plan),
+                if (vm.isPremium) stringResource(R.string.premium_unlimited)
+                else stringResource(R.string.free_limit_status, vm.freeProductCount, AppViewModel.FREE_PRODUCT_LIMIT)
+            )
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = if (vm.isPremium) Color(0xFFFFF7E8) else Color(0xFFF8FAFC)),
+                border = androidx.compose.foundation.BorderStroke(1.2.dp, if (vm.isPremium) AppAmber.copy(alpha = .45f) else LegacyBorder)
+            ) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (vm.isPremium) AppAmber.copy(alpha = .16f) else AppBlue.copy(alpha = .12f)
+                        ) {
+                            Icon(
+                                if (vm.isPremium) Icons.Default.WorkspacePremium else Icons.Default.Inventory2,
+                                null,
+                                Modifier.padding(12.dp).size(26.dp),
+                                tint = if (vm.isPremium) AppAmber else AppBlue
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                if (vm.isPremium) stringResource(R.string.premium_plan) else stringResource(R.string.free_plan),
+                                fontWeight = FontWeight.Black,
+                                fontSize = 18.sp
+                            )
+                            Text(
+                                if (vm.isPremium) stringResource(R.string.premium_unlimited)
+                                else stringResource(R.string.free_limit_status, vm.freeProductCount, AppViewModel.FREE_PRODUCT_LIMIT),
+                                color = Color(0xFF64748B),
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                    if (!vm.isPremium) {
+                        LinearProgressIndicator(
+                            progress = { (vm.freeProductCount.toFloat() / AppViewModel.FREE_PRODUCT_LIMIT).coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().height(7.dp),
+                            color = AppBlue,
+                            trackColor = Color(0xFFE2E8F0)
+                        )
+                        Button(
+                            onClick = vm::showPremiumPrompt,
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = AppNavy),
+                            shape = RoundedCornerShape(15.dp)
+                        ) {
+                            Icon(Icons.Default.WorkspacePremium, null, tint = AppAmber)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.upgrade_pro), fontWeight = FontWeight.Black)
+                        }
+                    }
+                }
+            }
+        }
+        item {
             SettingsHeader(stringResource(R.string.demo_data), stringResource(R.string.demo_data_sub))
             Card(
                 Modifier.fillMaxWidth(),
@@ -1400,7 +1484,7 @@ private fun SettingsScreen(vm: AppViewModel) {
         item {
             SettingsHeader(stringResource(R.string.information), "Versione tecnica e protezione dei dati.")
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("Gestionale Android 0.5.0", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                Text("Gestionale Android 0.6.0", fontWeight = FontWeight.Black, fontSize = 18.sp)
                 Text("Applicazione Android nativa · base Free + Premium", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 Text("Fotocamera facoltativa · archivio immagini privato · isolamento dati tramite Supabase RLS.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             } }
