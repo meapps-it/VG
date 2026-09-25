@@ -35,6 +35,7 @@ sealed interface DeleteTarget {
     data class ProductTarget(val product: Product) : DeleteTarget
     data class EntityTarget(val kind: EntityKind, val id: String, val name: String) : DeleteTarget
     data class CustomerTarget(val customer: Customer) : DeleteTarget
+    data class OrderTarget(val order: OrderSummary) : DeleteTarget
     data class PhotoTarget(val photo: ProductPhoto) : DeleteTarget
 }
 
@@ -73,6 +74,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var archiveKind by mutableStateOf(EntityKind.BRAND)
     var editor by mutableStateOf<Editor?>(null)
+        private set
+    var detail by mutableStateOf<Detail?>(null)
         private set
     var productDraft by mutableStateOf(ProductDraft())
         private set
@@ -220,10 +223,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         selectedTab = tab
     }
 
-    fun canNavigateBack() = editor != null || deleteTarget != null || tabHistory.isNotEmpty()
+    fun canNavigateBack() = editor != null || detail != null || deleteTarget != null || tabHistory.isNotEmpty()
     fun navigateBack(): Boolean {
         if (deleteTarget != null) { deleteTarget = null; return true }
         if (editor != null) { closeEditor(); return true }
+        if (detail != null) { detail = null; return true }
         if (tabHistory.isNotEmpty()) { selectedTab = tabHistory.removeLast(); return true }
         return false
     }
@@ -231,6 +235,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun openCustomer(customer: Customer? = null) {
         customerDraft = CustomerDraft.from(customer)
         editor = Editor.CustomerEditor(customer?.id)
+    }
+
+    fun openCustomerDetail(customer: Customer) {
+        detail = Detail.CustomerDetail(customer.id)
+    }
+
+    fun openProductDetail(product: Product) {
+        detail = Detail.ProductDetail(product.id)
+    }
+
+    fun openOrderDetail(order: OrderSummary) {
+        detail = Detail.OrderDetail(order.id)
     }
 
     fun updateCustomerDraft(value: CustomerDraft) { customerDraft = value }
@@ -245,22 +261,35 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun openOrder() {
-        orderDraft = OrderDraft()
-        editor = Editor.OrderEditor
+    fun openOrder(product: Product? = null) {
+        orderDraft = OrderDraft(productId = product?.id)
+        editor = Editor.OrderEditor(null)
+    }
+
+    fun editOrder(order: OrderSummary) {
+        orderDraft = OrderDraft.from(order)
+        editor = Editor.OrderEditor(order.id)
     }
 
     fun updateOrderDraft(value: OrderDraft) { orderDraft = value }
 
     fun saveOrder() {
         orderDraft.validate()?.let { return showError(it) }
-        val product = products.firstOrNull { it.id == orderDraft.productId }
-            ?: return showError("Articolo non disponibile")
         runSaving {
-            api.createOrder(orderDraft, product)
+            if (orderDraft.id.isBlank()) {
+                val product = products.firstOrNull { it.id == orderDraft.productId }
+                    ?: return@runSaving showError("Articolo non disponibile")
+                api.createOrder(orderDraft, product)
+                noticeMessage = "Ordine creato"
+            } else {
+                val existing = orders.firstOrNull { it.id == orderDraft.id }
+                    ?: return@runSaving showError("Ordine non trovato")
+                api.updateOrder(orderDraft, existing)
+                noticeMessage = "Ordine aggiornato"
+            }
             loadAllInternal()
             closeEditor()
-            noticeMessage = "Ordine creato"
+            detail = null
         }
     }
 
@@ -331,11 +360,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 is DeleteTarget.ProductTarget -> api.deleteProduct(target.product)
                 is DeleteTarget.EntityTarget -> api.deleteEntity(target.kind, target.id)
                 is DeleteTarget.CustomerTarget -> api.deleteCustomer(target.customer.id)
+                is DeleteTarget.OrderTarget -> api.deleteOrder(target.order.id)
                 is DeleteTarget.PhotoTarget -> api.deletePhoto(target.photo)
             }
             deleteTarget = null
             loadAllInternal()
-            if (target is DeleteTarget.ProductTarget || target is DeleteTarget.CustomerTarget) closeEditor()
+            if (target is DeleteTarget.ProductTarget || target is DeleteTarget.CustomerTarget || target is DeleteTarget.OrderTarget) {
+                closeEditor()
+                detail = null
+            }
             noticeMessage = "Eliminazione completata"
         }
     }
