@@ -205,7 +205,11 @@ private fun AuthenticatedApp(vm: AppViewModel) {
             },
             confirmButton = {
                 Button(
-                    onClick = vm::dismissPremiumPrompt,
+                    onClick = {
+                        val currentActivity = activity
+                        if (currentActivity != null) vm.purchasePremium(currentActivity)
+                        else vm.dismissPremiumPrompt()
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = AppNavy)
                 ) { Text(stringResource(R.string.upgrade_pro)) }
             },
@@ -1238,6 +1242,7 @@ private fun ArchivesScreen(vm: AppViewModel) {
 @Composable
 private fun SettingsScreen(vm: AppViewModel) {
     val context = LocalContext.current
+    val activity = LocalActivity.current
     val languagePrefs = remember(context) { context.getSharedPreferences("preferences", android.content.Context.MODE_PRIVATE) }
     var appLanguage by remember { mutableStateOf(languagePrefs.getString("app_language", "system") ?: "system") }
     var dataAction by remember { mutableStateOf<String?>(null) }
@@ -1321,6 +1326,14 @@ private fun SettingsScreen(vm: AppViewModel) {
                                 color = Color(0xFF64748B),
                                 fontSize = 12.sp
                             )
+                            if (!vm.isPremium && vm.premiumPrice != null) {
+                                Text(
+                                    "Pro annuale · ${vm.premiumPrice}",
+                                    color = AppBlue,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                     if (!vm.isPremium) {
@@ -1331,7 +1344,10 @@ private fun SettingsScreen(vm: AppViewModel) {
                             trackColor = Color(0xFFE2E8F0)
                         )
                         Button(
-                            onClick = vm::showPremiumPrompt,
+                            onClick = {
+                                if (activity != null) vm.purchasePremium(activity)
+                                else vm.showPremiumPrompt()
+                            },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = AppNavy),
                             shape = RoundedCornerShape(15.dp)
@@ -1484,7 +1500,7 @@ private fun SettingsScreen(vm: AppViewModel) {
         item {
             SettingsHeader(stringResource(R.string.information), "Versione tecnica e protezione dei dati.")
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("Gestionale Android 0.6.0", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                Text("Gestionale Android 0.7.0", fontWeight = FontWeight.Black, fontSize = 18.sp)
                 Text("Applicazione Android nativa · base Free + Premium", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 Text("Fotocamera facoltativa · archivio immagini privato · isolamento dati tramite Supabase RLS.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             } }
