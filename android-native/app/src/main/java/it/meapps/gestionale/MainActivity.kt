@@ -1472,10 +1472,10 @@ private fun DetailScaffold(
                     Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    BottomPill(stringResource(R.string.dashboard), selectedTab == MainTab.HOME, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.HOME) }
-                    BottomPill(stringResource(R.string.articles), selectedTab == MainTab.ARTICLES, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.ARTICLES) }
-                    BottomPill(stringResource(R.string.customers), selectedTab == MainTab.CLIENTS, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.CLIENTS) }
-                    BottomPill(stringResource(R.string.orders), selectedTab == MainTab.ORDERS, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.ORDERS) }
+                    BottomPill(stringResource(R.string.dashboard), Icons.Default.Home, selectedTab == MainTab.HOME, AppBlue, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.HOME) }
+                    BottomPill(stringResource(R.string.articles), Icons.Default.Inventory2, selectedTab == MainTab.ARTICLES, AppBlue, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.ARTICLES) }
+                    BottomPill(stringResource(R.string.customers), Icons.Default.People, selectedTab == MainTab.CLIENTS, AppAmber, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.CLIENTS) }
+                    BottomPill(stringResource(R.string.orders), Icons.Default.ShoppingCart, selectedTab == MainTab.ORDERS, Positive, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.ORDERS) }
                 }
             }
         }
