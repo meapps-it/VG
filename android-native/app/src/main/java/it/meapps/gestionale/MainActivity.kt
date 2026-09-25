@@ -1089,6 +1089,411 @@ private fun SettingsScreen(vm: AppViewModel) {
         Icon(Icons.Default.ChevronRight, null)
     }
 
+
+@Composable
+private fun DetailScaffold(
+    vm: AppViewModel,
+    subtitle: String,
+    selectedTab: MainTab,
+    content: @Composable (PaddingValues) -> Unit
+) {
+    Scaffold(
+        topBar = {
+            Surface(color = AppNavy) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { vm.closeDetail() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro", tint = Color.White)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text("Gestionale", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                        Text(subtitle, color = Color(0xFFD6D9E2), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    IconButton(
+                        onClick = { vm.closeDetail(); vm.selectTab(MainTab.SETTINGS) },
+                        modifier = Modifier.border(1.5.dp, Color.White, RoundedCornerShape(50))
+                    ) {
+                        Icon(Icons.Default.Menu, "Menu", tint = Color.White)
+                    }
+                }
+            }
+        },
+        bottomBar = {
+            Surface(
+                modifier = Modifier.navigationBarsPadding(),
+                color = Color.White,
+                shadowElevation = 10.dp
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    BottomPill("Dashboard", selectedTab == MainTab.HOME, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.HOME) }
+                    BottomPill("Articoli", selectedTab == MainTab.ARTICLES, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.ARTICLES) }
+                    BottomPill("Clienti", selectedTab == MainTab.CLIENTS, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.CLIENTS) }
+                    BottomPill("Ordini", selectedTab == MainTab.ORDERS, Modifier.weight(1f)) { vm.closeDetail(); vm.selectTab(MainTab.ORDERS) }
+                }
+            }
+        }
+    ) { padding -> content(padding) }
+}
+
+@Composable
+private fun DetailInfoRow(label: String, value: String, valueColor: Color = AppNavy) {
+    Column {
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Text(
+                label,
+                modifier = Modifier.width(118.dp),
+                color = Color(0xFF64748B),
+                fontWeight = FontWeight.Black
+            )
+            Text(
+                value.ifBlank { "—" },
+                modifier = Modifier.weight(1f),
+                color = valueColor,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        HorizontalDivider(color = Color(0xFFCBD5E1))
+    }
+}
+
+@Composable
+private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
+    val product = vm.products.firstOrNull { it.id == productId }
+    if (product == null) {
+        DetailScaffold(vm, "Dettaglio articolo", MainTab.ARTICLES) { padding ->
+            Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Articolo non trovato")
+            }
+        }
+        return
+    }
+    val imagePath = product.photos.minByOrNull { it.order }?.path
+    if (imagePath != null) LaunchedEffect(imagePath) { vm.ensureSignedUrl(imagePath) }
+    val brand = vm.brands.firstOrNull { it.id == product.brandId }?.name.orEmpty()
+    val category = vm.categories.firstOrNull { it.id == product.categoryId }?.name.orEmpty()
+    val supplier = vm.suppliers.firstOrNull { it.id == product.supplierId }?.name.orEmpty()
+    val code = product.code.ifBlank { product.sku.ifBlank { "Senza codice" } }
+
+    DetailScaffold(vm, "Dettaglio articolo", MainTab.ARTICLES) { padding ->
+        LazyColumn(
+            Modifier.padding(padding).fillMaxSize(),
+            contentPadding = PaddingValues(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF8))
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(verticalAlignment = Alignment.Top) {
+                            Column(Modifier.weight(1f)) {
+                                Text(product.name, fontSize = 30.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                                Text("Cod. $code", color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(18.dp),
+                                color = if (product.available && product.quantity > 0) Color(0xFFE9FFF3) else Color(0xFFFFE7E5),
+                                border = androidx.compose.foundation.BorderStroke(1.2.dp, Color.Black)
+                            ) {
+                                Text(
+                                    if (product.available && product.quantity > 0) "Disponibile" else "Non disponibile",
+                                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    color = if (product.available && product.quantity > 0) Positive else Negative,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                        Surface(
+                            Modifier.fillMaxWidth().aspectRatio(1.4f),
+                            shape = RoundedCornerShape(20.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                            color = Color(0xFFF1F5F9)
+                        ) {
+                            if (imagePath != null && vm.signedUrls[imagePath] != null) {
+                                AsyncImage(
+                                    model = vm.signedUrls[imagePath],
+                                    contentDescription = product.name,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.Image, null, Modifier.size(64.dp), tint = Color(0xFF94A3B8))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            item {
+                Card(
+                    shape = RoundedCornerShape(22.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                ) {
+                    Column(Modifier.padding(horizontal = 16.dp)) {
+                        DetailInfoRow("Marca", brand)
+                        DetailInfoRow("Categoria", category)
+                        DetailInfoRow("Fornitore", supplier)
+                        if (product.quality.isNotBlank()) DetailInfoRow("Qualità", product.quality)
+                        DetailInfoRow("Descrizione", product.description)
+                    }
+                }
+            }
+            item {
+                Card(
+                    shape = RoundedCornerShape(22.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8DF))
+                ) {
+                    Row(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Prezzo di vendita", color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                            Text(money(product.effectiveSalePrice), fontSize = 26.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                        }
+                        VerticalDivider(Modifier.height(58.dp), color = Color(0xFFCBD5E1))
+                        Spacer(Modifier.width(16.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Margine", color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                            Text(
+                                money(product.effectiveMarginEuro),
+                                fontSize = 26.sp,
+                                fontWeight = FontWeight.Black,
+                                color = if (product.effectiveMarginEuro >= 0) Positive else Negative
+                            )
+                        }
+                    }
+                }
+            }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = { vm.openProduct(product) },
+                        modifier = Modifier.weight(1f).height(54.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    ) {
+                        Icon(Icons.Default.Edit, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Modifica", fontWeight = FontWeight.Black)
+                    }
+                    OutlinedButton(
+                        onClick = { vm.requestDelete(DeleteTarget.ProductTarget(product)) },
+                        modifier = Modifier.weight(1f).height(54.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Negative)
+                    ) {
+                        Icon(Icons.Default.Delete, null, tint = Negative)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Elimina", color = Negative, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+            item { Spacer(Modifier.height(8.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun CustomerDetailScreen(vm: AppViewModel, customerId: String) {
+    val customer = vm.customers.firstOrNull { it.id == customerId }
+    if (customer == null) {
+        DetailScaffold(vm, "Dettaglio cliente", MainTab.CLIENTS) { padding ->
+            Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) { Text("Cliente non trovato") }
+        }
+        return
+    }
+    val customerOrders = vm.orders.filter { it.customerId == customer.id }
+    val totalPurchases = customerOrders.sumOf { if (it.totalPaid > 0) it.totalPaid else it.total }
+    val lastOrder = customerOrders.maxByOrNull { it.date }
+
+    DetailScaffold(vm, "Dettaglio cliente", MainTab.CLIENTS) { padding ->
+        LazyColumn(
+            Modifier.padding(padding).fillMaxSize(),
+            contentPadding = PaddingValues(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF8))
+                ) {
+                    Column(Modifier.padding(18.dp)) {
+                        Row(verticalAlignment = Alignment.Top) {
+                            Text(customer.displayName, Modifier.weight(1f), fontSize = 30.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                            if (customer.country.isNotBlank()) {
+                                Surface(
+                                    shape = RoundedCornerShape(18.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.2.dp, Color.Black),
+                                    color = Color.White
+                                ) {
+                                    Text(customer.country, Modifier.padding(horizontal = 12.dp, vertical = 7.dp), fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        DetailInfoRow("Telefono", customer.phone)
+                        DetailInfoRow("Email", customer.email)
+                        DetailInfoRow("Paese", customer.country)
+                        DetailInfoRow("Città", listOf(customer.city, customer.province).filter { it.isNotBlank() }.joinToString(" • "))
+                        DetailInfoRow("Indirizzo", customer.address)
+                        DetailInfoRow("Note", customer.notes)
+                    }
+                }
+            }
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        vm.closeDetail()
+                        vm.selectTab(MainTab.ORDERS)
+                    },
+                    shape = RoundedCornerShape(22.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                ) {
+                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("ORDINI", color = Color(0xFF64748B), fontWeight = FontWeight.Black)
+                            Text(customerOrders.size.toString(), fontSize = 28.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                            Text("ordini totali", color = Color(0xFF64748B))
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text("TOTALE ACQUISTI", color = Color(0xFF64748B), fontWeight = FontWeight.Black)
+                            Text(money(totalPurchases), fontSize = 24.sp, fontWeight = FontWeight.Black, color = Positive)
+                        }
+                        Icon(Icons.Default.ChevronRight, null)
+                    }
+                }
+            }
+            if (lastOrder != null) item {
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable { vm.openOrderDetail(lastOrder) },
+                    shape = RoundedCornerShape(22.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                ) {
+                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("ULTIMO ORDINE", color = Color(0xFF64748B), fontWeight = FontWeight.Black)
+                            Text(lastOrder.date, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                        }
+                        Text(money(if (lastOrder.totalPaid > 0) lastOrder.totalPaid else lastOrder.total), fontWeight = FontWeight.Black, fontSize = 20.sp)
+                        Icon(Icons.Default.ChevronRight, null)
+                    }
+                }
+            }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = { vm.openCustomer(customer) },
+                        modifier = Modifier.weight(1f).height(54.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    ) {
+                        Icon(Icons.Default.Edit, null); Spacer(Modifier.width(6.dp)); Text("Modifica", fontWeight = FontWeight.Black)
+                    }
+                    OutlinedButton(
+                        onClick = { vm.requestDelete(DeleteTarget.CustomerTarget(customer)) },
+                        modifier = Modifier.weight(1f).height(54.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Negative)
+                    ) {
+                        Icon(Icons.Default.Delete, null, tint = Negative); Spacer(Modifier.width(6.dp)); Text("Elimina", color = Negative, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrderDetailScreen(vm: AppViewModel, orderId: String) {
+    val order = vm.orders.firstOrNull { it.id == orderId }
+    if (order == null) {
+        DetailScaffold(vm, "Dettaglio ordine", MainTab.ORDERS) { padding ->
+            Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) { Text("Ordine non trovato") }
+        }
+        return
+    }
+    DetailScaffold(vm, "Dettaglio ordine", MainTab.ORDERS) { padding ->
+        LazyColumn(
+            Modifier.padding(padding).fillMaxSize(),
+            contentPadding = PaddingValues(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF8))
+                ) {
+                    Column(Modifier.padding(18.dp)) {
+                        Row(verticalAlignment = Alignment.Top) {
+                            Column(Modifier.weight(1f)) {
+                                Text(order.customerName.ifBlank { "Ordine" }, fontSize = 30.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                                Text(order.number.ifBlank { "Ordine del ${order.date}" }, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                            }
+                            val delivered = order.status == "consegnato"
+                            Surface(
+                                shape = RoundedCornerShape(18.dp),
+                                color = if (delivered) Color(0xFFE9FFF3) else Color(0xFFFFF7E5),
+                                border = androidx.compose.foundation.BorderStroke(1.2.dp, Color.Black)
+                            ) {
+                                Text(
+                                    orderStatusLabel(order.status),
+                                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    color = if (delivered) Positive else Color(0xFF92400E),
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        DetailInfoRow("Cliente", order.customerName)
+                        DetailInfoRow("Data", order.date)
+                        DetailInfoRow("Articoli", order.itemNames.joinToString("\n"))
+                        DetailInfoRow(
+                            if (order.paid || order.totalPaid > 0) "Totale pagato" else "Totale",
+                            money(if (order.totalPaid > 0) order.totalPaid else order.total),
+                            if (order.paid || order.totalPaid > 0) Positive else AppNavy
+                        )
+                        DetailInfoRow("Guadagno", money(order.profit), if (order.profit >= 0) Positive else Negative)
+                        DetailInfoRow("Tracking", order.trackingCode)
+                        DetailInfoRow("Stato", orderStatusLabel(order.status), if (order.status == "consegnato") Positive else AppNavy)
+                        if (order.notes.isNotBlank()) DetailInfoRow("Note", order.notes)
+                    }
+                }
+            }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = { vm.editOrder(order) },
+                        modifier = Modifier.weight(1f).height(54.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    ) {
+                        Icon(Icons.Default.Edit, null); Spacer(Modifier.width(6.dp)); Text("Modifica", fontWeight = FontWeight.Black)
+                    }
+                    OutlinedButton(
+                        onClick = { vm.requestDelete(DeleteTarget.OrderTarget(order)) },
+                        modifier = Modifier.weight(1f).height(54.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Negative)
+                    ) {
+                        Icon(Icons.Default.Delete, null, tint = Negative); Spacer(Modifier.width(6.dp)); Text("Elimina", color = Negative, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProductEditorScreen(vm: AppViewModel) {
