@@ -128,7 +128,7 @@ private fun LoginScreen(vm: AppViewModel) {
         Card(Modifier.fillMaxWidth().widthIn(max = 440.dp), shape = RoundedCornerShape(24.dp)) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Icon(Icons.Default.Inventory2, null, tint = AppBlue, modifier = Modifier.size(44.dp))
-                Text(if (register) "Crea account" else "Gestionale", fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                Text(if (register) stringResource(R.string.create_account) else stringResource(R.string.app_name), fontSize = 28.sp, fontWeight = FontWeight.Bold)
                 Text(stringResource(R.string.tagline), color = Color(0xFF667085))
                 AppTextField(email, { email = it }, stringResource(R.string.email), keyboardType = KeyboardType.Email)
                 OutlinedTextField(
@@ -139,9 +139,9 @@ private fun LoginScreen(vm: AppViewModel) {
                 Button(
                     onClick = { if (register) vm.signUp(email, password) else vm.login(email, password) },
                     enabled = !vm.saving, modifier = Modifier.fillMaxWidth().height(50.dp)
-                ) { if (vm.saving) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp) else Text(if (register) "Registrati" else "Accedi") }
+                ) { if (vm.saving) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp) else Text(if (register) stringResource(R.string.register) else stringResource(R.string.login)) }
                 TextButton(onClick = { register = !register }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                    Text(if (register) "Ho già un account" else "Crea un nuovo account")
+                    Text(if (register) stringResource(R.string.already_account) else stringResource(R.string.create_new_account))
                 }
                 if (!register) TextButton(onClick = { vm.resetPassword(email) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                     Text(stringResource(R.string.forgot_password))
@@ -1186,6 +1186,8 @@ private fun ArchivesScreen(vm: AppViewModel) {
 @Composable
 private fun SettingsScreen(vm: AppViewModel) {
     val context = LocalContext.current
+    val languagePrefs = remember(context) { context.getSharedPreferences("preferences", android.content.Context.MODE_PRIVATE) }
+    var appLanguage by remember { mutableStateOf(languagePrefs.getString("app_language", "system") ?: "system") }
     var pendingBackup by remember { mutableStateOf<String?>(null) }
     var exportMessage by remember { mutableStateOf<String?>(null) }
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
@@ -1203,25 +1205,53 @@ private fun SettingsScreen(vm: AppViewModel) {
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            SettingsHeader(stringResource(R.string.appearance), "Personalizza l’interfaccia senza impazzire dentro menu inutili.")
+            SettingsHeader(stringResource(R.string.appearance), stringResource(R.string.appearance_sub))
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.theme), fontWeight = FontWeight.Black, fontSize = 17.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf(AppThemeMode.SYSTEM to "Sistema", AppThemeMode.LIGHT to "Chiaro", AppThemeMode.DARK to "Scuro").forEach { option ->
+                    listOf(
+                        AppThemeMode.SYSTEM to stringResource(R.string.system),
+                        AppThemeMode.LIGHT to stringResource(R.string.light),
+                        AppThemeMode.DARK to stringResource(R.string.dark)
+                    ).forEach { option ->
                         FilterChip(selected = vm.themeMode == option.first, onClick = { vm.updateThemeMode(option.first) }, label = { Text(option.second) })
                     }
                 }
+                HorizontalDivider()
+                Text(stringResource(R.string.language), fontWeight = FontWeight.Black, fontSize = 17.sp)
+                Text(stringResource(R.string.language_sub), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                SelectionField(
+                    stringResource(R.string.language),
+                    appLanguage,
+                    listOf(
+                        "system" to stringResource(R.string.system),
+                        "it" to "Italiano",
+                        "en" to "English",
+                        "fr" to "Français",
+                        "es" to "Español",
+                        "de" to "Deutsch"
+                    ),
+                    { selected ->
+                        val tag = selected ?: "system"
+                        appLanguage = tag
+                        languagePrefs.edit().putString("app_language", tag).apply()
+                        AppCompatDelegate.setApplicationLocales(
+                            if (tag == "system") LocaleListCompat.getEmptyLocaleList()
+                            else LocaleListCompat.forLanguageTags(tag)
+                        )
+                    }
+                )
                 HorizontalDivider()
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) { Text(stringResource(R.string.text_size), fontWeight = FontWeight.Bold); Text("${(vm.fontScale * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
                 Slider(value = vm.fontScale, onValueChange = vm::updateFontScale, valueRange = .85f..1.35f, steps = 9)
-                SettingSwitch(stringResource(R.string.compact_mode), "Riduce spazi e dimensioni delle schede.", vm.compactMode, vm::updateCompactMode)
-                SettingSwitch(stringResource(R.string.grid_catalog), "Mostra gli articoli con foto grandi come nella vecchia app.", vm.gridView, vm::updateGridView)
+                SettingSwitch(stringResource(R.string.compact_mode), stringResource(R.string.compact_mode_sub), vm.compactMode, vm::updateCompactMode)
+                SettingSwitch(stringResource(R.string.grid_catalog), stringResource(R.string.grid_catalog_sub), vm.gridView, vm::updateGridView)
             } }
         }
         item {
-            SettingsHeader(stringResource(R.string.data_backup), "Esporta una copia leggibile dei dati del tuo account.")
+            SettingsHeader(stringResource(R.string.data_backup), stringResource(R.string.data_backup_sub))
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(onClick = { startExport(true) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.CloudDownload, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.export_full_backup)) }
                 OutlinedButton(onClick = { startExport(false) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Download, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.export_without_photos)) }
@@ -1716,7 +1746,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
 
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text(if (d.id.isBlank()) "Nuovo articolo" else "Modifica articolo", fontWeight = FontWeight.Bold) },
+            title = { Text(if (d.id.isBlank()) stringResource(R.string.new_product) else stringResource(R.string.edit), fontWeight = FontWeight.Bold) },
             navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
             actions = { TextButton(onClick = vm::saveProduct, enabled = !vm.saving) { Text(stringResource(R.string.save), fontWeight = FontWeight.Bold) } }
         )
@@ -1731,16 +1761,16 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                 AppTextField(d.code, { vm.updateProductDraft(d.copy(code = it)) }, stringResource(R.string.code), Modifier.weight(1f))
                 AppTextField(d.sku, { vm.updateProductDraft(d.copy(sku = it)) }, "SKU", Modifier.weight(1f))
             } }
-            item { SelectionField("Marca (facoltativa)", d.brandId, vm.brands.map { it.id to it.name }, { vm.updateProductDraft(d.copy(brandId = it)) }) }
-            item { SelectionField("Categoria (facoltativa)", d.categoryId, vm.categories.map { it.id to it.name }, { vm.updateProductDraft(d.copy(categoryId = it)) }) }
-            item { SelectionField("Fornitore (facoltativo)", d.supplierId, vm.suppliers.map { it.id to it.name }, { vm.updateProductDraft(d.copy(supplierId = it)) }) }
+            item { SelectionField(stringResource(R.string.optional_brand), d.brandId, vm.brands.map { it.id to it.name }, { vm.updateProductDraft(d.copy(brandId = it)) }) }
+            item { SelectionField(stringResource(R.string.optional_category), d.categoryId, vm.categories.map { it.id to it.name }, { vm.updateProductDraft(d.copy(categoryId = it)) }) }
+            item { SelectionField(stringResource(R.string.optional_supplier), d.supplierId, vm.suppliers.map { it.id to it.name }, { vm.updateProductDraft(d.copy(supplierId = it)) }) }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(Modifier.weight(1f)) {
                         SelectionField(
-                            "Misura / peso",
+                            stringResource(R.string.measure_weight),
                             d.measureType.ifBlank { null },
-                            listOf("misura" to "Misura", "peso" to stringResource(R.string.weight)),
+                            listOf("misura" to stringResource(R.string.measure), "peso" to stringResource(R.string.weight)),
                             { value -> vm.updateProductDraft(d.copy(measureType = value.orEmpty())) }
                         )
                     }
@@ -1748,9 +1778,9 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                         d.measureValue,
                         { vm.updateProductDraft(d.copy(measureValue = it)) },
                         when (d.measureType) {
-                            "peso" -> "Peso"
-                            "misura" -> "Misura"
-                            else -> "Valore"
+                            "peso" -> stringResource(R.string.weight)
+                            "misura" -> stringResource(R.string.measure)
+                            else -> stringResource(R.string.value)
                         },
                         Modifier.weight(1f)
                     )
@@ -1770,14 +1800,14 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(d.inPromotion, { vm.updateProductDraft(d.copy(inPromotion = it)) })
                     Spacer(Modifier.width(10.dp))
-                    Text(if (d.inPromotion) "Articolo in promozione" else stringResource(R.string.no_promotion))
+                    Text(if (d.inPromotion) stringResource(R.string.product_in_promotion) else stringResource(R.string.no_promotion))
                 }
             }
             if (d.inPromotion) item {
                 NumberField(
                     d.promotionalPrice,
                     { vm.updateProductDraft(d.copy(promotionalPrice = it)) },
-                    "Prezzo promozionale €",
+                    stringResource(R.string.promo_price_euro),
                     Modifier.fillMaxWidth()
                 )
             }
@@ -1788,7 +1818,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                     Text("Margine ${money(preview.effectiveMarginEuro)} · ${"%.1f".format(Locale.ITALY, preview.effectiveMarginPercent)}%", fontWeight = FontWeight.Bold, color = if (preview.effectiveMarginEuro >= 0) Positive else Negative)
                 } }
             }
-            item { Row(verticalAlignment = Alignment.CenterVertically) { Switch(d.available, { vm.updateProductDraft(d.copy(available = it)) }); Spacer(Modifier.width(10.dp)); Text(if (d.available) "Disponibile" else stringResource(R.string.unavailable)) } }
+            item { Row(verticalAlignment = Alignment.CenterVertically) { Switch(d.available, { vm.updateProductDraft(d.copy(available = it)) }); Spacer(Modifier.width(10.dp)); Text(if (d.available) stringResource(R.string.available) else stringResource(R.string.unavailable)) } }
             item { AppTextField(d.productUrl, { vm.updateProductDraft(d.copy(productUrl = it)) }, stringResource(R.string.product_link), keyboardType = KeyboardType.Uri) }
             item { AppTextField(d.notes, { vm.updateProductDraft(d.copy(notes = it)) }, stringResource(R.string.notes), minLines = 3) }
             item { SectionTitle(stringResource(R.string.images)) }
@@ -1822,7 +1852,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                     enabled = !vm.saving,
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                     border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
-                ) { Text(if (vm.saving) "Salvataggio…" else stringResource(R.string.save_product)) }
+                ) { Text(if (vm.saving) stringResource(R.string.saving) else stringResource(R.string.save_product)) }
             }
             if (existing != null) item { OutlinedButton(onClick = { vm.requestDelete(DeleteTarget.ProductTarget(existing)) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.delete_product), color = Negative) } }
             item { Spacer(Modifier.height(24.dp)) }
@@ -2084,7 +2114,7 @@ private fun SelectionField(label: String, selected: String?, options: List<Pair<
             contentPadding = if (compact) PaddingValues(horizontal = 10.dp, vertical = 0.dp) else ButtonDefaults.ContentPadding
         ) {
             Text(
-                options.firstOrNull { it.first == selected }?.second ?: if (compact) label else "$label: nessuna",
+                options.firstOrNull { it.first == selected }?.second ?: if (compact) label else "$label: ${stringResource(R.string.none)}",
                 maxLines = 1,
                 fontSize = if (compact) 11.sp else 14.sp
             )
@@ -2092,7 +2122,7 @@ private fun SelectionField(label: String, selected: String?, options: List<Pair<
             Icon(Icons.Default.ArrowDropDown, null, Modifier.size(if (compact) 16.dp else 24.dp))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            DropdownMenuItem(text = { Text("Nessuna") }, onClick = { onSelect(null); open = false })
+            DropdownMenuItem(text = { Text(stringResource(R.string.none)) }, onClick = { onSelect(null); open = false })
             options.forEach { option -> DropdownMenuItem(text = { Text(option.second) }, onClick = { onSelect(option.first); open = false }) }
         }
     }
@@ -2134,7 +2164,11 @@ private fun LoadingScreen(label: String) = Box(Modifier.fillMaxSize(), contentAl
     Column(horizontalAlignment = Alignment.CenterHorizontally) { CircularProgressIndicator(); Spacer(Modifier.height(12.dp)); Text(label) }
 }
 
-private fun money(value: Double): String = NumberFormat.getCurrencyInstance(Locale.ITALY).format(value)
+private fun money(value: Double): String {
+    val format = NumberFormat.getCurrencyInstance(Locale.getDefault())
+    format.currency = java.util.Currency.getInstance("EUR")
+    return format.format(value)
+}
 
 private fun tabTitle(tab: MainTab): String = when (tab) {
     MainTab.HOME -> "Dashboard"
