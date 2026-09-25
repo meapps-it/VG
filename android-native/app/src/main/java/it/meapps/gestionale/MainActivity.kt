@@ -52,6 +52,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.DateFormat
 import java.time.LocalDate
@@ -626,16 +627,6 @@ private fun ProductsScreen(vm: AppViewModel) {
             }
         }
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            ArticleCounter("Totale", vm.products.size.toString(), Modifier.weight(1f))
-            ArticleCounter("Senza foto", vm.products.count { it.photos.isEmpty() }.toString(), Modifier.weight(1f))
-        }
-
-        Spacer(Modifier.height(4.dp))
-
         if (!vm.loading && vm.filteredProducts.isEmpty()) {
             EmptyState("Nessun articolo", "Crea il primo articolo oppure modifica i filtri.")
         } else if (vm.gridView) {
@@ -675,9 +666,13 @@ private fun ProductPhotoCarousel(
     vm: AppViewModel,
     modifier: Modifier = Modifier,
     aspectRatio: Float = 1.15f,
-    rounded: RoundedCornerShape = RoundedCornerShape(18.dp)
+    rounded: RoundedCornerShape = RoundedCornerShape(18.dp),
+    showThumbnails: Boolean = false
 ) {
     val photos = remember(product.photos) { product.photos.sortedBy { it.order } }
+    val state = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
     photos.forEach { photo ->
         LaunchedEffect(photo.path) { vm.ensureSignedUrl(photo.path) }
     }
@@ -700,76 +695,103 @@ private fun ProductPhotoCarousel(
         return
     }
 
-    val state = rememberLazyListState()
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxWidth()
-            .aspectRatio(aspectRatio)
-    ) {
-        val itemWidth = maxWidth
-        LazyRow(
-            state = state,
-            modifier = Modifier.fillMaxSize()
+    Column(modifier = modifier.fillMaxWidth()) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(aspectRatio)
         ) {
-            items(photos, key = { it.id }) { photo ->
+            val itemWidth = maxWidth
+            LazyRow(
+                state = state,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(photos, key = { it.id }) { photo ->
+                    Surface(
+                        modifier = Modifier
+                            .width(itemWidth)
+                            .fillMaxHeight(),
+                        shape = rounded,
+                        border = androidx.compose.foundation.BorderStroke(1.2.dp, LegacyBorder),
+                        color = Color(0xFFF1F5F9)
+                    ) {
+                        val url = vm.signedUrls[photo.path]
+                        if (url != null) {
+                            AsyncImage(
+                                model = url,
+                                contentDescription = product.name,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (photos.size > 1) {
                 Surface(
-                    modifier = Modifier
-                        .width(itemWidth)
-                        .fillMaxHeight(),
-                    shape = rounded,
-                    border = androidx.compose.foundation.BorderStroke(1.2.dp, LegacyBorder),
-                    color = Color(0xFFF1F5F9)
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(7.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xD90F172A)
                 ) {
-                    val url = vm.signedUrls[photo.path]
-                    if (url != null) {
-                        AsyncImage(
-                            model = url,
-                            contentDescription = product.name,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                    Text(
+                        "${(state.firstVisibleItemIndex + 1).coerceAtMost(photos.size)}/${photos.size}",
+                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            }
+        }
+
+        if (showThumbnails && photos.size > 1) {
+            Spacer(Modifier.height(5.dp))
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                contentPadding = PaddingValues(horizontal = 2.dp)
+            ) {
+                items(photos.size) { index ->
+                    val photo = photos[index]
+                    val selected = index == state.firstVisibleItemIndex
+                    Surface(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clickable {
+                                scope.launch { state.animateScrollToItem(index) }
+                            },
+                        shape = RoundedCornerShape(9.dp),
+                        border = androidx.compose.foundation.BorderStroke(
+                            if (selected) 2.dp else 1.dp,
+                            if (selected) AppNavy else LegacyBorder
+                        ),
+                        color = Color(0xFFF1F5F9)
+                    ) {
+                        val url = vm.signedUrls[photo.path]
+                        if (url != null) {
+                            AsyncImage(
+                                model = url,
+                                contentDescription = "Foto ${index + 1}",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 1.5.dp)
+                            }
                         }
                     }
                 }
             }
         }
-
-        if (photos.size > 1) {
-            Surface(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(7.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = Color(0xD90F172A)
-            ) {
-                Text(
-                    "${(state.firstVisibleItemIndex + 1).coerceAtMost(photos.size)}/${photos.size}",
-                    Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    color = Color.White,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Black
-                )
-            }
-
-            Row(
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 7.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                photos.indices.forEach { index ->
-                    Box(
-                        Modifier
-                            .size(if (index == state.firstVisibleItemIndex) 7.dp else 5.dp)
-                            .background(
-                                if (index == state.firstVisibleItemIndex) Color.White else Color.White.copy(alpha = .55f),
-                                RoundedCornerShape(50)
-                            )
-                    )
-                }
-            }
-        }
     }
 }
+
 
 @Composable
 private fun ProductGridCard(product: Product, vm: AppViewModel) {
@@ -787,7 +809,8 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                     product = product,
                     vm = vm,
                     aspectRatio = 1.08f,
-                    rounded = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                    rounded = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                    showThumbnails = true
                 )
                 Surface(
                     modifier = Modifier.align(Alignment.TopStart).padding(7.dp),
@@ -1375,7 +1398,8 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
                             product = product,
                             vm = vm,
                             aspectRatio = 1.22f,
-                            rounded = RoundedCornerShape(20.dp)
+                            rounded = RoundedCornerShape(20.dp),
+                            showThumbnails = true
                         )
                     }
                 }
