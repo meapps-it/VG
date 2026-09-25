@@ -205,17 +205,19 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
                     Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Gestionale", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black)
-                        Text(nowText, color = Color(0xFFD6D9E2), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Gestionale", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                        Text(nowText, color = Color(0xFFD6D9E2), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     }
                     Box {
                         FilledTonalIconButton(
                             onClick = { menuOpen = true },
-                            modifier = Modifier.border(1.5.dp, Color.White, RoundedCornerShape(50)),
+                            modifier = Modifier
+                                .size(46.dp)
+                                .border(1.5.dp, Color.White, RoundedCornerShape(50)),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(
                                 containerColor = Color(0xFF1E293B),
                                 contentColor = Color.White
@@ -531,33 +533,62 @@ private fun QuickArchive(label: String, count: Int, icon: androidx.compose.ui.gr
 
 @Composable
 private fun ProductsScreen(vm: AppViewModel) {
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        AppTextField(vm.query, { vm.query = it }, "Cerca nome, codice o SKU", leading = { Icon(Icons.Default.Search, null) })
-        Spacer(Modifier.height(8.dp))
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = 12.dp)
+    ) {
+        OutlinedTextField(
+            value = vm.query,
+            onValueChange = { vm.query = it },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            singleLine = true,
+            placeholder = { Text("Cerca nome, codice o SKU", fontSize = 13.sp) },
+            leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(20.dp)) },
+            shape = RoundedCornerShape(14.dp)
+        )
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.weight(1f)) {
-                SelectionField("Tutte le categorie", vm.categoryFilter, vm.categories.map { it.id to it.name }, { vm.categoryFilter = it })
-            }
-            Box(Modifier.weight(1f)) {
-                SelectionField("Tutte le marche", vm.brandFilter, vm.brands.map { it.id to it.name }, { vm.brandFilter = it })
-            }
+        Spacer(Modifier.height(5.dp))
+
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            SelectionField(
+                "Categorie",
+                vm.categoryFilter,
+                vm.categories.map { it.id to it.name },
+                { vm.categoryFilter = it },
+                compact = true
+            )
+            SelectionField(
+                "Marche",
+                vm.brandFilter,
+                vm.brands.map { it.id to it.name },
+                { vm.brandFilter = it },
+                compact = true
+            )
+            SelectionField(
+                "Fornitori",
+                vm.supplierFilter,
+                vm.suppliers.map { it.id to it.name },
+                { vm.supplierFilter = it },
+                compact = true
+            )
         }
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.weight(1f)) {
-                SelectionField("Tutti i fornitori", vm.supplierFilter, vm.suppliers.map { it.id to it.name }, { vm.supplierFilter = it })
-            }
-            Spacer(Modifier.weight(1f))
-        }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(5.dp))
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             FilterChip(
                 selected = !vm.promoOnly,
                 onClick = { vm.promoOnly = false },
-                label = { Text("Tutto") },
+                modifier = Modifier.height(34.dp),
+                label = { Text("Tutto", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true, selected = !vm.promoOnly,
                     borderColor = LegacyBorder, selectedBorderColor = LegacyBorder,
@@ -567,38 +598,42 @@ private fun ProductsScreen(vm: AppViewModel) {
             FilterChip(
                 selected = vm.promoOnly,
                 onClick = { vm.promoOnly = true },
-                label = { Text("Solo promo") },
+                modifier = Modifier.height(34.dp),
+                label = { Text("Solo promo", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true, selected = vm.promoOnly,
                     borderColor = LegacyBorder, selectedBorderColor = LegacyBorder,
                     borderWidth = 1.5.dp, selectedBorderWidth = 1.5.dp
                 )
             )
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            ArticleCounter("Totale articoli", vm.products.size.toString(), Modifier.weight(1f))
-            ArticleCounter("Senza foto", vm.products.count { it.photos.isEmpty() }.toString(), Modifier.weight(1f))
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Spacer(Modifier.weight(1f))
             Text(
-                "${vm.filteredProducts.size} visualizzati",
+                "${vm.filteredProducts.size} articoli",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 13.sp,
-                modifier = Modifier.weight(1f)
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
             )
-            IconButton(onClick = { vm.updateGridView(!vm.gridView) }) {
+            IconButton(
+                onClick = { vm.updateGridView(!vm.gridView) },
+                modifier = Modifier.size(34.dp)
+            ) {
                 Icon(
                     if (vm.gridView) Icons.Default.ViewList else Icons.Default.GridView,
-                    if (vm.gridView) "Vista elenco" else "Vista griglia"
+                    if (vm.gridView) "Vista elenco" else "Vista griglia",
+                    Modifier.size(20.dp)
                 )
             }
         }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            ArticleCounter("Totale", vm.products.size.toString(), Modifier.weight(1f))
+            ArticleCounter("Senza foto", vm.products.count { it.photos.isEmpty() }.toString(), Modifier.weight(1f))
+        }
+
+        Spacer(Modifier.height(4.dp))
 
         if (!vm.loading && vm.filteredProducts.isEmpty()) {
             EmptyState("Nessun articolo", "Crea il primo articolo oppure modifica i filtri.")
@@ -606,21 +641,19 @@ private fun ProductsScreen(vm: AppViewModel) {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(if (vm.compactMode) 150.dp else 174.dp),
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(vertical = 8.dp, horizontal = 0.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                contentPadding = PaddingValues(top = 4.dp, bottom = 88.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 gridItems(vm.filteredProducts, key = { it.id }) { product -> ProductGridCard(product, vm) }
-                item { Spacer(Modifier.height(88.dp)) }
             }
         } else {
             LazyColumn(
                 Modifier.weight(1f),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                contentPadding = PaddingValues(top = 4.dp, bottom = 88.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(vm.filteredProducts, key = { it.id }) { product -> ProductCard(product, vm) }
-                item { Spacer(Modifier.height(88.dp)) }
             }
         }
     }
@@ -1892,11 +1925,17 @@ private fun SelectionField(label: String, selected: String?, options: List<Pair<
     Box {
         OutlinedButton(
             onClick = { open = true },
-            modifier = if (compact) Modifier.widthIn(min = 150.dp) else Modifier.fillMaxWidth(),
-            border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+            modifier = if (compact) Modifier.height(38.dp).widthIn(min = 112.dp) else Modifier.fillMaxWidth(),
+            border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
+            contentPadding = if (compact) PaddingValues(horizontal = 10.dp, vertical = 0.dp) else ButtonDefaults.ContentPadding
         ) {
-            Text(options.firstOrNull { it.first == selected }?.second ?: if (compact) label else "$label: nessuna", maxLines = 1)
-            Spacer(Modifier.width(6.dp)); Icon(Icons.Default.ArrowDropDown, null)
+            Text(
+                options.firstOrNull { it.first == selected }?.second ?: if (compact) label else "$label: nessuna",
+                maxLines = 1,
+                fontSize = if (compact) 11.sp else 14.sp
+            )
+            Spacer(Modifier.width(if (compact) 3.dp else 6.dp))
+            Icon(Icons.Default.ArrowDropDown, null, Modifier.size(if (compact) 16.dp else 24.dp))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(text = { Text("Nessuna") }, onClick = { onSelect(null); open = false })
