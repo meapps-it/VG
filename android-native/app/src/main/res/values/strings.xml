@@ -178,4 +178,17 @@
     <string name="create_order">Crea ordine</string>
     <string name="save_changes">Salva modifiche</string>
     <string name="none">Nessuna</string>
+
+    <string name="demo_data">Dati di esempio</string>
+    <string name="demo_data_sub">Prova l’app con articoli, clienti e ordini già compilati.</string>
+    <string name="load_demo">Carica dati di esempio</string>
+    <string name="replace_demo">Sostituisci con dati di esempio</string>
+    <string name="delete_demo">Cancella dati di esempio</string>
+    <string name="delete_all_data">Cancella tutti i dati</string>
+    <string name="replace_demo_confirm">Verranno eliminati articoli, clienti e ordini attuali e sostituiti con dati dimostrativi.</string>
+    <string name="delete_demo_confirm">Verranno eliminati soltanto i dati di esempio.</string>
+    <string name="delete_all_confirm">Verranno eliminati tutti gli articoli, clienti e ordini del tuo account.</string>
+    <string name="data_management">Gestione dati</string>
+    <string name="demo_notice">I dati di esempio sono riconoscibili dai codici DEMO e possono essere rimossi in qualsiasi momento.</string>
+
 </resources>
