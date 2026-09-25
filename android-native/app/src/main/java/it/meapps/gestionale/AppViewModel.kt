@@ -40,6 +40,10 @@ sealed interface DeleteTarget {
 }
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
+    companion object {
+        const val FREE_PRODUCT_LIMIT = 10
+    }
+
     private val api = SupabaseApi(application)
     private val prefs = application.getSharedPreferences("preferences", Application.MODE_PRIVATE)
     private val tabHistory = ArrayDeque<MainTab>()
@@ -55,6 +59,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var errorMessage by mutableStateOf<String?>(null)
         private set
     var noticeMessage by mutableStateOf<String?>(null)
+        private set
+    var premiumRequired by mutableStateOf(false)
+        private set
+    var isPremium by mutableStateOf(false)
         private set
 
     var products by mutableStateOf<List<Product>>(emptyList())
@@ -113,6 +121,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     val pendingPhotos = mutableStateListOf<Uri>()
     val signedUrls = mutableStateMapOf<String, String>()
+
+    val freeProductCount: Int
+        get() = products.count { !it.isDemo }
+
+    val canAddProduct: Boolean
+        get() = isPremium || freeProductCount < FREE_PRODUCT_LIMIT
 
     val filteredProducts: List<Product>
         get() {
@@ -292,10 +306,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun openProduct(product: Product? = null) {
+        if (product == null && !canAddProduct) {
+            premiumRequired = true
+            return
+        }
         productDraft = ProductDraft.from(product)
         pendingPhotos.clear()
         editor = Editor.ProductEditor(product?.id)
     }
+
+    fun dismissPremiumPrompt() { premiumRequired = false }
+
+    fun showPremiumPrompt() { premiumRequired = true }
 
     fun updateProductDraft(value: ProductDraft) { productDraft = value }
     fun addPendingPhoto(uri: Uri) { if (!pendingPhotos.contains(uri)) pendingPhotos.add(uri) }
@@ -303,6 +325,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveProduct() {
         productDraft.validate()?.let { return showError(it) }
+        if (productDraft.id.isBlank() && !canAddProduct) {
+            premiumRequired = true
+            return
+        }
         val existing = products.firstOrNull { it.id == productDraft.id }
         runSaving {
             val saved = api.saveProduct(productDraft.toProduct(existing))
