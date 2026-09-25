@@ -92,7 +92,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var brandFilter by mutableStateOf<String?>(null)
     var supplierFilter by mutableStateOf<String?>(null)
     var categoryFilter by mutableStateOf<String?>(null)
-    var qualityFilter by mutableStateOf<String?>(null)
     var promoOnly by mutableStateOf(false)
     var orderMonthFilter by mutableStateOf<String?>(null)
         private set
@@ -123,7 +122,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     (brandFilter == null || p.brandId == brandFilter) &&
                     (supplierFilter == null || p.supplierId == supplierFilter) &&
                     (categoryFilter == null || p.categoryId == categoryFilter) &&
-                    (qualityFilter == null || p.quality == qualityFilter) &&
                     (!promoOnly || p.inPromotion)
             }
         }

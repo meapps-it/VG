@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
+import kotlinx.coroutines.delay
 import java.io.File
 import java.text.DateFormat
 import java.time.LocalDate
@@ -65,6 +66,7 @@ private val AppBackground = Color(0xFFF8FAFC)
 private val WarmSurface = Color(0xFFFFFBEB)
 private val Positive = Color(0xFF087443)
 private val Negative = Color(0xFFB42318)
+private val LegacyBorder = Color(0xFFC9D0D9)
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -186,7 +188,14 @@ private fun AuthenticatedApp(vm: AppViewModel) {
 @Composable
 private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
     var menuOpen by remember { mutableStateOf(false) }
-    val nowText = remember { DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.SHORT, Locale.ITALIAN).format(Date()) }
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = System.currentTimeMillis()
+            delay(1_000)
+        }
+    }
+    val nowText = remember(now) { DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.MEDIUM, Locale.ITALIAN).format(Date(now)) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
@@ -258,7 +267,7 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
         floatingActionButton = {
             if (vm.selectedTab == MainTab.ARTICLES || vm.selectedTab == MainTab.ARCHIVES) {
                 FloatingActionButton(
-                    modifier = Modifier.border(1.5.dp, Color.Black, RoundedCornerShape(50)),
+                    modifier = Modifier.border(1.5.dp, LegacyBorder, RoundedCornerShape(50)),
                     onClick = {
                         if (vm.selectedTab == MainTab.ARTICLES) vm.openProduct()
                         else vm.openEntity(vm.archiveKind)
@@ -291,7 +300,7 @@ private fun BottomPill(label: String, selected: Boolean, modifier: Modifier = Mo
         color = if (selected) Color(0xFFFFF3CF) else Color.White,
         border = androidx.compose.foundation.BorderStroke(
             1.5.dp,
-            Color.Black
+            LegacyBorder
         )
     ) {
         Box(contentAlignment = Alignment.Center) {
@@ -328,7 +337,7 @@ private fun HomeScreen(vm: AppViewModel) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF8)),
                 shape = RoundedCornerShape(28.dp),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -378,7 +387,7 @@ private fun HomeScreen(vm: AppViewModel) {
                                             )
                                             .border(
                                                 1.5.dp,
-                                                Color.Black,
+                                                LegacyBorder,
                                                 RoundedCornerShape(14.dp)
                                             )
                                     )
@@ -444,19 +453,19 @@ private fun HomeScreen(vm: AppViewModel) {
                         modifier = Modifier.fillMaxWidth().height(54.dp),
                         shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AppBlue),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                     ) { Text("Nuovo articolo", fontWeight = FontWeight.Black) }
                     OutlinedButton(
                         onClick = { vm.openOrder() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(18.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                     ) { Text("Nuovo ordine", fontWeight = FontWeight.Black, color = AppNavy) }
                     OutlinedButton(
                         onClick = { vm.openCustomer() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(18.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                     ) { Text("Nuovo cliente", fontWeight = FontWeight.Black, color = AppNavy) }
                 }
             }
@@ -478,7 +487,7 @@ private fun LegacyStatCard(
     Card(
         cardModifier,
         shape = RoundedCornerShape(22.dp),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFF475569))
@@ -492,7 +501,7 @@ private fun DashboardStat(label: String, value: String, accent: Color, modifier:
     Card(
         modifier,
         shape = RoundedCornerShape(18.dp),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
     ) {
         Column(Modifier.padding(16.dp)) {
             Box(Modifier.width(34.dp).height(5.dp).background(accent, RoundedCornerShape(50)))
@@ -526,20 +535,20 @@ private fun ProductsScreen(vm: AppViewModel) {
         AppTextField(vm.query, { vm.query = it }, "Cerca nome, codice o SKU", leading = { Icon(Icons.Default.Search, null) })
         Spacer(Modifier.height(8.dp))
 
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SelectionField("Categoria", vm.categoryFilter, vm.categories.map { it.id to it.name }, { vm.categoryFilter = it }, compact = true)
-            SelectionField("Marca", vm.brandFilter, vm.brands.map { it.id to it.name }, { vm.brandFilter = it }, compact = true)
-            SelectionField("Fornitore", vm.supplierFilter, vm.suppliers.map { it.id to it.name }, { vm.supplierFilter = it }, compact = true)
-            SelectionField(
-                "Qualità",
-                vm.qualityFilter,
-                vm.products.map { it.quality.trim() }.filter { it.isNotBlank() }.distinct().sorted().map { it to it },
-                { vm.qualityFilter = it },
-                compact = true
-            )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(Modifier.weight(1f)) {
+                SelectionField("Tutte le categorie", vm.categoryFilter, vm.categories.map { it.id to it.name }, { vm.categoryFilter = it })
+            }
+            Box(Modifier.weight(1f)) {
+                SelectionField("Tutte le marche", vm.brandFilter, vm.brands.map { it.id to it.name }, { vm.brandFilter = it })
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(Modifier.weight(1f)) {
+                SelectionField("Tutti i fornitori", vm.supplierFilter, vm.suppliers.map { it.id to it.name }, { vm.supplierFilter = it })
+            }
+            Spacer(Modifier.weight(1f))
         }
 
         Spacer(Modifier.height(8.dp))
@@ -551,7 +560,7 @@ private fun ProductsScreen(vm: AppViewModel) {
                 label = { Text("Tutto") },
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true, selected = !vm.promoOnly,
-                    borderColor = Color.Black, selectedBorderColor = Color.Black,
+                    borderColor = LegacyBorder, selectedBorderColor = LegacyBorder,
                     borderWidth = 1.5.dp, selectedBorderWidth = 1.5.dp
                 )
             )
@@ -561,7 +570,7 @@ private fun ProductsScreen(vm: AppViewModel) {
                 label = { Text("Solo promo") },
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true, selected = vm.promoOnly,
-                    borderColor = Color.Black, selectedBorderColor = Color.Black,
+                    borderColor = LegacyBorder, selectedBorderColor = LegacyBorder,
                     borderWidth = 1.5.dp, selectedBorderWidth = 1.5.dp
                 )
             )
@@ -637,7 +646,7 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
     Card(
         Modifier.fillMaxWidth().clickable { vm.openProductDetail(product) },
         shape = RoundedCornerShape(20.dp),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
     ) {
         Column {
             Box {
@@ -682,9 +691,6 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                 }
                 Text(product.name, fontWeight = FontWeight.Black, maxLines = 2, minLines = if (vm.compactMode) 1 else 2, color = AppNavy)
                 Text(code, color = Color(0xFF64748B), fontSize = 11.sp, maxLines = 1)
-                if (product.quality.isNotBlank()) {
-                    Text(product.quality, color = Color(0xFF475569), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                }
                 Spacer(Modifier.height(2.dp))
                 if (product.inPromotion && product.promotionalPrice > 0) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -720,7 +726,7 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                 OutlinedButton(
                     onClick = { vm.openOrder(product) },
                     modifier = Modifier.fillMaxWidth(),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
                     colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFFFF3CF)),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                 ) {
@@ -764,7 +770,7 @@ private fun ProductCard(product: Product, vm: AppViewModel) {
     Card(
         Modifier.fillMaxWidth().clickable { vm.openProductDetail(product) },
         shape = RoundedCornerShape(18.dp),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(Modifier.size(72.dp), color = Color(0xFFEFF4FF), shape = RoundedCornerShape(14.dp)) {
@@ -809,7 +815,7 @@ private fun CustomersScreen(vm: AppViewModel) {
                 }
                 OutlinedButton(
                     onClick = { vm.openCustomer() },
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
             }
         }
@@ -821,7 +827,7 @@ private fun CustomersScreen(vm: AppViewModel) {
                 Card(
                     Modifier.fillMaxWidth().clickable { vm.openCustomerDetail(customer) },
                     shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -831,7 +837,7 @@ private fun CustomersScreen(vm: AppViewModel) {
                             if (place.isNotBlank()) Text(place, color = Color(0xFF64748B))
                         }
                         if (customer.country.isNotBlank()) {
-                            Surface(shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black), color = Color.White) {
+                            Surface(shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder), color = Color.White) {
                                 Text(customer.country, Modifier.padding(horizontal = 13.dp, vertical = 8.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
@@ -879,7 +885,7 @@ private fun OrdersScreen(vm: AppViewModel) {
                 }
                 OutlinedButton(
                     onClick = { vm.openOrder() },
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
             }
         }
@@ -890,7 +896,7 @@ private fun OrdersScreen(vm: AppViewModel) {
                     onClick = { vm.clearOrderDrillDown() },
                     border = AssistChipDefaults.assistChipBorder(
                         enabled = true,
-                        borderColor = Color.Black,
+                        borderColor = LegacyBorder,
                         borderWidth = 1.5.dp
                     ),
                     label = {
@@ -913,7 +919,7 @@ private fun OrdersScreen(vm: AppViewModel) {
                 Card(
                     Modifier.fillMaxWidth().clickable { vm.openOrderDetail(order) },
                     shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1083,7 +1089,7 @@ private fun SettingsScreen(vm: AppViewModel) {
         item {
             SettingsHeader("Informazioni", "Versione tecnica e protezione dei dati.")
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("Gestionale Android 0.2.0", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                Text("Gestionale Android 0.3.0", fontWeight = FontWeight.Black, fontSize = 18.sp)
                 Text("Applicazione Android nativa · base Free + Premium", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 Text("Fotocamera facoltativa · archivio immagini privato · isolamento dati tramite Supabase RLS.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             } }
@@ -1216,7 +1222,7 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
             item {
                 Card(
                     shape = RoundedCornerShape(24.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF8))
                 ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1228,7 +1234,7 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
                             Surface(
                                 shape = RoundedCornerShape(18.dp),
                                 color = if (product.available && product.quantity > 0) Color(0xFFE9FFF3) else Color(0xFFFFE7E5),
-                                border = androidx.compose.foundation.BorderStroke(1.2.dp, Color.Black)
+                                border = androidx.compose.foundation.BorderStroke(1.2.dp, LegacyBorder)
                             ) {
                                 Text(
                                     if (product.available && product.quantity > 0) "Disponibile" else "Non disponibile",
@@ -1242,7 +1248,7 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
                         Surface(
                             Modifier.fillMaxWidth().aspectRatio(1.4f),
                             shape = RoundedCornerShape(20.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
                             color = Color(0xFFF1F5F9)
                         ) {
                             if (imagePath != null && vm.signedUrls[imagePath] != null) {
@@ -1264,13 +1270,12 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
             item {
                 Card(
                     shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) {
                     Column(Modifier.padding(horizontal = 16.dp)) {
                         DetailInfoRow("Marca", brand)
                         DetailInfoRow("Categoria", category)
                         DetailInfoRow("Fornitore", supplier)
-                        if (product.quality.isNotBlank()) DetailInfoRow("Qualità", product.quality)
                         DetailInfoRow("Descrizione", product.description)
                     }
                 }
@@ -1278,7 +1283,7 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
             item {
                 Card(
                     shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8DF))
                 ) {
                     Row(Modifier.fillMaxWidth().padding(16.dp)) {
@@ -1305,7 +1310,7 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
                     OutlinedButton(
                         onClick = { vm.openProduct(product) },
                         modifier = Modifier.weight(1f).height(54.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                     ) {
                         Icon(Icons.Default.Edit, null)
                         Spacer(Modifier.width(6.dp))
@@ -1349,7 +1354,7 @@ private fun CustomerDetailScreen(vm: AppViewModel, customerId: String) {
             item {
                 Card(
                     shape = RoundedCornerShape(24.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF8))
                 ) {
                     Column(Modifier.padding(18.dp)) {
@@ -1358,7 +1363,7 @@ private fun CustomerDetailScreen(vm: AppViewModel, customerId: String) {
                             if (customer.country.isNotBlank()) {
                                 Surface(
                                     shape = RoundedCornerShape(18.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.2.dp, Color.Black),
+                                    border = androidx.compose.foundation.BorderStroke(1.2.dp, LegacyBorder),
                                     color = Color.White
                                 ) {
                                     Text(customer.country, Modifier.padding(horizontal = 12.dp, vertical = 7.dp), fontWeight = FontWeight.Bold)
@@ -1382,7 +1387,7 @@ private fun CustomerDetailScreen(vm: AppViewModel, customerId: String) {
                         vm.selectTab(MainTab.ORDERS)
                     },
                     shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) {
                     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -1402,7 +1407,7 @@ private fun CustomerDetailScreen(vm: AppViewModel, customerId: String) {
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { vm.openOrderDetail(lastOrder) },
                     shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) {
                     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -1419,7 +1424,7 @@ private fun CustomerDetailScreen(vm: AppViewModel, customerId: String) {
                     OutlinedButton(
                         onClick = { vm.openCustomer(customer) },
                         modifier = Modifier.weight(1f).height(54.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                     ) {
                         Icon(Icons.Default.Edit, null); Spacer(Modifier.width(6.dp)); Text("Modifica", fontWeight = FontWeight.Black)
                     }
@@ -1454,7 +1459,7 @@ private fun OrderDetailScreen(vm: AppViewModel, orderId: String) {
             item {
                 Card(
                     shape = RoundedCornerShape(24.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF8))
                 ) {
                     Column(Modifier.padding(18.dp)) {
@@ -1467,7 +1472,7 @@ private fun OrderDetailScreen(vm: AppViewModel, orderId: String) {
                             Surface(
                                 shape = RoundedCornerShape(18.dp),
                                 color = if (delivered) Color(0xFFE9FFF3) else Color(0xFFFFF7E5),
-                                border = androidx.compose.foundation.BorderStroke(1.2.dp, Color.Black)
+                                border = androidx.compose.foundation.BorderStroke(1.2.dp, LegacyBorder)
                             ) {
                                 Text(
                                     orderStatusLabel(order.status),
@@ -1499,7 +1504,7 @@ private fun OrderDetailScreen(vm: AppViewModel, orderId: String) {
                     OutlinedButton(
                         onClick = { vm.editOrder(order) },
                         modifier = Modifier.weight(1f).height(54.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                     ) {
                         Icon(Icons.Default.Edit, null); Spacer(Modifier.width(6.dp)); Text("Modifica", fontWeight = FontWeight.Black)
                     }
@@ -1564,7 +1569,6 @@ private fun ProductEditorScreen(vm: AppViewModel) {
             item { SelectionField("Marca (facoltativa)", d.brandId, vm.brands.map { it.id to it.name }, { vm.updateProductDraft(d.copy(brandId = it)) }) }
             item { SelectionField("Categoria (facoltativa)", d.categoryId, vm.categories.map { it.id to it.name }, { vm.updateProductDraft(d.copy(categoryId = it)) }) }
             item { SelectionField("Fornitore (facoltativo)", d.supplierId, vm.suppliers.map { it.id to it.name }, { vm.updateProductDraft(d.copy(supplierId = it)) }) }
-            item { AppTextField(d.quality, { vm.updateProductDraft(d.copy(quality = it)) }, "Qualità (facoltativa)") }
             item { AppTextField(d.description, { vm.updateProductDraft(d.copy(description = it)) }, "Descrizione", minLines = 3) }
             item { SectionTitle("Prezzi e disponibilità") }
             item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1604,11 +1608,11 @@ private fun ProductEditorScreen(vm: AppViewModel) {
             item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = { gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) { Icon(Icons.Default.PhotoLibrary, null); Spacer(Modifier.width(6.dp)); Text("Galleria") }
                 OutlinedButton(
                     onClick = ::launchCamera,
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) { Icon(Icons.Default.CameraAlt, null); Spacer(Modifier.width(6.dp)); Text("Fotocamera") }
             } }
             if (existing != null && existing.photos.isNotEmpty()) item {
@@ -1630,7 +1634,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                     onClick = vm::saveProduct,
                     enabled = !vm.saving,
                     modifier = Modifier.fillMaxWidth().height(50.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) { Text(if (vm.saving) "Salvataggio…" else "Salva articolo") }
             }
             if (existing != null) item { OutlinedButton(onClick = { vm.requestDelete(DeleteTarget.ProductTarget(existing)) }, modifier = Modifier.fillMaxWidth()) { Text("Elimina articolo", color = Negative) } }
@@ -1699,7 +1703,7 @@ private fun CustomerEditorScreen(vm: AppViewModel) {
                     enabled = !vm.saving,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(18.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) { Text(if (vm.saving) "Salvataggio…" else "Salva cliente", fontWeight = FontWeight.Black) }
             }
             if (d.id.isNotBlank()) item {
@@ -1761,7 +1765,7 @@ private fun OrderEditorScreen(vm: AppViewModel) {
             }
             if (d.id.isNotBlank() && existingOrder != null) item {
                 Card(
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
                     shape = RoundedCornerShape(18.dp)
                 ) {
                     Column(Modifier.padding(14.dp)) {
@@ -1818,7 +1822,7 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF4FF)),
                     shape = RoundedCornerShape(18.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Riepilogo", fontWeight = FontWeight.Black)
@@ -1837,7 +1841,7 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                     enabled = !vm.saving,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(18.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
                 ) { Text(if (vm.saving) "Salvataggio…" else if (d.id.isBlank()) "Crea ordine" else "Salva modifiche", fontWeight = FontWeight.Black) }
             }
         }
@@ -1889,7 +1893,7 @@ private fun SelectionField(label: String, selected: String?, options: List<Pair<
         OutlinedButton(
             onClick = { open = true },
             modifier = if (compact) Modifier.widthIn(min = 150.dp) else Modifier.fillMaxWidth(),
-            border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.Black)
+            border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
         ) {
             Text(options.firstOrNull { it.first == selected }?.second ?: if (compact) label else "$label: nessuna", maxLines = 1)
             Spacer(Modifier.width(6.dp)); Icon(Icons.Default.ArrowDropDown, null)
