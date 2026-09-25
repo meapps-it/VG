@@ -191,4 +191,15 @@
     <string name="data_management">Gestione dati</string>
     <string name="demo_notice">I dati di esempio sono riconoscibili dai codici DEMO e possono essere rimossi in qualsiasi momento.</string>
 
+
+    <string name="free_plan">Piano Free</string>
+    <string name="premium_plan">Versione Pro</string>
+    <string name="free_limit_status">%1$d di %2$d articoli usati</string>
+    <string name="premium_unlimited">Articoli illimitati e funzioni premium</string>
+    <string name="upgrade_pro">Passa a Pro</string>
+    <string name="premium_limit_title">Limite versione gratuita raggiunto</string>
+    <string name="premium_limit_text">Hai raggiunto il limite di 10 articoli personali. Gli articoli di esempio non vengono conteggiati. Con la versione Pro il limite viene rimosso.</string>
+    <string name="premium_play_pending">Il pagamento sarà attivato tramite Google Play appena completiamo la configurazione del prodotto.</string>
+    <string name="later">Più tardi</string>
+
 </resources>
