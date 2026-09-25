@@ -2,9 +2,12 @@ package it.meapps.gestionale
 
 import android.Manifest
 import android.content.Intent
+import android.content.Context
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -12,9 +15,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -74,18 +74,27 @@ private val Negative = Color(0xFFB42318)
 private val LegacyBorder = Color(0xFFC9D0D9)
 
 @OptIn(ExperimentalMaterial3Api::class)
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
     private val viewModel by viewModels<AppViewModel>()
+
+    override fun attachBaseContext(newBase: Context) {
+        val prefs = newBase.getSharedPreferences("preferences", Context.MODE_PRIVATE)
+        val tag = prefs.getString("app_language", "system").orEmpty()
+        if (tag.isBlank() || tag == "system") {
+            super.attachBaseContext(newBase)
+        } else {
+            val locale = Locale.forLanguageTag(tag)
+            Locale.setDefault(locale)
+            val config = Configuration(newBase.resources.configuration).apply {
+                setLocale(locale)
+                setLayoutDirection(locale)
+            }
+            super.attachBaseContext(newBase.createConfigurationContext(config))
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val languageTag = getSharedPreferences("preferences", MODE_PRIVATE)
-            .getString("app_language", "system")
-            .orEmpty()
-        AppCompatDelegate.setApplicationLocales(
-            if (languageTag.isBlank() || languageTag == "system") LocaleListCompat.getEmptyLocaleList()
-            else LocaleListCompat.forLanguageTags(languageTag)
-        )
         setContent { GestionaleRoot(viewModel) }
     }
 }
@@ -1235,10 +1244,10 @@ private fun SettingsScreen(vm: AppViewModel) {
                         val tag = selected ?: "system"
                         appLanguage = tag
                         languagePrefs.edit().putString("app_language", tag).apply()
-                        AppCompatDelegate.setApplicationLocales(
-                            if (tag == "system") LocaleListCompat.getEmptyLocaleList()
-                            else LocaleListCompat.forLanguageTags(tag)
-                        )
+                        if (tag == "system") {
+                            Locale.setDefault(Locale.getDefault())
+                        }
+                        (context as? android.app.Activity)?.recreate()
                     }
                 )
                 HorizontalDivider()
