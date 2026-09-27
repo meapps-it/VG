@@ -254,7 +254,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun openCustomer(customer: Customer? = null) {
-        customerDraft = CustomerDraft.from(customer)
+        customerDraft = CustomerDraft.from(customer).copy(country = "Italia")
         editor = Editor.CustomerEditor(customer?.id)
     }
 
@@ -275,7 +275,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun saveCustomer() {
         customerDraft.validate()?.let { return showError(it) }
         runSaving {
-            api.saveCustomer(customerDraft.toCustomer())
+            api.saveCustomer(customerDraft.copy(country = "Italia").toCustomer())
             loadAllInternal()
             closeEditor()
             noticeMessage = "Cliente salvato"
