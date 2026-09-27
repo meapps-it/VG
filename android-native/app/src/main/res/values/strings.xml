@@ -141,8 +141,8 @@
     <string name="delete_product">Elimina articolo</string>
     <string name="customer_detail">Dettaglio cliente</string>
     <string name="phone">Telefono</string>
-    <string name="country">Paese</string>
-    <string name="city">Città</string>
+    <string name="country">Nazione</string>
+    <string name="city">Comune</string>
     <string name="address">Indirizzo</string>
     <string name="notes">Note</string>
     <string name="order_detail">Dettaglio ordine</string>
@@ -160,7 +160,7 @@
     <string name="customer_and_product">Cliente e articolo</string>
     <string name="product">Articolo</string>
     <string name="order_products">Articoli dell’ordine</string>
-    <string name="order_date">Data ordine (AAAA-MM-GG)</string>
+    <string name="order_date">Data ordine</string>
     <string name="payment">Pagamento</string>
     <string name="order_paid">Ordine pagato</string>
     <string name="to_pay">Da pagare</string>
