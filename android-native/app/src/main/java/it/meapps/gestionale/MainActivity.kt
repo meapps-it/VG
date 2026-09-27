@@ -1,6 +1,7 @@
 package it.meapps.gestionale
 
 import android.Manifest
+import android.app.DatePickerDialog
 import android.content.Intent
 import android.content.Context
 import android.content.pm.PackageManager
@@ -55,15 +56,112 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.DateFormat
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONArray
 import java.time.LocalDate
 import java.time.YearMonth
 import java.text.NumberFormat
 import java.util.Date
 import java.util.Locale
+
+
+private data class ItalianMunicipality(
+    val name: String,
+    val province: String,
+    val provinceCode: String,
+    val caps: List<String>
+)
+
+private object ItalianMunicipalityDirectory {
+    private const val DATA_URL = "https://cdn.jsdelivr.net/gh/RP92/comuni-italiani@main/data/comuni.json"
+    private val client = OkHttpClient()
+    @Volatile private var cache: List<ItalianMunicipality>? = null
+
+    suspend fun search(query: String): List<ItalianMunicipality> = withContext(Dispatchers.IO) {
+        val clean = query.trim()
+        if (clean.length < 2) return@withContext emptyList()
+        val rows = load()
+        val needle = clean.lowercase(Locale.ITALIAN)
+        rows.asSequence()
+            .filter { it.name.lowercase(Locale.ITALIAN).contains(needle) }
+            .sortedWith(compareBy<ItalianMunicipality> {
+                if (it.name.lowercase(Locale.ITALIAN).startsWith(needle)) 0 else 1
+            }.thenBy { it.name })
+            .take(8)
+            .toList()
+    }
+
+    private fun load(): List<ItalianMunicipality> {
+        cache?.let { return it }
+        val request = Request.Builder().url(DATA_URL).get().build()
+        val body = client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Archivio comuni non disponibile")
+            response.body?.string().orEmpty()
+        }
+        val json = JSONArray(body)
+        val rows = ArrayList<ItalianMunicipality>(json.length())
+        for (i in 0 until json.length()) {
+            val item = json.getJSONObject(i)
+            val provinceObj = item.optJSONObject("provincia")
+            val capArray = item.optJSONArray("cap")
+            val caps = buildList {
+                if (capArray != null) for (j in 0 until capArray.length()) {
+                    capArray.optString(j).takeIf { it.isNotBlank() }?.let(::add)
+                }
+            }
+            rows += ItalianMunicipality(
+                name = item.optString("nome"),
+                province = provinceObj?.optString("nome").orEmpty(),
+                provinceCode = provinceObj?.optString("sigla").orEmpty(),
+                caps = caps
+            )
+        }
+        return rows.filter { it.name.isNotBlank() }.also { cache = it }
+    }
+}
+
+@Composable
+private fun OrderDatePickerField(
+    isoDate: String,
+    onDateSelected: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val parsed = remember(isoDate) { runCatching { LocalDate.parse(isoDate) }.getOrDefault(LocalDate.now()) }
+    val display = remember(parsed) { "%02d/%02d/%04d".format(parsed.dayOfMonth, parsed.monthValue, parsed.year) }
+    Box(Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = display,
+            onValueChange = {},
+            readOnly = true,
+            enabled = true,
+            label = { Text("Data ordine") },
+            trailingIcon = { Icon(Icons.Default.CalendarMonth, null) },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Box(
+            Modifier
+                .matchParentSize()
+                .clickable {
+                    DatePickerDialog(
+                        context,
+                        { _, year, month, day ->
+                            onDateSelected(LocalDate.of(year, month + 1, day).toString())
+                        },
+                        parsed.year,
+                        parsed.monthValue - 1,
+                        parsed.dayOfMonth
+                    ).show()
+                }
+        )
+    }
+}
 
 private val AppNavy = Color(0xFF0B2B52)
 private val AppBlue = Color(0xFF1677FF)
@@ -1713,6 +1811,19 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
                 }
             }
             item {
+                Button(
+                    onClick = { vm.openOrder(product) },
+                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppBlue),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                ) {
+                    Icon(Icons.Default.ShoppingCart, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Crea un ordine", fontWeight = FontWeight.Black)
+                }
+            }
+            item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(
                         onClick = { vm.openProduct(product) },
@@ -1780,8 +1891,8 @@ private fun CustomerDetailScreen(vm: AppViewModel, customerId: String) {
                         Spacer(Modifier.height(8.dp))
                         DetailInfoRow("Telefono", customer.phone)
                         DetailInfoRow("Email", customer.email)
-                        DetailInfoRow("Paese", customer.country)
-                        DetailInfoRow("Città", listOf(customer.city, customer.province).filter { it.isNotBlank() }.joinToString(" • "))
+                        DetailInfoRow("Nazione", customer.country)
+                        DetailInfoRow("Comune", listOf(customer.city, customer.province).filter { it.isNotBlank() }.joinToString(" • "))
                         DetailInfoRow("Indirizzo", customer.address)
                         DetailInfoRow("Note", customer.notes)
                     }
@@ -2114,15 +2225,104 @@ private fun CustomerEditorScreen(vm: AppViewModel) {
             item { AppTextField(d.email, { vm.updateCustomerDraft(d.copy(email = it)) }, stringResource(R.string.email), keyboardType = KeyboardType.Email) }
             item { AppTextField(d.address, { vm.updateCustomerDraft(d.copy(address = it)) }, stringResource(R.string.address)) }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    AppTextField(d.city, { vm.updateCustomerDraft(d.copy(city = it)) }, stringResource(R.string.city), Modifier.weight(1.3f))
-                    AppTextField(d.province, { vm.updateCustomerDraft(d.copy(province = it)) }, stringResource(R.string.province), Modifier.weight(.7f))
+                var municipalitySuggestions by remember(d.id) { mutableStateOf<List<ItalianMunicipality>>(emptyList()) }
+                var lookupFailed by remember(d.id) { mutableStateOf(false) }
+                var suppressSuggestions by remember(d.id) { mutableStateOf(false) }
+
+                LaunchedEffect(d.city, suppressSuggestions) {
+                    if (suppressSuggestions || d.city.trim().length < 2) {
+                        municipalitySuggestions = emptyList()
+                        return@LaunchedEffect
+                    }
+                    delay(300)
+                    runCatching { ItalianMunicipalityDirectory.search(d.city) }
+                        .onSuccess {
+                            municipalitySuggestions = it
+                            lookupFailed = false
+                        }
+                        .onFailure {
+                            municipalitySuggestions = emptyList()
+                            lookupFailed = true
+                        }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box {
+                        AppTextField(
+                            d.city,
+                            {
+                                suppressSuggestions = false
+                                vm.updateCustomerDraft(d.copy(city = it, country = "Italia"))
+                            },
+                            "Comune",
+                            Modifier.fillMaxWidth()
+                        )
+                        DropdownMenu(
+                            expanded = municipalitySuggestions.isNotEmpty(),
+                            onDismissRequest = { municipalitySuggestions = emptyList() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            municipalitySuggestions.forEach { municipality ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(municipality.name, fontWeight = FontWeight.Bold)
+                                            Text(
+                                                listOf(
+                                                    municipality.province,
+                                                    municipality.provinceCode.takeIf { it.isNotBlank() }?.let { "($it)" }.orEmpty(),
+                                                    municipality.caps.firstOrNull()?.let { "CAP $it" }.orEmpty()
+                                                ).filter { it.isNotBlank() }.joinToString(" "),
+                                                fontSize = 12.sp,
+                                                color = Color(0xFF64748B)
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        suppressSuggestions = true
+                                        municipalitySuggestions = emptyList()
+                                        vm.updateCustomerDraft(
+                                            d.copy(
+                                                city = municipality.name,
+                                                province = municipality.province.ifBlank { municipality.provinceCode },
+                                                postalCode = municipality.caps.firstOrNull().orEmpty(),
+                                                country = "Italia"
+                                            )
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    if (lookupFailed) {
+                        Text("Ricerca comuni non disponibile: puoi compilare i campi manualmente.", fontSize = 11.sp, color = Color(0xFF64748B))
+                    } else if (d.city.isNotBlank()) {
+                        Text("Seleziona il comune dall’elenco per compilare automaticamente Provincia e CAP.", fontSize = 11.sp, color = Color(0xFF64748B))
+                    }
                 }
             }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    AppTextField(d.postalCode, { vm.updateCustomerDraft(d.copy(postalCode = it.filter(Char::isDigit))) }, stringResource(R.string.zip_code), Modifier.weight(.7f), keyboardType = KeyboardType.Number)
-                    AppTextField(d.country, { vm.updateCustomerDraft(d.copy(country = it)) }, stringResource(R.string.country), Modifier.weight(1.3f))
+                    AppTextField(d.province, { vm.updateCustomerDraft(d.copy(province = it, country = "Italia")) }, "Provincia", Modifier.weight(1f))
+                    AppTextField(
+                        d.postalCode,
+                        { vm.updateCustomerDraft(d.copy(postalCode = it.filter(Char::isDigit), country = "Italia")) },
+                        "CAP",
+                        Modifier.weight(.8f),
+                        keyboardType = KeyboardType.Number
+                    )
+                }
+            }
+            item {
+                OutlinedTextField(
+                    value = "Italia",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Nazione") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (d.city.isNotBlank() && d.postalCode.isNotBlank()) {
+                    Text("Il CAP resta modificabile manualmente, utile per i comuni con più CAP.", fontSize = 11.sp, color = Color(0xFF64748B))
                 }
             }
             item { AppTextField(d.notes, { vm.updateCustomerDraft(d.copy(notes = it)) }, stringResource(R.string.notes), minLines = 3) }
@@ -2203,7 +2403,12 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                     }
                 }
             }
-            item { AppTextField(d.date, { vm.updateOrderDraft(d.copy(date = it)) }, stringResource(R.string.order_date)) }
+            item {
+                OrderDatePickerField(
+                    isoDate = d.date,
+                    onDateSelected = { vm.updateOrderDraft(d.copy(date = it)) }
+                )
+            }
             item {
                 SelectionField(
                     "Stato",
