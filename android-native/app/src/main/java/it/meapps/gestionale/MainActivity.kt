@@ -660,14 +660,16 @@ private fun HomeScreen(vm: AppViewModel) {
                     Modifier.weight(1f),
                     onClick = { vm.openActiveOrders() }
                 )
-                LegacyStatCard(
-                    stringResource(R.string.month_profit),
-                    money(monthProfit),
-                    stringResource(R.string.month_margin),
-                    Modifier.weight(1f),
-                    Positive,
-                    onClick = { vm.openOrdersForMonth(currentMonth) }
-                )
+                if (vm.showEconomicDetails) {
+                    LegacyStatCard(
+                        stringResource(R.string.month_profit),
+                        money(monthProfit),
+                        stringResource(R.string.month_margin),
+                        Modifier.weight(1f),
+                        Positive,
+                        onClick = { vm.openOrdersForMonth(currentMonth) }
+                    )
+                }
             }
         }
         item {
@@ -679,14 +681,16 @@ private fun HomeScreen(vm: AppViewModel) {
                     Modifier.weight(1f),
                     onClick = { vm.clearOrderDrillDown(); vm.selectTab(MainTab.ORDERS) }
                 )
-                LegacyStatCard(
-                    stringResource(R.string.total_profit),
-                    money(totalProfit),
-                    stringResource(R.string.total_margin),
-                    Modifier.weight(1f),
-                    Positive,
-                    onClick = { vm.clearOrderDrillDown(); vm.selectTab(MainTab.ORDERS) }
-                )
+                if (vm.showEconomicDetails) {
+                    LegacyStatCard(
+                        stringResource(R.string.total_profit),
+                        money(totalProfit),
+                        stringResource(R.string.total_margin),
+                        Modifier.weight(1f),
+                        Positive,
+                        onClick = { vm.clearOrderDrillDown(); vm.selectTab(MainTab.ORDERS) }
+                    )
+                }
             }
         }
         item {
@@ -1103,18 +1107,20 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                 } else {
                     Text(money(product.salePrice), fontWeight = FontWeight.Black, fontSize = 19.sp, color = AppNavy)
                 }
-                if (product.effectiveMarginEuro < 0) {
-                    Surface(color = Color(0xFFFFECEA), shape = RoundedCornerShape(10.dp)) {
-                        Text(
-                            "Sotto margine ${money(product.effectiveMarginEuro)}",
-                            Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
-                            color = Negative,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black
-                        )
+                if (vm.showEconomicDetails) {
+                    if (product.effectiveMarginEuro < 0) {
+                        Surface(color = Color(0xFFFFECEA), shape = RoundedCornerShape(10.dp)) {
+                            Text(
+                                "Sotto margine ${money(product.effectiveMarginEuro)}",
+                                Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                                color = Negative,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+                    } else {
+                        Text("Margine ${money(product.effectiveMarginEuro)}", color = if (product.effectiveMarginEuro >= 0) Positive else Negative, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
-                } else {
-                    Text("Margine ${money(product.effectiveMarginEuro)}", color = if (product.effectiveMarginEuro >= 0) Positive else Negative, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
                 Text(
                     if (product.available && product.quantity > 0) "Disponibili ${product.quantity}" else "Non disponibile",
@@ -1183,7 +1189,12 @@ private fun ProductCard(product: Product, vm: AppViewModel) {
                 Text(product.name, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 Text(listOf(product.code, product.sku).filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "Nessun codice" }, color = Color(0xFF667085), fontSize = 12.sp)
                 Spacer(Modifier.height(5.dp))
-                Text("Vendita ${money(product.salePrice)}  ·  Margine ${money(product.marginEuro)}", color = if (product.marginEuro >= 0) Positive else Negative, fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (vm.showEconomicDetails) "Vendita ${money(product.salePrice)}  ·  Margine ${money(product.marginEuro)}"
+                    else "Vendita ${money(product.salePrice)}",
+                    color = if (vm.showEconomicDetails && product.marginEuro < 0) Negative else AppNavy,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Text("Quantità ${product.quantity}${if (!product.available) " · Non disponibile" else ""}", fontSize = 12.sp, color = Color(0xFF667085))
             }
             Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF98A2B3))
@@ -1352,7 +1363,9 @@ private fun OrdersScreen(vm: AppViewModel) {
                             val amountLabel = if (order.paid || order.totalPaid > 0) "Pagato" else "Totale"
                             val amount = if (order.totalPaid > 0) order.totalPaid else order.total
                             Text("$amountLabel: ${money(amount)}", fontWeight = FontWeight.Bold, color = if (order.paid || order.totalPaid > 0) Positive else AppNavy)
-                            Text("Guadagno ${money(order.profit)}", fontWeight = FontWeight.Bold, color = if (order.profit >= 0) Positive else Negative)
+                            if (vm.showEconomicDetails) {
+                                Text("Guadagno ${money(order.profit)}", fontWeight = FontWeight.Bold, color = if (order.profit >= 0) Positive else Negative)
+                            }
                         }
                         if (order.paymentStatus.isNotBlank()) {
                             Text(
@@ -1913,16 +1926,18 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
                             Text(stringResource(R.string.sale_price), color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
                             Text(money(product.effectiveSalePrice), fontSize = 26.sp, fontWeight = FontWeight.Black, color = AppNavy)
                         }
-                        VerticalDivider(Modifier.height(58.dp), color = Color(0xFFCBD5E1))
-                        Spacer(Modifier.width(16.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text("Margine", color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
-                            Text(
-                                money(product.effectiveMarginEuro),
-                                fontSize = 26.sp,
-                                fontWeight = FontWeight.Black,
-                                color = if (product.effectiveMarginEuro >= 0) Positive else Negative
-                            )
+                        if (vm.showEconomicDetails) {
+                            VerticalDivider(Modifier.height(58.dp), color = Color(0xFFCBD5E1))
+                            Spacer(Modifier.width(16.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("Margine", color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                                Text(
+                                    money(product.effectiveMarginEuro),
+                                    fontSize = 26.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (product.effectiveMarginEuro >= 0) Positive else Negative
+                                )
+                            }
                         }
                     }
                 }
@@ -2127,7 +2142,9 @@ private fun OrderDetailScreen(vm: AppViewModel, orderId: String) {
                             money(if (order.totalPaid > 0) order.totalPaid else order.total),
                             if (order.paid || order.totalPaid > 0) Positive else AppNavy
                         )
-                        DetailInfoRow("Guadagno", money(order.profit), if (order.profit >= 0) Positive else Negative)
+                        if (vm.showEconomicDetails) {
+                            DetailInfoRow("Guadagno", money(order.profit), if (order.profit >= 0) Positive else Negative)
+                        }
                         DetailInfoRow("Tracking", order.trackingCode)
                         DetailInfoRow("Stato", orderStatusLabel(order.status), if (order.status == "consegnato") Positive else AppNavy)
                         if (order.notes.isNotBlank()) DetailInfoRow("Note", order.notes)
@@ -2601,7 +2618,9 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(stringResource(R.string.summary), fontWeight = FontWeight.Black)
                         ValueRow("Totale ordine", money(total))
-                        ValueRow("Guadagno previsto", money(profit), if (profit >= 0) Positive else Negative)
+                        if (vm.showEconomicDetails) {
+                            ValueRow("Guadagno previsto", money(profit), if (profit >= 0) Positive else Negative)
+                        }
                     }
                 }
             }
