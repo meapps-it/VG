@@ -166,6 +166,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun googleAuthUrl(): String = api.googleAuthUrl()
+
+    fun completeGoogleLogin(callback: Uri) {
+        runSaving {
+            session = api.completeGoogleOAuth(callback)
+            noticeMessage = "Accesso Google effettuato"
+            loadAllInternal()
+        }
+    }
+
     fun signUp(email: String, password: String) {
         if (email.isBlank() || password.length < 8) return showError("Usa un’email valida e una password di almeno 8 caratteri")
         runSaving {
