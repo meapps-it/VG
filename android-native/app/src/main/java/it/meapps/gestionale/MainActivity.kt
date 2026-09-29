@@ -195,6 +195,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent { GestionaleRoot(viewModel) }
+        handleAuthIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleAuthIntent(intent)
+    }
+
+    private fun handleAuthIntent(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme == "gestionale" && data.host == "login-callback") {
+            viewModel.completeGoogleLogin(data)
+        }
     }
 }
 
@@ -232,12 +246,39 @@ private fun LoginScreen(vm: AppViewModel) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var register by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+
     Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Card(Modifier.fillMaxWidth().widthIn(max = 440.dp), shape = RoundedCornerShape(24.dp)) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Icon(Icons.Default.Inventory2, null, tint = AppBlue, modifier = Modifier.size(44.dp))
+                Icon(Icons.Default.ShowChart, null, tint = AppBlue, modifier = Modifier.size(48.dp))
                 Text(if (register) stringResource(R.string.create_account) else stringResource(R.string.app_name), fontSize = 28.sp, fontWeight = FontWeight.Bold)
                 Text(stringResource(R.string.tagline), color = Color(0xFF667085))
+
+                OutlinedButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(vm.googleAuthUrl()))
+                        context.startActivity(intent)
+                    },
+                    enabled = !vm.saving,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Color(0xFF202124)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFDADCE0))
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("G", color = Color(0xFF4285F4), fontWeight = FontWeight.Black, fontSize = 22.sp)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Continua con Google", fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    HorizontalDivider(Modifier.weight(1f), color = Color(0xFFDADCE0))
+                    Text("  oppure  ", color = Color(0xFF64748B), fontSize = 12.sp)
+                    HorizontalDivider(Modifier.weight(1f), color = Color(0xFFDADCE0))
+                }
+
                 AppTextField(email, { email = it }, stringResource(R.string.email), keyboardType = KeyboardType.Email)
                 OutlinedTextField(
                     value = password, onValueChange = { password = it }, modifier = Modifier.fillMaxWidth(),
