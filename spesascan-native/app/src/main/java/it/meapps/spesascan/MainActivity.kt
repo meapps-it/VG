@@ -1,6 +1,6 @@
 package it.meapps.spesascan
 
-import android.app.Activity
+import androidx.activity.ComponentActivity
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.text.InputType
@@ -15,7 +15,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.Executors
 
-class MainActivity : Activity() {
+class MainActivity : ComponentActivity() {
     private val client = OkHttpClient()
     private val io = Executors.newSingleThreadExecutor()
     private val prefs by lazy { getSharedPreferences("spesascan", MODE_PRIVATE) }
