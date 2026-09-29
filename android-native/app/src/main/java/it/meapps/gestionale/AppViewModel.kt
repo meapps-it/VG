@@ -42,6 +42,9 @@ sealed interface DeleteTarget {
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         const val FREE_PRODUCT_LIMIT = 10
+        const val TRIAL_DAYS = 7
+        private const val DAY_MS = 86_400_000L
+        private const val TRIAL_DURATION_MS = TRIAL_DAYS * DAY_MS
     }
 
     private val api = SupabaseApi(application)
@@ -72,6 +75,31 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var premiumPrice by mutableStateOf<String?>(null)
         private set
+
+    private val trialStartedAt: Long = prefs.getLong("trial_started_at_v1", 0L).let { saved ->
+        if (saved > 0L) saved else System.currentTimeMillis().also {
+            prefs.edit().putLong("trial_started_at_v1", it).apply()
+        }
+    }
+
+    var showTutorial by mutableStateOf(!prefs.getBoolean("tutorial_seen_v1", false))
+        private set
+
+    var showEconomicDetails by mutableStateOf(prefs.getBoolean("show_economic_details_v1", true))
+        private set
+
+    val trialActive: Boolean
+        get() = !isPremium && System.currentTimeMillis() < trialStartedAt + TRIAL_DURATION_MS
+
+    val trialDaysRemaining: Int
+        get() {
+            if (isPremium) return 0
+            val remaining = (trialStartedAt + TRIAL_DURATION_MS - System.currentTimeMillis()).coerceAtLeast(0L)
+            return if (remaining == 0L) 0 else ((remaining + DAY_MS - 1L) / DAY_MS).toInt()
+        }
+
+    val hasPremiumAccess: Boolean
+        get() = isPremium || trialActive
 
     var products by mutableStateOf<List<Product>>(emptyList())
         private set
@@ -134,7 +162,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         get() = products.count { !it.isDemo }
 
     val canAddProduct: Boolean
-        get() = isPremium || freeProductCount < FREE_PRODUCT_LIMIT
+        get() = hasPremiumAccess || freeProductCount < FREE_PRODUCT_LIMIT
 
     val filteredProducts: List<Product>
         get() {
@@ -466,6 +494,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun updateGridView(value: Boolean) {
         gridView = value
         prefs.edit().putBoolean("grid_view", value).apply()
+    }
+
+    fun updateEconomicVisibility(value: Boolean) {
+        showEconomicDetails = value
+        prefs.edit().putBoolean("show_economic_details_v1", value).apply()
+    }
+
+    fun dismissTutorial() {
+        showTutorial = false
+        prefs.edit().putBoolean("tutorial_seen_v1", true).apply()
+    }
+
+    fun reopenTutorial() {
+        showTutorial = true
     }
 
     fun loadDemoData() = runSaving {
