@@ -56,6 +56,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -312,6 +314,40 @@ private fun AuthenticatedApp(vm: AppViewModel) {
     val activity = LocalActivity.current
     BackHandler(enabled = true) {
         if (!vm.navigateBack()) activity?.moveTaskToBack(true)
+    }
+
+    if (vm.showTutorial) {
+        var tutorialStep by rememberSaveable { mutableIntStateOf(0) }
+        val titles = listOf("Articoli", "Clienti e ordini", "Scanner", "Privacy economica")
+        val texts = listOf(
+            "Inserisci e modifica gli articoli, gestisci disponibilità, prezzi e fotografie.",
+            "Salva i clienti, crea ordini dagli articoli e controlla stato, pagamenti e spedizioni.",
+            "Nel nuovo articolo puoi leggere il codice a barre con la fotocamera e inserirlo automaticamente.",
+            "Nelle Impostazioni puoi scegliere se mostrare anche costi e guadagni oppure soltanto i prezzi di vendita."
+        )
+        AlertDialog(
+            onDismissRequest = vm::dismissTutorial,
+            icon = { Icon(Icons.Default.TipsAndUpdates, null, tint = AppAmber) },
+            title = { Text("Guida rapida · ${tutorialStep + 1}/4", fontWeight = FontWeight.Black) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(titles[tutorialStep], fontSize = 20.sp, fontWeight = FontWeight.Black)
+                    Text(texts[tutorialStep])
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (tutorialStep < 3) tutorialStep++ else vm.dismissTutorial()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AppNavy)
+                ) { Text(if (tutorialStep < 3) "Avanti" else "Inizia") }
+            },
+            dismissButton = {
+                if (tutorialStep > 0) TextButton(onClick = { tutorialStep-- }) { Text("Indietro") }
+                else TextButton(onClick = vm::dismissTutorial) { Text("Salta") }
+            }
+        )
     }
 
     vm.deleteTarget?.let { target ->
@@ -1500,6 +1536,34 @@ private fun SettingsScreen(vm: AppViewModel) {
             }
         }
         item {
+            SettingsHeader("Prova gratuita", "7 giorni di accesso completo prima dell’abbonamento")
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = if (vm.trialActive) Color(0xFFEFFBF5) else Color(0xFFF8FAFC))
+            ) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        when {
+                            vm.isPremium -> "Versione Pro attiva"
+                            vm.trialActive -> "Prova gratuita attiva"
+                            else -> "Prova gratuita terminata"
+                        },
+                        fontWeight = FontWeight.Black,
+                        fontSize = 17.sp
+                    )
+                    Text(
+                        when {
+                            vm.isPremium -> "Il tuo abbonamento è attivo."
+                            vm.trialActive -> "Restano ${vm.trialDaysRemaining} giorni di prova completa."
+                            else -> "Per continuare con le funzioni Pro è necessario l’abbonamento."
+                        },
+                        color = Color(0xFF64748B)
+                    )
+                }
+            }
+        }
+        item {
             SettingsHeader(stringResource(R.string.demo_data), stringResource(R.string.demo_data_sub))
             Card(
                 Modifier.fillMaxWidth(),
@@ -1599,6 +1663,18 @@ private fun SettingsScreen(vm: AppViewModel) {
                 Slider(value = vm.fontScale, onValueChange = vm::updateFontScale, valueRange = .85f..1.35f, steps = 9)
                 SettingSwitch(stringResource(R.string.compact_mode), stringResource(R.string.compact_mode_sub), vm.compactMode, vm::updateCompactMode)
                 SettingSwitch(stringResource(R.string.grid_catalog), stringResource(R.string.grid_catalog_sub), vm.gridView, vm::updateGridView)
+                HorizontalDivider()
+                SettingSwitch(
+                    "Mostra costi e guadagni",
+                    "Disattiva per mostrare soltanto i prezzi di vendita",
+                    vm.showEconomicDetails,
+                    vm::updateEconomicVisibility
+                )
+                OutlinedButton(onClick = vm::reopenTutorial, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.TipsAndUpdates, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Rivedi tutorial")
+                }
             } }
         }
         item {
@@ -2086,6 +2162,11 @@ private fun ProductEditorScreen(vm: AppViewModel) {
     val d = vm.productDraft
     val existing = vm.products.firstOrNull { it.id == d.id }
     val context = LocalContext.current
+    val barcodeLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+        result.contents?.takeIf { it.isNotBlank() }?.let { code ->
+            vm.updateProductDraft(vm.productDraft.copy(code = code))
+        }
+    }
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
     val takePicture = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok -> if (ok) cameraUri?.let(vm::addPendingPhoto) }
     val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -2125,6 +2206,24 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                 AppTextField(d.code, { vm.updateProductDraft(d.copy(code = it)) }, stringResource(R.string.code), Modifier.weight(1f))
                 AppTextField(d.sku, { vm.updateProductDraft(d.copy(sku = it)) }, "SKU", Modifier.weight(1f))
             } }
+            item {
+                OutlinedButton(
+                    onClick = {
+                        barcodeLauncher.launch(
+                            ScanOptions()
+                                .setPrompt("Inquadra il codice a barre")
+                                .setBeepEnabled(false)
+                                .setOrientationLocked(false)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                ) {
+                    Icon(Icons.Default.QrCodeScanner, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Scanner codice a barre", fontWeight = FontWeight.Bold)
+                }
+            }
             item { SelectionField(stringResource(R.string.optional_brand), d.brandId, vm.brands.map { it.id to it.name }, { vm.updateProductDraft(d.copy(brandId = it)) }) }
             item { SelectionField(stringResource(R.string.optional_category), d.categoryId, vm.categories.map { it.id to it.name }, { vm.updateProductDraft(d.copy(categoryId = it)) }) }
             item { SelectionField(stringResource(R.string.optional_supplier), d.supplierId, vm.suppliers.map { it.id to it.name }, { vm.updateProductDraft(d.copy(supplierId = it)) }) }
@@ -2152,7 +2251,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
             }
             item { AppTextField(d.description, { vm.updateProductDraft(d.copy(description = it)) }, stringResource(R.string.description), minLines = 3) }
             item { SectionTitle(stringResource(R.string.prices_availability)) }
-            item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (vm.showEconomicDetails) item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 NumberField(d.purchasePrice, { vm.updateProductDraft(d.copy(purchasePrice = it)) }, stringResource(R.string.purchase_euro), Modifier.weight(1f))
                 NumberField(d.extraCosts, { vm.updateProductDraft(d.copy(extraCosts = it)) }, stringResource(R.string.extra_costs_euro), Modifier.weight(1f))
             } }
@@ -2175,7 +2274,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                     Modifier.fillMaxWidth()
                 )
             }
-            item {
+            if (vm.showEconomicDetails) item {
                 val preview = d.toProduct(existing)
                 Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF4FF))) { Column(Modifier.padding(14.dp)) {
                     Text("Costo totale ${money(preview.totalCost)}")
