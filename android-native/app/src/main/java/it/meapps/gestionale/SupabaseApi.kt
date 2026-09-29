@@ -86,6 +86,43 @@ class SupabaseApi(private val context: Context) {
         parseAndSaveSession(JSONObject(response), email.trim())
     }
 
+    fun googleAuthUrl(): String {
+        val redirect = Uri.encode("gestionale://login-callback")
+        return "$baseUrl/auth/v1/authorize?provider=google&redirect_to=$redirect"
+    }
+
+    suspend fun completeGoogleOAuth(callback: Uri): Session = withContext(Dispatchers.IO) {
+        val params = linkedMapOf<String, String>()
+        fun collect(raw: String?) {
+            raw.orEmpty().split('&').forEach { part ->
+                if (part.isBlank()) return@forEach
+                val pieces = part.split('=', limit = 2)
+                val key = Uri.decode(pieces.getOrElse(0) { "" })
+                val value = Uri.decode(pieces.getOrElse(1) { "" })
+                if (key.isNotBlank()) params[key] = value
+            }
+        }
+        collect(callback.fragment)
+        collect(callback.query)
+
+        params["error_description"]?.takeIf { it.isNotBlank() }?.let { throw ApiException(it) }
+        params["error"]?.takeIf { it.isNotBlank() }?.let { throw ApiException(it) }
+
+        val accessToken = params["access_token"].orEmpty()
+        val refreshToken = params["refresh_token"].orEmpty()
+        if (accessToken.isBlank() || refreshToken.isBlank()) {
+            throw ApiException("Accesso Google non completato")
+        }
+
+        val user = JSONObject(rawRequest("GET", "$baseUrl/auth/v1/user", null, accessToken))
+        val payload = JSONObject()
+            .put("access_token", accessToken)
+            .put("refresh_token", refreshToken)
+            .put("expires_in", params["expires_in"]?.toLongOrNull() ?: 3600L)
+            .put("user", user)
+        parseAndSaveSession(payload, user.optString("email"))
+    }
+
     suspend fun signUp(email: String, password: String): Boolean = withContext(Dispatchers.IO) {
         val response = rawRequest(
             method = "POST",
