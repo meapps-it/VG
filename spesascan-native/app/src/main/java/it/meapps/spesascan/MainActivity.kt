@@ -301,6 +301,7 @@ private fun AuthenticatedApp(repository: ProductRepository, auth: AuthController
     var editing by remember { mutableStateOf<SavedProduct?>(null) }
     var viewing by remember { mutableStateOf<SavedProduct?>(null) }
     var creating by rememberSaveable { mutableStateOf(false) }
+    var pendingScannedCode by rememberSaveable { mutableStateOf("") }
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.DASHBOARD) }
     val navHistory = remember { mutableStateListOf(MainTab.DASHBOARD) }
 
@@ -336,11 +337,13 @@ private fun AuthenticatedApp(repository: ProductRepository, auth: AuthController
         ProductEditorScreen(
             repository = repository,
             existing = editing,
-            onBack = { creating = false; editing = null },
+            initialCode = pendingScannedCode,
+            onBack = { creating = false; editing = null; pendingScannedCode = "" },
             onSaved = {
                 products = repository.loadAll()
                 creating = false
                 editing = null
+                pendingScannedCode = ""
                 if (selectedTab != MainTab.ARTICLES) navigateTo(MainTab.ARTICLES)
             }
         )
@@ -354,7 +357,16 @@ private fun AuthenticatedApp(repository: ProductRepository, auth: AuthController
         canGoBack = navHistory.size > 1,
         onSelectTab = ::navigateTo,
         onBack = ::navigateBack,
-        onNew = { creating = true },
+        onNew = { pendingScannedCode = ""; creating = true },
+        onScanned = { scanned ->
+            val local = repository.find(scanned)
+            if (local != null) {
+                viewing = local
+            } else {
+                pendingScannedCode = scanned
+                creating = true
+            }
+        },
         onOpen = { viewing = it }
     )
 }
@@ -369,6 +381,7 @@ private fun MainScaffold(
     onSelectTab: (MainTab) -> Unit,
     onBack: () -> Unit,
     onNew: () -> Unit,
+    onScanned: (String) -> Unit,
     onOpen: (SavedProduct) -> Unit
 ) {
     BackHandler(enabled = canGoBack) {
@@ -385,7 +398,7 @@ private fun MainScaffold(
             when (selectedTab) {
                 MainTab.DASHBOARD -> DashboardScreen(products, auth, onNew, onOpen)
                 MainTab.ARTICLES -> ProductsScreen(products, onNew, onOpen)
-                MainTab.SCANNER -> ScannerLanding(products, onNew, onOpen, onBack)
+                MainTab.SCANNER -> ScannerLanding(products, onScanned, onBack)
                 MainTab.LISTS -> ShoppingListScreen(products, onOpen)
                 MainTab.STATS -> StatsScreen(products)
             }
@@ -1001,7 +1014,7 @@ private fun StatsScreen(products: List<SavedProduct>) {
             Text("Andamento spesa", color = AppNavy, fontSize = 20.sp, fontWeight = FontWeight.Black)
         }
         item {
-            Surface(modifier = Modifier.fillMaxWidth().height(235.dp), shape = RoundedCornerShape(22.dp), color = Color.White) {
+            Surface(modifier = Modifier.fillMaxWidth().height(175.dp), shape = RoundedCornerShape(22.dp), color = Color.White) {
                 Column(Modifier.padding(14.dp)) {
                     SpendingLineChart(monthTotals, Modifier.fillMaxWidth().weight(1f))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -1018,8 +1031,8 @@ private fun StatsScreen(products: List<SavedProduct>) {
         item {
             Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp), color = Color.White) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    StoreDonutChart(byStore.map { it.value }, Modifier.size(145.dp))
-                    Spacer(Modifier.width(14.dp))
+                    StoreDonutChart(byStore.map { it.value }, Modifier.size(105.dp))
+                    Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         byStore.forEach { entry ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1098,57 +1111,55 @@ private fun StoreDonutChart(values: List<Double>, modifier: Modifier) {
 @Composable
 private fun ScannerLanding(
     products: List<SavedProduct>,
-    onNew: () -> Unit,
-    onOpen: (SavedProduct) -> Unit,
+    onScanned: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    Box(
-        Modifier.fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF101419), Color(0xFF3A3028))))
-            .clickable(onClick = onNew)
-    ) {
-        Row(
-            Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 14.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Indietro",
-                    tint = Color.White
-                )
-            }
-            Spacer(Modifier.weight(1f))
-            Text("Scanner", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
-            Spacer(Modifier.weight(1f))
-            Icon(Icons.Default.FlashOn, null, tint = Color.White)
-        }
+    val scanner = rememberLauncherForActivityResult(ScanContract()) { result ->
+        val code = result.contents.orEmpty().trim()
+        if (code.isNotBlank()) onScanned(code) else onBack()
+    }
 
-        Box(
-            Modifier.align(Alignment.Center).fillMaxWidth().padding(horizontal = 34.dp).height(335.dp)
-                .border(2.dp, Color.White.copy(alpha = 0.9f), RoundedCornerShape(28.dp))
-        ) {
+    LaunchedEffect(Unit) {
+        scanner.launch(
+            ScanOptions()
+                .setPrompt("Inquadra il codice a barre")
+                .setBeepEnabled(false)
+                .setOrientationLocked(false)
+                .setBarcodeImageEnabled(false)
+        )
+    }
+
+    Box(
+        Modifier.fillMaxSize().background(Color(0xFF101419)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
                 Icons.Default.QrCodeScanner,
-                null,
-                tint = Color.White.copy(alpha = 0.28f),
-                modifier = Modifier.align(Alignment.Center).size(120.dp)
+                contentDescription = null,
+                tint = AppGreen,
+                modifier = Modifier.size(72.dp)
             )
-            Box(
-                Modifier.align(Alignment.Center).fillMaxWidth().height(3.dp)
-                    .background(Color(0xFF20E58B))
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "Apertura fotocamera…",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
             )
-        }
-
-        Surface(
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 52.dp),
-            shape = RoundedCornerShape(30.dp),
-            color = Color(0xCC171717)
-        ) {
-            Row(Modifier.padding(horizontal = 22.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.QrCodeScanner, null, tint = Color.White)
-                Spacer(Modifier.width(10.dp))
-                Text("Inquadra il codice a barre", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = {
+                scanner.launch(
+                    ScanOptions()
+                        .setPrompt("Inquadra il codice a barre")
+                        .setBeepEnabled(false)
+                        .setOrientationLocked(false)
+                )
+            }) {
+                Text("Riapri scanner", color = AppGreen, fontWeight = FontWeight.Bold)
+            }
+            TextButton(onClick = onBack) {
+                Text("Indietro", color = Color.White)
             }
         }
     }
@@ -1501,12 +1512,13 @@ private fun EmbeddedBase64Image(
 private fun ProductEditorScreen(
     repository: ProductRepository,
     existing: SavedProduct?,
+    initialCode: String = "",
     onBack: () -> Unit,
     onSaved: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
 
-    var code by rememberSaveable(existing?.code) { mutableStateOf(existing?.code.orEmpty()) }
+    var code by rememberSaveable(existing?.code, initialCode) { mutableStateOf(existing?.code ?: initialCode) }
     var name by rememberSaveable(existing?.code) { mutableStateOf(existing?.name.orEmpty()) }
     var brand by rememberSaveable(existing?.code) { mutableStateOf(existing?.brand.orEmpty()) }
     var quantity by rememberSaveable(existing?.code) { mutableStateOf(existing?.quantity.orEmpty()) }
