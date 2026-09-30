@@ -1,6 +1,7 @@
 package it.meapps.spesascan
 
 import android.content.Context
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -193,7 +194,15 @@ private fun LoginScreen(auth: AuthController) {
 
                 OutlinedButton(
                     onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(auth.googleAuthUrl())))
+                        val url = Uri.parse(auth.googleAuthUrl())
+                        val chromeIntent = Intent(Intent.ACTION_VIEW, url).apply {
+                            setPackage("com.android.chrome")
+                        }
+                        try {
+                            context.startActivity(chromeIntent)
+                        } catch (_: ActivityNotFoundException) {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, url))
+                        }
                     },
                     enabled = !auth.busy,
                     modifier = Modifier.fillMaxWidth().height(54.dp),
