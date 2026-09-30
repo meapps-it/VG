@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.util.Base64
@@ -43,6 +42,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -82,7 +82,7 @@ private val Positive = Color(0xFF079A63)
 private val Negative = Color(0xFFE5484D)
 private val LegacyBorder = Color(0xFFD7E3EF)
 private val CardSoft = Color(0xFFFFFFFF)
-private val SpesaScanFont = FontFamily(Typeface.create("sans-serif", Typeface.NORMAL))
+private val SpesaScanFont = FontFamily.Default
 
 private val SupportedSupermarkets = listOf(
     "Mercatò", "Conad", "Lidl", "Carrefour", "Esselunga", "Coop", "Eurospin"
@@ -449,7 +449,10 @@ private fun ReferenceNavItem(
 
 @Composable
 private fun BrandLogo(fontSize: Int = 29) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.statusBarsPadding().padding(start = 18.dp, top = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text("Spesa", color = AppNavy, fontSize = fontSize.sp, fontWeight = FontWeight.Black, fontFamily = SpesaScanFont)
         Text("Scan", color = AppGreen, fontSize = fontSize.sp, fontWeight = FontWeight.Black, fontFamily = SpesaScanFont)
     }
@@ -482,17 +485,46 @@ private fun DashboardScreen(
 
     androidx.compose.foundation.lazy.LazyColumn(
         Modifier.fillMaxSize().background(Color(0xFFF4FAFD)),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        contentPadding = PaddingValues(bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(245.dp)
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.spesa_header),
+                    contentDescription = "SpesaScan",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.93f),
+                                    Color.White.copy(alpha = 0.62f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
+
                 BrandLogo(29)
-                Spacer(Modifier.weight(1f))
+
                 Surface(
-                    modifier = Modifier.size(42.dp),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .statusBarsPadding()
+                        .padding(top = 10.dp, end = 14.dp)
+                        .size(42.dp),
                     shape = RoundedCornerShape(50),
-                    color = Color.White,
+                    color = Color.White.copy(alpha = 0.94f),
                     shadowElevation = 5.dp
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -503,42 +535,48 @@ private fun DashboardScreen(
                         )
                     }
                 }
-            }
-        }
 
-        item {
-            Box(Modifier.fillMaxWidth().height(178.dp)) {
-                Column(Modifier.align(Alignment.TopStart).width(170.dp).padding(top = 8.dp)) {
-                    Text("Buongiorno\n$displayName!", color = AppNavy, fontSize = 23.sp, lineHeight = 24.sp, fontWeight = FontWeight.Black, fontFamily = SpesaScanFont)
-                    Spacer(Modifier.height(7.dp))
-                    Text("Tieni sotto controllo la tua spesa\ne risparmia ogni giorno.", color = Color(0xFF4E6A88), fontSize = 11.sp, lineHeight = 15.sp, fontFamily = SpesaScanFont)
-                }
-                Surface(
-                    modifier = Modifier.align(Alignment.BottomEnd).size(width = 156.dp, height = 146.dp),
-                    shape = RoundedCornerShape(34.dp),
-                    color = Color(0xFFEAFBF4)
+                Column(
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 18.dp, bottom = 24.dp)
+                        .width(205.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.ShoppingBasket,
-                            contentDescription = null,
-                            tint = AppGreen,
-                            modifier = Modifier.size(68.dp)
-                        )
-                    }
+                    Text(
+                        "Buongiorno\n$displayName!",
+                        color = AppNavy,
+                        fontSize = 25.sp,
+                        lineHeight = 26.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = SpesaScanFont
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Tieni sotto controllo la tua spesa\ne risparmia ogni giorno.",
+                        color = Color(0xFF476887),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        fontFamily = SpesaScanFont
+                    )
                 }
             }
         }
 
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                Modifier.padding(horizontal = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 HomeMetricCard(products.size.toString(), "Prodotti salvati", Icons.Default.Inventory2, Color(0xFFEAF3FD), Modifier.weight(1f))
                 HomeMetricCard(stores.toString(), "Supermercati", Icons.Default.Storefront, Color(0xFFE8F4FF), Modifier.weight(1f))
             }
         }
 
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                Modifier.padding(horizontal = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 HomeMetricCard(money(total), "Spesa totale", Icons.Default.Euro, Color(0xFFEAF1FF), Modifier.weight(1f))
                 HomeMetricCard(
                     (if (variation >= 0) "+" else "") + String.format(Locale.ITALY, "%.1f%%", variation),
@@ -553,7 +591,7 @@ private fun DashboardScreen(
         item {
             Button(
                 onClick = onNew,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier.padding(horizontal = 14.dp).fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = AppGreen)
             ) {
@@ -564,22 +602,34 @@ private fun DashboardScreen(
         }
 
         item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text("Ultimi prodotti aggiunti", color = AppNavy, fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = SpesaScanFont)
                 Spacer(Modifier.weight(1f))
+                Text("Vedi tutti", color = Color(0xFF54789E), fontSize = 11.sp, fontFamily = SpesaScanFont)
+                Spacer(Modifier.width(4.dp))
                 Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF6F86A0))
             }
         }
 
         if (latest.isEmpty()) {
             item {
-                Surface(shape = RoundedCornerShape(22.dp), color = Color.White) {
+                Surface(
+                    modifier = Modifier.padding(horizontal = 14.dp),
+                    shape = RoundedCornerShape(22.dp),
+                    color = Color.White
+                ) {
                     Text("Nessun prodotto salvato.", modifier = Modifier.padding(18.dp), color = Color(0xFF71839A))
                 }
             }
         } else {
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    Modifier.padding(horizontal = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     latest.forEach { p ->
                         HomeRecentCard(p, Modifier.weight(1f)) { onOpen(p) }
                     }
@@ -589,6 +639,7 @@ private fun DashboardScreen(
         }
     }
 }
+
 
 @Composable
 private fun HomeMetricCard(
