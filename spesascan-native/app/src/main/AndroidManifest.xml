@@ -14,17 +14,20 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:screenOrientation="unspecified"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:screenOrientation="unspecified">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="spesascan" android:host="login-callback" />
+                <data
+                    android:scheme="spesascan"
+                    android:host="login-callback" />
             </intent-filter>
         </activity>
     </application>
