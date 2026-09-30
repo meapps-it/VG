@@ -131,6 +131,39 @@ class AuthController(context: Context) {
         }
     }
 
+    suspend fun validSession(): AuthSession? {
+        val current = session ?: return null
+        val now = System.currentTimeMillis() / 1000
+        if (current.expiresAt > now + 60) return current
+
+        return try {
+            val body = JSONObject()
+                .put("refresh_token", current.refreshToken)
+                .toString()
+                .toRequestBody(jsonType)
+            val json = JSONObject(
+                request("POST", "$baseUrl/auth/v1/token?grant_type=refresh_token", body)
+            )
+            val access = json.optString("access_token")
+            if (access.isBlank()) error("Sessione scaduta")
+
+            val refreshed = AuthSession(
+                accessToken = access,
+                refreshToken = json.optString("refresh_token").ifBlank { current.refreshToken },
+                userId = current.userId,
+                email = current.email,
+                expiresAt = json.optLong("expires_at").takeIf { it > 0 }
+                    ?: now + json.optLong("expires_in", 3600)
+            )
+            persist(refreshed)
+            session = refreshed
+            refreshed
+        } catch (t: Throwable) {
+            message = t.message ?: "Impossibile rinnovare la sessione"
+            null
+        }
+    }
+
     suspend fun signOut() {
         val current = session
         busy = true
