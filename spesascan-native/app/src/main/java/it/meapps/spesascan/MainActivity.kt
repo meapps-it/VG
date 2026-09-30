@@ -302,6 +302,19 @@ private fun AuthenticatedApp(repository: ProductRepository, auth: AuthController
     var viewing by remember { mutableStateOf<SavedProduct?>(null) }
     var creating by rememberSaveable { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.DASHBOARD) }
+    val navHistory = remember { mutableStateListOf(MainTab.DASHBOARD) }
+
+    fun navigateTo(tab: MainTab) {
+        if (tab == selectedTab) return
+        navHistory.add(tab)
+        selectedTab = tab
+    }
+
+    fun navigateBack() {
+        if (navHistory.size <= 1) return
+        navHistory.removeAt(navHistory.lastIndex)
+        selectedTab = navHistory.last()
+    }
 
     LaunchedEffect(auth.session?.userId) {
         if (auth.session != null) products = repository.syncWithCloud()
@@ -328,7 +341,7 @@ private fun AuthenticatedApp(repository: ProductRepository, auth: AuthController
                 products = repository.loadAll()
                 creating = false
                 editing = null
-                selectedTab = MainTab.ARTICLES
+                if (selectedTab != MainTab.ARTICLES) navigateTo(MainTab.ARTICLES)
             }
         )
         return
@@ -338,7 +351,9 @@ private fun AuthenticatedApp(repository: ProductRepository, auth: AuthController
         products = products,
         auth = auth,
         selectedTab = selectedTab,
-        onSelectTab = { selectedTab = it },
+        canGoBack = navHistory.size > 1,
+        onSelectTab = ::navigateTo,
+        onBack = ::navigateBack,
         onNew = { creating = true },
         onOpen = { viewing = it }
     )
@@ -350,12 +365,14 @@ private fun MainScaffold(
     products: List<SavedProduct>,
     auth: AuthController,
     selectedTab: MainTab,
+    canGoBack: Boolean,
     onSelectTab: (MainTab) -> Unit,
+    onBack: () -> Unit,
     onNew: () -> Unit,
     onOpen: (SavedProduct) -> Unit
 ) {
-    BackHandler {
-        if (selectedTab != MainTab.DASHBOARD) onSelectTab(MainTab.DASHBOARD)
+    BackHandler(enabled = canGoBack) {
+        onBack()
     }
 
     Scaffold(
@@ -368,7 +385,7 @@ private fun MainScaffold(
             when (selectedTab) {
                 MainTab.DASHBOARD -> DashboardScreen(products, auth, onNew, onOpen)
                 MainTab.ARTICLES -> ProductsScreen(products, onNew, onOpen)
-                MainTab.SCANNER -> ScannerLanding(products, onNew, onOpen)
+                MainTab.SCANNER -> ScannerLanding(products, onNew, onOpen, onBack)
                 MainTab.LISTS -> ShoppingListScreen(products, onOpen)
                 MainTab.STATS -> StatsScreen(products)
             }
@@ -1082,7 +1099,8 @@ private fun StoreDonutChart(values: List<Double>, modifier: Modifier) {
 private fun ScannerLanding(
     products: List<SavedProduct>,
     onNew: () -> Unit,
-    onOpen: (SavedProduct) -> Unit
+    onOpen: (SavedProduct) -> Unit,
+    onBack: () -> Unit
 ) {
     Box(
         Modifier.fillMaxSize()
@@ -1093,7 +1111,13 @@ private fun ScannerLanding(
             Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
+            IconButton(onClick = onBack) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Indietro",
+                    tint = Color.White
+                )
+            }
             Spacer(Modifier.weight(1f))
             Text("Scanner", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
             Spacer(Modifier.weight(1f))
