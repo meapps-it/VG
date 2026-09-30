@@ -2,11 +2,13 @@ package it.meapps.spesascan
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -30,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -56,14 +59,18 @@ import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 
-private val AppNavy = Color(0xFF0B2B52)
-private val AppBlue = Color(0xFF1677FF)
-private val AppAmber = Color(0xFFFF8A1F)
-private val AppBackground = Color(0xFFF5F8FC)
-private val Positive = Color(0xFF0AA66E)
-private val Negative = Color(0xFFB42318)
-private val LegacyBorder = Color(0xFFC9D0D9)
-private val CardSoft = Color(0xFFF0EEF4)
+private val AppNavy = Color(0xFF123B69)
+private val AppBlue = Color(0xFF2A7DE1)
+private val AppGreen = Color(0xFF08A96B)
+private val AppGreenDark = Color(0xFF068E5C)
+private val AppMint = Color(0xFFEAFBF4)
+private val AppSky = Color(0xFFEAF5FF)
+private val AppAmber = Color(0xFFFFB020)
+private val AppBackground = Color(0xFFF5FAFE)
+private val Positive = Color(0xFF079A63)
+private val Negative = Color(0xFFE5484D)
+private val LegacyBorder = Color(0xFFD7E3EF)
+private val CardSoft = Color(0xFFFFFFFF)
 
 private enum class MainTab { DASHBOARD, ARTICLES, SCANNER, ACCOUNT }
 
@@ -891,7 +898,7 @@ private fun ProductEditorScreen(
                 price = if (local.salePrice > 0) "%.2f".format(Locale.ITALY, local.salePrice) else ""
                 remoteImageUrl = local.remoteImageUrl
                 localImagePath = local.imagePath
-                status = "Articolo già presente nel tuo archivio"
+                status = "Prodotto già presente nel tuo archivio"
             } else {
                 scope.launch {
                     loading = true
@@ -913,6 +920,42 @@ private fun ProductEditorScreen(
         }
     }
 
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val saved = repository.persistManualImage(
+                    code = code,
+                    sourceUri = uri
+                )
+                if (saved.isNotBlank()) {
+                    localImagePath = saved
+                    remoteImageUrl = ""
+                    status = "Foto aggiunta dalla galleria"
+                } else {
+                    status = "Impossibile salvare la foto"
+                }
+            }
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        if (bitmap != null) {
+            scope.launch {
+                val saved = repository.persistManualBitmap(
+                    code = code,
+                    bitmap = bitmap
+                )
+                if (saved.isNotBlank()) {
+                    localImagePath = saved
+                    remoteImageUrl = ""
+                    status = "Foto scattata e salvata"
+                } else {
+                    status = "Impossibile salvare la foto"
+                }
+            }
+        }
+    }
+
     fun startScan() {
         scanner.launch(
             ScanOptions()
@@ -922,21 +965,50 @@ private fun ProductEditorScreen(
         )
     }
 
+    val imageModel: Any? = localImagePath.takeIf { it.isNotBlank() }?.let(::File)
+        ?: remoteImageUrl.takeIf { it.isNotBlank() }
+
     Scaffold(
+        containerColor = AppBackground,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        if (existing == null) "Nuovo articolo" else "Modifica articolo",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
+            Surface(color = Color.White, shadowElevation = 2.dp) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Indietro")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Indietro", tint = AppNavy)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            if (existing == null) "Aggiungi prodotto" else "Modifica prodotto",
+                            color = AppNavy,
+                            fontSize = 25.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            "Foto, dati e prezzo in un solo posto",
+                            color = Color(0xFF6B7C93),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = AppMint
+                    ) {
+                        Icon(
+                            Icons.Default.ShoppingCart,
+                            null,
+                            tint = AppGreen,
+                            modifier = Modifier.padding(12.dp).size(26.dp)
+                        )
                     }
                 }
-            )
+            }
         }
     ) { padding ->
         androidx.compose.foundation.lazy.LazyColumn(
@@ -944,142 +1016,241 @@ private fun ProductEditorScreen(
                 .padding(padding)
                 .fillMaxSize()
                 .imePadding(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            contentPadding = PaddingValues(14.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            item { SectionTitle("Codice e ricerca") }
-
             item {
-                OutlinedTextField(
-                    value = code,
-                    onValueChange = { code = it.filter(Char::isDigit) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text("Codice EAN / UPC") },
-                    trailingIcon = {
-                        IconButton(onClick = ::startScan) {
-                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Scanner")
-                        }
-                    }
-                )
-            }
-
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(
-                        onClick = ::startScan,
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, LegacyBorder),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(Icons.Default.QrCodeScanner, null)
-                        Spacer(Modifier.width(6.dp))
-                        Text("Scansiona")
-                    }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(shape = RoundedCornerShape(14.dp), color = AppMint) {
+                                Icon(
+                                    Icons.Default.Image,
+                                    null,
+                                    tint = AppGreen,
+                                    modifier = Modifier.padding(10.dp).size(24.dp)
+                                )
+                            }
+                            Spacer(Modifier.width(10.dp))
+                            Column {
+                                Text("Foto del prodotto", color = AppNavy, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                                Text(
+                                    "Scattala oppure sceglila dalla galleria",
+                                    color = Color(0xFF6B7C93),
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
 
-                    OutlinedButton(
-                        onClick = {
-                            if (code.isNotBlank()) {
-                                scope.launch {
-                                    loading = true
-                                    status = "Ricerca su Open Food Facts…"
-                                    val found = repository.lookupOpenFoodFacts(code)
-                                    if (found != null) {
-                                        name = found.name
-                                        brand = found.brand
-                                        quantity = found.quantity
-                                        description = found.description
-                                        remoteImageUrl = found.remoteImageUrl
-                                        status = "Prodotto trovato su Open Food Facts"
-                                    } else {
-                                        status = "Prodotto non trovato"
-                                    }
-                                    loading = false
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(230.dp)
+                                .background(
+                                    Brush.linearGradient(listOf(AppSky, Color.White, AppMint)),
+                                    RoundedCornerShape(22.dp)
+                                )
+                                .border(1.dp, LegacyBorder, RoundedCornerShape(22.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (imageModel != null) {
+                                AsyncImage(
+                                    model = imageModel,
+                                    contentDescription = "Foto prodotto",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                                FilledTonalIconButton(
+                                    onClick = {
+                                        localImagePath = ""
+                                        remoteImageUrl = ""
+                                        status = "Foto rimossa"
+                                    },
+                                    modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
+                                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                        containerColor = Color.White.copy(alpha = 0.92f),
+                                        contentColor = Negative
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Rimuovi foto")
+                                }
+                            } else {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(Icons.Default.AddAPhoto, null, tint = AppGreen, modifier = Modifier.size(54.dp))
+                                    Spacer(Modifier.height(8.dp))
+                                    Text("Aggiungi una foto", color = AppNavy, fontWeight = FontWeight.Black)
+                                    Text("Aiuta a riconoscere subito il prodotto", color = Color(0xFF6B7C93), fontSize = 12.sp)
                                 }
                             }
-                        },
-                        enabled = !loading && code.isNotBlank(),
-                        modifier = Modifier.weight(1f).height(50.dp)
-                    ) {
-                        Icon(Icons.Default.Search, null)
-                        Spacer(Modifier.width(6.dp))
-                        Text("Cerca")
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Button(
+                                onClick = { cameraLauncher.launch(null) },
+                                modifier = Modifier.weight(1f).height(54.dp),
+                                shape = RoundedCornerShape(18.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = AppGreen)
+                            ) {
+                                Icon(Icons.Default.PhotoCamera, null)
+                                Spacer(Modifier.width(7.dp))
+                                Text("Scatta foto", fontWeight = FontWeight.Black)
+                            }
+                            OutlinedButton(
+                                onClick = { galleryLauncher.launch("image/*") },
+                                modifier = Modifier.weight(1f).height(54.dp),
+                                shape = RoundedCornerShape(18.dp),
+                                border = BorderStroke(1.4.dp, Color(0xFF9BCBFF)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = AppBlue)
+                            ) {
+                                Icon(Icons.Default.PhotoLibrary, null)
+                                Spacer(Modifier.width(7.dp))
+                                Text("Galleria", fontWeight = FontWeight.Black)
+                            }
+                        }
                     }
                 }
             }
 
-            if (loading) item {
-                LinearProgressIndicator(Modifier.fillMaxWidth())
-            }
-
-            if (status.isNotBlank()) item {
-                Text(
-                    status,
-                    color = if (status.contains("trovato", ignoreCase = true) || status.contains("presente", ignoreCase = true)) Positive else Color(0xFF64748B),
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            val imageModel: Any? = localImagePath.takeIf { it.isNotBlank() }?.let(::File)
-                ?: remoteImageUrl.takeIf { it.isNotBlank() }
-
-            if (imageModel != null) item {
+            item {
                 Card(
                     Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(22.dp),
-                    border = BorderStroke(1.5.dp, LegacyBorder)
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, LegacyBorder)
                 ) {
-                    AsyncImage(
-                        model = imageModel,
-                        contentDescription = "Foto prodotto",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(240.dp)
-                    )
+                    Column(
+                        Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(shape = RoundedCornerShape(14.dp), color = AppSky) {
+                                Icon(
+                                    Icons.Default.Inventory2,
+                                    null,
+                                    tint = AppBlue,
+                                    modifier = Modifier.padding(10.dp).size(24.dp)
+                                )
+                            }
+                            Spacer(Modifier.width(10.dp))
+                            Text("Dettagli prodotto", color = AppNavy, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                        }
+
+                        OutlinedTextField(
+                            value = code,
+                            onValueChange = { code = it.filter(Char::isDigit) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            label = { Text("Codice a barre") },
+                            leadingIcon = { Icon(Icons.Default.QrCode2, null) },
+                            trailingIcon = {
+                                IconButton(onClick = ::startScan) {
+                                    Icon(Icons.Default.QrCodeScanner, contentDescription = "Scanner", tint = AppGreen)
+                                }
+                            },
+                            shape = RoundedCornerShape(18.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = AppGreen,
+                                focusedLabelColor = AppGreen
+                            )
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Button(
+                                onClick = ::startScan,
+                                modifier = Modifier.weight(1f).height(50.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
+                            ) {
+                                Icon(Icons.Default.QrCodeScanner, null)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Scansiona", fontWeight = FontWeight.Black)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    if (code.isNotBlank()) {
+                                        scope.launch {
+                                            loading = true
+                                            status = "Ricerca su Open Food Facts…"
+                                            val found = repository.lookupOpenFoodFacts(code)
+                                            if (found != null) {
+                                                name = found.name
+                                                brand = found.brand
+                                                quantity = found.quantity
+                                                description = found.description
+                                                remoteImageUrl = found.remoteImageUrl
+                                                status = "Prodotto trovato su Open Food Facts"
+                                            } else {
+                                                status = "Prodotto non trovato"
+                                            }
+                                            loading = false
+                                        }
+                                    }
+                                },
+                                enabled = !loading && code.isNotBlank(),
+                                modifier = Modifier.weight(1f).height(50.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                border = BorderStroke(1.2.dp, LegacyBorder)
+                            ) {
+                                Icon(Icons.Default.Search, null)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Cerca dati", fontWeight = FontWeight.Black)
+                            }
+                        }
+
+                        if (loading) LinearProgressIndicator(Modifier.fillMaxWidth(), color = AppGreen)
+
+                        AppStyledField(name, { name = it }, "Nome prodotto *", Icons.Default.Edit)
+                        AppStyledField(brand, { brand = it }, "Marca", Icons.Default.LocalOffer)
+                        AppStyledField(quantity, { quantity = it }, "Quantità / formato", Icons.Default.Scale)
+                        AppStyledField(description, { description = it }, "Categoria / descrizione", Icons.Default.Category, minLines = 2)
+
+                        OutlinedTextField(
+                            value = price,
+                            onValueChange = { value ->
+                                price = value.filter { it.isDigit() || it == ',' || it == '.' }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            label = { Text("Prezzo pagato € *") },
+                            leadingIcon = { Icon(Icons.Default.Euro, null) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = AppGreen,
+                                focusedLabelColor = AppGreen
+                            )
+                        )
+                    }
                 }
             }
 
-            item { SectionTitle("Dati articolo") }
-            item { AppField(name, { name = it }, "Nome prodotto *") }
-            item { AppField(brand, { brand = it }, "Marca") }
-            item { AppField(quantity, { quantity = it }, "Formato / quantità") }
-            item { AppField(description, { description = it }, "Descrizione", minLines = 3) }
-
-            item { SectionTitle("Prezzo") }
-
-            item {
-                OutlinedTextField(
-                    value = price,
-                    onValueChange = { value ->
-                        price = value.filter { it.isDigit() || it == ',' || it == '.' }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text("Prezzo € *") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    supportingText = { Text("Obbligatorio prima del salvataggio") }
-                )
-            }
-
-            item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF4FF))
-                ) {
-                    Row(
-                        Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
+            if (status.isNotBlank()) {
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        color = if (
+                            status.contains("trovato", true) ||
+                            status.contains("aggiunta", true) ||
+                            status.contains("salvata", true)
+                        ) AppMint else AppSky
                     ) {
-                        Icon(Icons.Default.Schedule, null, tint = AppBlue)
-                        Spacer(Modifier.width(10.dp))
-                        Column {
-                            Text("Data inserimento", fontWeight = FontWeight.Bold)
-                            Text(
-                                if (existing != null) displayDate(existing.savedAt) else "Verrà salvata automaticamente",
-                                color = Color(0xFF64748B),
-                                fontSize = 12.sp
-                            )
-                        }
+                        Text(
+                            status,
+                            modifier = Modifier.padding(14.dp),
+                            color = AppNavy,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }
@@ -1121,23 +1292,47 @@ private fun ProductEditorScreen(
                         }
                     },
                     enabled = !saving,
-                    modifier = Modifier.fillMaxWidth().height(54.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppNavy),
-                    shape = RoundedCornerShape(18.dp)
+                    modifier = Modifier.fillMaxWidth().height(58.dp),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppGreen)
                 ) {
                     if (saving) {
-                        CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = Color.White)
+                        CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
                     } else {
                         Icon(Icons.Default.Save, null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Salva articolo", fontWeight = FontWeight.Black)
+                        Text("Salva prodotto", fontWeight = FontWeight.Black, fontSize = 17.sp)
                     }
                 }
             }
 
-            item { Spacer(Modifier.height(24.dp)) }
+            item { Spacer(Modifier.height(16.dp)) }
         }
     }
+}
+
+@Composable
+private fun AppStyledField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    minLines: Int = 1
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text(label) },
+        leadingIcon = { Icon(icon, null) },
+        minLines = minLines,
+        singleLine = minLines == 1,
+        shape = RoundedCornerShape(18.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = AppGreen,
+            focusedLabelColor = AppGreen
+        )
+    )
 }
 
 @Composable
@@ -1341,6 +1536,32 @@ class ProductRepository(
                 updatedAt = ""
             )
         }.getOrNull()
+    }
+
+    suspend fun persistManualImage(code: String, sourceUri: Uri): String = withContext(Dispatchers.IO) {
+        runCatching {
+            val dir = File(context.filesDir, "product_images").apply { mkdirs() }
+            val safeCode = code.filter { it.isLetterOrDigit() }
+                .ifBlank { System.currentTimeMillis().toString() }
+            val file = File(dir, "${safeCode}_manual_${System.currentTimeMillis()}.jpg")
+            context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                file.outputStream().use { output -> input.copyTo(output) }
+            } ?: return@runCatching ""
+            file.absolutePath
+        }.getOrDefault("")
+    }
+
+    suspend fun persistManualBitmap(code: String, bitmap: Bitmap): String = withContext(Dispatchers.IO) {
+        runCatching {
+            val dir = File(context.filesDir, "product_images").apply { mkdirs() }
+            val safeCode = code.filter { it.isLetterOrDigit() }
+                .ifBlank { System.currentTimeMillis().toString() }
+            val file = File(dir, "${safeCode}_camera_${System.currentTimeMillis()}.jpg")
+            file.outputStream().use { output ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 92, output)
+            }
+            file.absolutePath
+        }.getOrDefault("")
     }
 
     suspend fun persistImage(
