@@ -51,6 +51,6 @@ jobs:
       - name: Upload SpesaScan APK
         uses: actions/upload-artifact@v4
         with:
-          name: SpesaScan-0.1.0-debug
+          name: SpesaScan-0.2.0-debug
           path: spesascan-native/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
