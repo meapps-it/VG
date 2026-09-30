@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.util.Base64
@@ -81,6 +82,7 @@ private val Positive = Color(0xFF079A63)
 private val Negative = Color(0xFFE5484D)
 private val LegacyBorder = Color(0xFFD7E3EF)
 private val CardSoft = Color(0xFFFFFFFF)
+private val SpesaScanFont = FontFamily(Typeface.create("sans-serif", Typeface.NORMAL))
 
 private val SupportedSupermarkets = listOf(
     "Mercatò", "Conad", "Lidl", "Carrefour", "Esselunga", "Coop", "Eurospin"
@@ -439,7 +441,7 @@ private fun ReferenceNavItem(
             color = if (selected) AppGreen else AppNavy,
             fontSize = 9.sp,
             fontWeight = if (selected) FontWeight.Black else FontWeight.Medium,
-            fontFamily = FontFamily.SansSerif,
+            fontFamily = SpesaScanFont,
             maxLines = 1
         )
     }
@@ -448,8 +450,8 @@ private fun ReferenceNavItem(
 @Composable
 private fun BrandLogo(fontSize: Int = 29) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("Spesa", color = AppNavy, fontSize = fontSize.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif)
-        Text("Scan", color = AppGreen, fontSize = fontSize.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif)
+        Text("Spesa", color = AppNavy, fontSize = fontSize.sp, fontWeight = FontWeight.Black, fontFamily = SpesaScanFont)
+        Text("Scan", color = AppGreen, fontSize = fontSize.sp, fontWeight = FontWeight.Black, fontFamily = SpesaScanFont)
     }
 }
 
@@ -507,14 +509,24 @@ private fun DashboardScreen(
         item {
             Box(Modifier.fillMaxWidth().height(178.dp)) {
                 Column(Modifier.align(Alignment.TopStart).width(170.dp).padding(top = 8.dp)) {
-                    Text("Buongiorno\n$displayName!", color = AppNavy, fontSize = 24.sp, lineHeight = 25.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif)
+                    Text("Buongiorno\n$displayName!", color = AppNavy, fontSize = 23.sp, lineHeight = 24.sp, fontWeight = FontWeight.Black, fontFamily = SpesaScanFont)
                     Spacer(Modifier.height(7.dp))
-                    Text("Tieni sotto controllo la\ntua spesa e risparmia\nogni giorno.", color = Color(0xFF4E6A88), fontSize = 12.sp, lineHeight = 16.sp, fontFamily = FontFamily.SansSerif)
+                    Text("Tieni sotto controllo la tua spesa\ne risparmia ogni giorno.", color = Color(0xFF4E6A88), fontSize = 11.sp, lineHeight = 15.sp, fontFamily = SpesaScanFont)
                 }
-                GroceryMascot(
-                    modifier = Modifier.align(Alignment.BottomEnd).size(width = 165.dp, height = 154.dp),
-                    showScanner = false
-                )
+                Surface(
+                    modifier = Modifier.align(Alignment.BottomEnd).size(width = 156.dp, height = 146.dp),
+                    shape = RoundedCornerShape(34.dp),
+                    color = Color(0xFFEAFBF4)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.ShoppingBasket,
+                            contentDescription = null,
+                            tint = AppGreen,
+                            modifier = Modifier.size(68.dp)
+                        )
+                    }
+                }
             }
         }
 
@@ -547,13 +559,13 @@ private fun DashboardScreen(
             ) {
                 Icon(Icons.Default.QrCodeScanner, null, modifier = Modifier.size(23.dp))
                 Spacer(Modifier.width(9.dp))
-                Text("Scansiona un prodotto", fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif)
+                Text("Scansiona un prodotto", fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = SpesaScanFont)
             }
         }
 
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Ultimi prodotti aggiunti", color = AppNavy, fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif)
+                Text("Ultimi prodotti aggiunti", color = AppNavy, fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = SpesaScanFont)
                 Spacer(Modifier.weight(1f))
                 Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF6F86A0))
             }
@@ -587,7 +599,7 @@ private fun HomeMetricCard(
     modifier: Modifier
 ) {
     Surface(
-        modifier = modifier.height(78.dp),
+        modifier = modifier.height(72.dp),
         shape = RoundedCornerShape(22.dp),
         color = Color.White,
         shadowElevation = 2.dp
@@ -598,8 +610,8 @@ private fun HomeMetricCard(
             }
             Spacer(Modifier.width(8.dp))
             Column {
-                Text(value, color = AppNavy, fontSize = 17.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif, maxLines = 1)
-                Text(label, color = Color(0xFF6C8199), fontSize = 9.sp, fontFamily = FontFamily.SansSerif, maxLines = 1)
+                Text(value, color = AppNavy, fontSize = 17.sp, fontWeight = FontWeight.Black, fontFamily = SpesaScanFont, maxLines = 1)
+                Text(label, color = Color(0xFF6C8199), fontSize = 9.sp, fontFamily = SpesaScanFont, maxLines = 1)
             }
         }
     }
@@ -610,7 +622,7 @@ private fun HomeRecentCard(product: SavedProduct, modifier: Modifier, onClick: (
     val imageModel: Any? = product.imagePath.takeIf { it.isNotBlank() }?.let(::File)
         ?: product.remoteImageUrl.takeIf { it.isNotBlank() }
     Surface(
-        modifier = modifier.height(128.dp).clickable(onClick = onClick),
+        modifier = modifier.height(118.dp).clickable(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
         color = Color.White,
         shadowElevation = 2.dp
