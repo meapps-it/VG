@@ -1,16 +1,22 @@
 package it.meapps.spesascan
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -23,14 +29,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -38,6 +48,8 @@ import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.text.DateFormat
+import java.util.Date
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -64,9 +76,12 @@ data class SavedProduct(
 
 class MainActivity : ComponentActivity() {
     private val repository by lazy { ProductRepository(this) }
+    private val authRepository by lazy { AuthRepository(this) }
+    private var authSession by mutableStateOf<UserSession?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        authSession = authRepository.session
         setContent {
             MaterialTheme(
                 colorScheme = lightColorScheme(
@@ -80,16 +95,166 @@ class MainActivity : ComponentActivity() {
                 )
             ) {
                 Surface(Modifier.fillMaxSize(), color = AppBackground) {
-                    SpesaScanApp(repository)
+                    val session = authSession
+                    if (session == null) {
+                        LoginScreen(
+                            authRepository = authRepository,
+                            onAuthenticated = {
+                                authSession = it
+                                repository.setOwner(it.userId)
+                            }
+                        )
+                    } else {
+                        LaunchedEffect(session.userId) { repository.setOwner(session.userId) }
+                        SpesaScanApp(
+                            repository = repository,
+                            session = session,
+                            onLogout = {
+                                lifecycleScope.launch {
+                                    authRepository.signOut()
+                                    authSession = null
+                                }
+                            }
+                        )
+                    }
                 }
+            }
+        }
+        handleAuthIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleAuthIntent(intent)
+    }
+
+    private fun handleAuthIntent(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme == "spesascan" && data.host == "login-callback") {
+            lifecycleScope.launch {
+                runCatching { authRepository.completeGoogleOAuth(data) }
+                    .onSuccess {
+                        repository.setOwner(it.userId)
+                        authSession = it
+                    }
             }
         }
     }
 }
 
 @Composable
-private fun SpesaScanApp(repository: ProductRepository) {
-    var products by remember { mutableStateOf(repository.loadAll()) }
+private fun LoginScreen(
+    authRepository: AuthRepository,
+    onAuthenticated: (UserSession) -> Unit
+) {
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var register by rememberSaveable { mutableStateOf(false) }
+    var loading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var notice by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Card(
+            Modifier.fillMaxWidth().widthIn(max = 440.dp),
+            shape = RoundedCornerShape(24.dp),
+            border = BorderStroke(1.5.dp, LegacyBorder)
+        ) {
+            Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Icon(Icons.Default.QrCodeScanner, null, tint = AppBlue, modifier = Modifier.size(48.dp))
+                Text(if (register) "Crea account" else "SpesaScan", fontSize = 28.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                Text("Scansiona, salva e confronta i tuoi prodotti.", color = Color(0xFF667085))
+
+                OutlinedButton(
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(authRepository.googleAuthUrl())))
+                    },
+                    enabled = !loading,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Color(0xFF202124)),
+                    border = BorderStroke(1.dp, Color(0xFFDADCE0))
+                ) {
+                    Text("G", color = Color(0xFF4285F4), fontWeight = FontWeight.Black, fontSize = 22.sp)
+                    Spacer(Modifier.width(12.dp))
+                    Text("Continua con Google", fontWeight = FontWeight.Bold)
+                }
+
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    HorizontalDivider(Modifier.weight(1f), color = Color(0xFFDADCE0))
+                    Text("  oppure  ", color = Color(0xFF64748B), fontSize = 12.sp)
+                    HorizontalDivider(Modifier.weight(1f), color = Color(0xFFDADCE0))
+                }
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Email") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Password") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done)
+                )
+
+                Button(
+                    onClick = {
+                        if (email.isBlank() || password.isBlank()) {
+                            error = "Inserisci email e password"
+                        } else {
+                            scope.launch {
+                                loading = true
+                                error = null
+                                notice = null
+                                runCatching {
+                                    if (register) {
+                                        val created = authRepository.signUp(email, password)
+                                        authRepository.session ?: if (created) null else null
+                                    } else authRepository.signIn(email, password)
+                                }.onSuccess { session ->
+                                    if (session != null) onAuthenticated(session)
+                                    else notice = "Account creato. Controlla l’email per confermarlo."
+                                }.onFailure { error = it.message ?: "Accesso non riuscito" }
+                                loading = false
+                            }
+                        }
+                    },
+                    enabled = !loading,
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
+                ) {
+                    if (loading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = Color.White)
+                    else Text(if (register) "Registrati" else "Accedi", fontWeight = FontWeight.Bold)
+                }
+
+                TextButton(onClick = { register = !register }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                    Text(if (register) "Hai già un account? Accedi" else "Crea un nuovo account")
+                }
+
+                error?.let { Text(it, color = Negative) }
+                notice?.let { Text(it, color = Positive) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpesaScanApp(
+    repository: ProductRepository,
+    session: UserSession,
+    onLogout: () -> Unit
+) {
+    var products by remember(session.userId) { mutableStateOf(repository.loadAll()) }
     var editing by remember { mutableStateOf<SavedProduct?>(null) }
     var creating by rememberSaveable { mutableStateOf(false) }
 
@@ -110,8 +275,10 @@ private fun SpesaScanApp(repository: ProductRepository) {
     } else {
         ProductsScreen(
             products = products,
+            session = session,
             onNew = { creating = true },
-            onOpen = { editing = it }
+            onOpen = { editing = it },
+            onLogout = onLogout
         )
     }
 }
