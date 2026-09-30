@@ -43,8 +43,10 @@ import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -74,12 +76,13 @@ data class SavedProduct(
     val salePrice: Double,
     val savedAt: String,
     val imagePath: String = "",
-    val remoteImageUrl: String = ""
+    val remoteImageUrl: String = "",
+    val updatedAt: String = ""
 )
 
 class MainActivity : ComponentActivity() {
-    private val repository by lazy { ProductRepository(this) }
     private val auth by lazy { AuthController(this) }
+    private val repository by lazy { ProductRepository(this, auth) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -263,6 +266,12 @@ private fun AuthenticatedApp(repository: ProductRepository, auth: AuthController
     var editing by remember { mutableStateOf<SavedProduct?>(null) }
     var creating by rememberSaveable { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.ARTICLES) }
+
+    LaunchedEffect(auth.session?.userId) {
+        if (auth.session != null) {
+            products = repository.syncWithCloud()
+        }
+    }
 
     if (creating || editing != null) {
         ProductEditorScreen(
@@ -1099,9 +1108,10 @@ private fun ProductEditorScreen(
                                             quantity = quantity.trim(),
                                             description = description.trim(),
                                             salePrice = parsedPrice,
-                                            savedAt = existing?.savedAt ?: LocalDateTime.now().toString(),
+                                            savedAt = existing?.savedAt ?: java.time.Instant.now().toString(),
                                             imagePath = imagePath,
-                                            remoteImageUrl = remoteImageUrl
+                                            remoteImageUrl = remoteImageUrl,
+                                            updatedAt = java.time.Instant.now().toString()
                                         )
                                     )
                                     saving = false
@@ -1153,26 +1163,149 @@ private fun AppField(
     )
 }
 
-class ProductRepository(private val context: Context) {
+class ProductRepository(
+    private val context: Context,
+    private val auth: AuthController
+) {
     private val prefs = context.getSharedPreferences("spesascan", Context.MODE_PRIVATE)
     private val client = OkHttpClient()
+    private val baseUrl = BuildConfig.SUPABASE_URL.trimEnd('/')
+    private val apiKey = BuildConfig.SUPABASE_PUBLISHABLE_KEY
 
     fun loadAll(): List<SavedProduct> {
         val raw = prefs.getString("archive_v2", "[]").orEmpty()
         val array = runCatching { JSONArray(raw) }.getOrDefault(JSONArray())
         return (0 until array.length())
             .mapNotNull { array.optJSONObject(it)?.toSavedProduct() }
-            .sortedByDescending { it.savedAt }
+            .sortedByDescending { productTimestamp(it) }
     }
 
     fun find(code: String): SavedProduct? = loadAll().firstOrNull { it.code == code }
 
-    fun save(product: SavedProduct) {
+    suspend fun syncWithCloud(): List<SavedProduct> {
+        val session = auth.validSession() ?: return loadAll()
+        return withContext(Dispatchers.IO) {
+            val local = loadAll()
+            val remote = runCatching { fetchRemote(session) }.getOrElse { return@withContext local }
+
+            val localByCode = local.associateBy { it.code }.toMutableMap()
+            val remoteByCode = remote.associateBy { it.code }
+            val allCodes = (localByCode.keys + remoteByCode.keys).distinct()
+            val merged = mutableListOf<SavedProduct>()
+
+            for (code in allCodes) {
+                val localProduct = localByCode[code]
+                val remoteProduct = remoteByCode[code]
+                val winner = when {
+                    localProduct == null -> remoteProduct!!
+                    remoteProduct == null -> {
+                        runCatching { upsertRemote(localProduct, session) }
+                        localProduct
+                    }
+                    productTimestamp(localProduct) >= productTimestamp(remoteProduct) -> {
+                        runCatching { upsertRemote(localProduct, session) }
+                        localProduct
+                    }
+                    else -> remoteProduct.copy(
+                        imagePath = localProduct.imagePath.ifBlank { remoteProduct.imagePath },
+                        remoteImageUrl = remoteProduct.remoteImageUrl.ifBlank { localProduct.remoteImageUrl }
+                    )
+                }
+                merged += winner
+            }
+
+            saveAllLocal(merged)
+            merged.sortedByDescending { productTimestamp(it) }
+        }
+    }
+
+    suspend fun save(product: SavedProduct) {
+        saveLocal(product)
+        val session = auth.validSession() ?: return
+        withContext(Dispatchers.IO) {
+            runCatching { upsertRemote(product, session) }
+        }
+    }
+
+    private fun saveLocal(product: SavedProduct) {
         val current = loadAll().filterNot { it.code == product.code }.toMutableList()
         current.add(product)
+        saveAllLocal(current)
+    }
+
+    private fun saveAllLocal(products: List<SavedProduct>) {
         val array = JSONArray()
-        current.forEach { array.put(it.toJson()) }
+        products.forEach { array.put(it.toJson()) }
         prefs.edit().putString("archive_v2", array.toString()).apply()
+    }
+
+    private fun fetchRemote(session: AuthSession): List<SavedProduct> {
+        val request = Request.Builder()
+            .url("$baseUrl/rest/v1/spesascan_articoli?select=code,name,brand,quantity,description,sale_price,saved_at,image_path,remote_image_url,updated_at&user_id=eq.${session.userId}&order=updated_at.desc")
+            .header("apikey", apiKey)
+            .header("Authorization", "Bearer ${session.accessToken}")
+            .header("Accept", "application/json")
+            .get()
+            .build()
+
+        val body = client.newCall(request).execute().use { response ->
+            val text = response.body?.string().orEmpty()
+            if (!response.isSuccessful) error("Sincronizzazione non riuscita (${response.code})")
+            text
+        }
+
+        val array = JSONArray(body)
+        return (0 until array.length()).mapNotNull { index ->
+            array.optJSONObject(index)?.let { json ->
+                SavedProduct(
+                    code = json.optString("code"),
+                    name = json.optString("name"),
+                    brand = json.optString("brand"),
+                    quantity = json.optString("quantity"),
+                    description = json.optString("description"),
+                    salePrice = json.optDouble("sale_price", 0.0),
+                    savedAt = json.optString("saved_at"),
+                    imagePath = "",
+                    remoteImageUrl = json.optString("remote_image_url"),
+                    updatedAt = json.optString("updated_at")
+                )
+            }
+        }
+    }
+
+    private fun upsertRemote(product: SavedProduct, session: AuthSession) {
+        val payload = JSONArray().put(
+            JSONObject()
+                .put("user_id", session.userId)
+                .put("code", product.code)
+                .put("name", product.name)
+                .put("brand", product.brand)
+                .put("quantity", product.quantity)
+                .put("description", product.description)
+                .put("sale_price", product.salePrice)
+                .put("saved_at", product.savedAt.ifBlank { java.time.Instant.now().toString() })
+                .put("image_path", "")
+                .put("remote_image_url", product.remoteImageUrl)
+                .put("updated_at", product.updatedAt.ifBlank { java.time.Instant.now().toString() })
+        )
+
+        val body = payload.toString()
+            .toRequestBody("application/json; charset=utf-8".toMediaType())
+        val request = Request.Builder()
+            .url("$baseUrl/rest/v1/spesascan_articoli?on_conflict=user_id,code")
+            .header("apikey", apiKey)
+            .header("Authorization", "Bearer ${session.accessToken}")
+            .header("Content-Type", "application/json")
+            .header("Prefer", "resolution=merge-duplicates,return=minimal")
+            .post(body)
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                val errorBody = response.body?.string().orEmpty()
+                error("Salvataggio cloud non riuscito (${response.code}): $errorBody")
+            }
+        }
     }
 
     suspend fun lookupOpenFoodFacts(code: String): SavedProduct? = withContext(Dispatchers.IO) {
@@ -1204,7 +1337,8 @@ class ProductRepository(private val context: Context) {
                 salePrice = 0.0,
                 savedAt = "",
                 imagePath = "",
-                remoteImageUrl = p.optString("image_front_url")
+                remoteImageUrl = p.optString("image_front_url"),
+                updatedAt = ""
             )
         }.getOrNull()
     }
@@ -1240,6 +1374,20 @@ class ProductRepository(private val context: Context) {
     }
 }
 
+private fun productTimestamp(product: SavedProduct): Long {
+    val raw = product.updatedAt.ifBlank { product.savedAt }
+    if (raw.isBlank()) return 0L
+    return runCatching { java.time.Instant.parse(raw).toEpochMilli() }
+        .recoverCatching { java.time.OffsetDateTime.parse(raw).toInstant().toEpochMilli() }
+        .recoverCatching {
+            java.time.LocalDateTime.parse(raw)
+                .atZone(java.time.ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+        }
+        .getOrDefault(0L)
+}
+
 private fun SavedProduct.toJson(): JSONObject = JSONObject().apply {
     put("code", code)
     put("name", name)
@@ -1250,6 +1398,7 @@ private fun SavedProduct.toJson(): JSONObject = JSONObject().apply {
     put("savedAt", savedAt)
     put("imagePath", imagePath)
     put("remoteImageUrl", remoteImageUrl)
+    put("updatedAt", updatedAt)
 }
 
 private fun JSONObject.toSavedProduct(): SavedProduct = SavedProduct(
@@ -1261,15 +1410,26 @@ private fun JSONObject.toSavedProduct(): SavedProduct = SavedProduct(
     salePrice = optDouble("salePrice", 0.0),
     savedAt = optString("savedAt"),
     imagePath = optString("imagePath"),
-    remoteImageUrl = optString("remoteImageUrl")
+    remoteImageUrl = optString("remoteImageUrl"),
+    updatedAt = optString("updatedAt").ifBlank { optString("savedAt") }
 )
 
 private fun money(value: Double): String = String.format(Locale.ITALY, "%.2f €", value)
 
 private fun displayDate(raw: String): String {
     if (raw.isBlank()) return ""
+    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.ITALY)
     return runCatching {
-        val value = LocalDateTime.parse(raw)
-        value.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.ITALY))
+        java.time.Instant.parse(raw)
+            .atZone(java.time.ZoneId.systemDefault())
+            .toLocalDateTime()
+            .format(formatter)
+    }.recoverCatching {
+        java.time.OffsetDateTime.parse(raw)
+            .atZoneSameInstant(java.time.ZoneId.systemDefault())
+            .toLocalDateTime()
+            .format(formatter)
+    }.recoverCatching {
+        LocalDateTime.parse(raw).format(formatter)
     }.getOrDefault(raw)
 }
