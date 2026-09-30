@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,6 +31,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -490,39 +494,108 @@ private fun BottomPill(
 @Composable
 private fun DashboardScreen(products: List<SavedProduct>, onNew: () -> Unit) {
     val total = products.sumOf { it.salePrice }
-    val latest = products.maxByOrNull { it.savedAt }
+    val latest = products.maxByOrNull { productTimestamp(it) }
+    val stores = products.map { it.supermarket }.filter { it.isNotBlank() }.distinct().size
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+    androidx.compose.foundation.lazy.LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Dashboard", fontSize = 26.sp, fontWeight = FontWeight.Black, color = AppNavy)
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            StatCard("Articoli", products.size.toString(), Modifier.weight(1f))
-            StatCard("Valore prezzi", money(total), Modifier.weight(1f))
-        }
-        Card(
-            Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            border = BorderStroke(1.5.dp, LegacyBorder)
-        ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Ultimo articolo", fontWeight = FontWeight.Black, color = AppNavy)
-                Text(latest?.name ?: "Nessun articolo salvato", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                if (latest != null) Text(displayDate(latest.savedAt), color = Color(0xFF64748B))
+        item {
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(30.dp),
+                colors = CardDefaults.cardColors(containerColor = AppSky)
+            ) {
+                Row(
+                    Modifier.padding(start = 18.dp, top = 16.dp, bottom = 14.dp, end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("SpesaScan", color = AppNavy, fontSize = 31.sp, fontWeight = FontWeight.Black)
+                        Text(
+                            "Scansiona, confronta, risparmia.",
+                            color = AppGreenDark,
+                            fontWeight = FontWeight.Black
+                        )
+                        Spacer(Modifier.height(7.dp))
+                        Text(
+                            "Tieni memoria dei prezzi e scopri dove conviene comprare.",
+                            color = Color(0xFF60748C),
+                            fontSize = 12.sp
+                        )
+                    }
+                    GroceryMascot(Modifier.size(width = 138.dp, height = 122.dp), showScanner = false)
+                }
             }
         }
-        Button(
-            onClick = onNew,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AppBlue),
-            shape = RoundedCornerShape(18.dp)
-        ) {
-            Icon(Icons.Default.QrCodeScanner, null)
-            Spacer(Modifier.width(8.dp))
-            Text("Scansiona nuovo prodotto", fontWeight = FontWeight.Black)
+
+        item {
+            Button(
+                onClick = onNew,
+                modifier = Modifier.fillMaxWidth().height(60.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
+                shape = RoundedCornerShape(22.dp)
+            ) {
+                Icon(Icons.Default.QrCodeScanner, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Scansiona un prodotto", fontWeight = FontWeight.Black, fontSize = 17.sp)
+            }
+        }
+
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                DetailMetric("Prodotti", products.size.toString(), Icons.Default.Inventory2, AppMint, Modifier.weight(1f))
+                DetailMetric("Supermercati", stores.toString(), Icons.Default.Storefront, AppSky, Modifier.weight(1f))
+            }
+        }
+
+        item {
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, LegacyBorder)
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text("Ultimo prodotto", color = AppNavy, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                    if (latest == null) {
+                        Text("Nessun prodotto salvato", color = Color(0xFF71839A))
+                    } else {
+                        Text(latest.name, color = AppNavy, fontSize = 21.sp, fontWeight = FontWeight.Black)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(money(latest.salePrice), color = AppGreenDark, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                            if (latest.supermarket.isNotBlank()) {
+                                Spacer(Modifier.width(12.dp))
+                                SupermarketBadge(latest.supermarket, compact = true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = AppMint)
+            ) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Savings, null, tint = AppGreen, modifier = Modifier.size(34.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text("Valore ultimi prezzi", color = AppNavy, fontWeight = FontWeight.Black)
+                        Text(money(total), color = AppGreenDark, fontSize = 27.sp, fontWeight = FontWeight.Black)
+                        Text(
+                            "La spesa mensile arriverà con lo storico acquisti.",
+                            color = Color(0xFF61758D),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -614,12 +687,28 @@ private fun ProductDetailScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     DetailMetric("Ultimo prezzo", money(product.salePrice), Icons.Default.Euro, AppMint, Modifier.weight(1f))
                     DetailMetric(
-                        "Supermercato",
-                        product.supermarket.ifBlank { "Non indicato" },
-                        Icons.Default.Storefront,
+                        "Formato",
+                        product.quantity.ifBlank { "Non indicato" },
+                        Icons.Default.Scale,
                         AppSky,
                         Modifier.weight(1f)
                     )
+                }
+            }
+
+            if (product.supermarket.isNotBlank()) {
+                item {
+                    Card(
+                        Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, LegacyBorder)
+                    ) {
+                        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Ultimo supermercato", color = AppNavy, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
+                            SupermarketBadge(product.supermarket, compact = false)
+                        }
+                    }
                 }
             }
 
@@ -726,9 +815,12 @@ private fun StatsScreen(products: List<SavedProduct>) {
                 shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = AppSky)
             ) {
-                Column(Modifier.padding(18.dp)) {
-                    Text("Le tue statistiche", color = AppNavy, fontSize = 28.sp, fontWeight = FontWeight.Black)
-                    Text("Numeri reali basati sui prodotti che hai salvato.", color = Color(0xFF61758D))
+                Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Le tue statistiche", color = AppNavy, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                        Text("Numeri reali basati sui prodotti che hai salvato.", color = Color(0xFF61758D))
+                    }
+                    GroceryMascot(Modifier.size(width = 120.dp, height = 105.dp), showScanner = false)
                 }
             }
         }
@@ -786,7 +878,9 @@ private fun StatsScreen(products: List<SavedProduct>) {
                             Icon(Icons.Default.Storefront, null, tint = AppGreen, modifier = Modifier.padding(10.dp))
                         }
                         Spacer(Modifier.width(10.dp))
-                        Text(entry.key, color = AppNavy, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
+                        Box(Modifier.weight(1f)) {
+                            SupermarketBadge(entry.key, compact = false)
+                        }
                         Text(entry.value.toString() + " prodotti", color = AppGreenDark, fontWeight = FontWeight.Black)
                     }
                 }
@@ -821,6 +915,15 @@ private fun ScannerLanding(
                         color = Color(0xFF5F738B),
                         fontWeight = FontWeight.SemiBold
                     )
+                    Box(
+                        Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        GroceryMascot(
+                            modifier = Modifier.size(width = 158.dp, height = 118.dp),
+                            showScanner = true
+                        )
+                    }
                     Box(
                         Modifier.fillMaxWidth().height(220.dp)
                             .background(Brush.linearGradient(listOf(Color.White, AppSky)), RoundedCornerShape(26.dp))
@@ -1004,14 +1107,10 @@ private fun ProductsScreen(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                Surface(shape = RoundedCornerShape(22.dp), color = Color.White.copy(alpha = 0.85f)) {
-                    Icon(
-                        Icons.Default.ShoppingBasket,
-                        null,
-                        tint = AppGreen,
-                        modifier = Modifier.padding(14.dp).size(34.dp)
-                    )
-                }
+                GroceryMascot(
+                    modifier = Modifier.size(width = 125.dp, height = 105.dp),
+                    showScanner = false
+                )
             }
         }
 
@@ -1168,13 +1267,225 @@ private fun ProductGridCard(product: SavedProduct, onClick: () -> Unit) {
                 }
                 Text(money(product.salePrice), fontWeight = FontWeight.Black, fontSize = 21.sp, color = AppNavy)
                 if (product.supermarket.isNotBlank()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Storefront, null, tint = AppGreen, modifier = Modifier.size(15.dp))
-                        Spacer(Modifier.width(5.dp))
-                        Text(product.supermarket, color = AppNavy, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                    }
+                    SupermarketBadge(product.supermarket, compact = true)
                 }
                 Text(displayDate(product.savedAt), color = Color(0xFF8797AA), fontSize = 9.sp, maxLines = 1)
+            }
+        }
+    }
+}
+
+@Composable
+private fun GroceryMascot(
+    modifier: Modifier = Modifier,
+    showScanner: Boolean
+) {
+    Canvas(modifier) {
+        val w = size.width
+        val h = size.height
+
+        // Soft grocery basket.
+        drawRoundRect(
+            color = Color(0xFFEAFBF4),
+            topLeft = Offset(w * 0.43f, h * 0.61f),
+            size = Size(w * 0.50f, h * 0.28f),
+            cornerRadius = CornerRadius(w * 0.06f, w * 0.06f)
+        )
+        drawCircle(Color(0xFFFFB020), radius = w * 0.055f, center = Offset(w * 0.55f, h * 0.63f))
+        drawCircle(Color(0xFF36B66A), radius = w * 0.060f, center = Offset(w * 0.67f, h * 0.61f))
+        drawCircle(Color(0xFFE5484D), radius = w * 0.050f, center = Offset(w * 0.78f, h * 0.64f))
+
+        // Body and apron.
+        drawRoundRect(
+            color = AppGreen,
+            topLeft = Offset(w * 0.23f, h * 0.50f),
+            size = Size(w * 0.43f, h * 0.43f),
+            cornerRadius = CornerRadius(w * 0.14f, w * 0.14f)
+        )
+        drawRoundRect(
+            color = Color.White,
+            topLeft = Offset(w * 0.34f, h * 0.58f),
+            size = Size(w * 0.24f, h * 0.30f),
+            cornerRadius = CornerRadius(w * 0.06f, w * 0.06f)
+        )
+        drawRoundRect(
+            color = AppGreenDark,
+            topLeft = Offset(w * 0.39f, h * 0.72f),
+            size = Size(w * 0.14f, h * 0.045f),
+            cornerRadius = CornerRadius(w * 0.02f, w * 0.02f)
+        )
+
+        // Head.
+        drawCircle(
+            color = Color(0xFFFFC39B),
+            radius = w * 0.19f,
+            center = Offset(w * 0.43f, h * 0.35f)
+        )
+
+        // Hair.
+        val hair = Color(0xFF5B2E1F)
+        drawCircle(hair, radius = w * 0.10f, center = Offset(w * 0.33f, h * 0.18f))
+        drawCircle(hair, radius = w * 0.11f, center = Offset(w * 0.44f, h * 0.15f))
+        drawCircle(hair, radius = w * 0.09f, center = Offset(w * 0.54f, h * 0.19f))
+
+        // Eyes.
+        drawCircle(Color.White, radius = w * 0.043f, center = Offset(w * 0.37f, h * 0.34f))
+        drawCircle(Color.White, radius = w * 0.043f, center = Offset(w * 0.48f, h * 0.34f))
+        drawCircle(AppNavy, radius = w * 0.019f, center = Offset(w * 0.37f, h * 0.34f))
+        drawCircle(AppNavy, radius = w * 0.019f, center = Offset(w * 0.48f, h * 0.34f))
+
+        // Smile.
+        drawArc(
+            color = Color(0xFF7A2B24),
+            startAngle = 15f,
+            sweepAngle = 150f,
+            useCenter = false,
+            topLeft = Offset(w * 0.36f, h * 0.38f),
+            size = Size(w * 0.15f, h * 0.11f),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.018f)
+        )
+
+        // Raised arm.
+        drawRoundRect(
+            color = Color(0xFFFFC39B),
+            topLeft = Offset(w * 0.60f, h * 0.38f),
+            size = Size(w * 0.12f, h * 0.30f),
+            cornerRadius = CornerRadius(w * 0.05f, w * 0.05f)
+        )
+
+        if (showScanner) {
+            drawRoundRect(
+                color = AppNavy,
+                topLeft = Offset(w * 0.67f, h * 0.25f),
+                size = Size(w * 0.23f, h * 0.14f),
+                cornerRadius = CornerRadius(w * 0.03f, w * 0.03f)
+            )
+            drawRoundRect(
+                color = Negative,
+                topLeft = Offset(w * 0.70f, h * 0.28f),
+                size = Size(w * 0.14f, h * 0.035f),
+                cornerRadius = CornerRadius(w * 0.015f, w * 0.015f)
+            )
+        } else {
+            drawCircle(
+                color = AppAmber,
+                radius = w * 0.07f,
+                center = Offset(w * 0.79f, h * 0.31f)
+            )
+            drawCircle(
+                color = Color.White,
+                radius = w * 0.035f,
+                center = Offset(w * 0.79f, h * 0.31f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SupermarketBadge(
+    name: String,
+    compact: Boolean
+) {
+    val iconSize = if (compact) 24.dp else 34.dp
+    val fontSize = if (compact) 10.sp else 13.sp
+
+    Surface(
+        shape = RoundedCornerShape(if (compact) 12.dp else 16.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, LegacyBorder)
+    ) {
+        Row(
+            Modifier.padding(
+                horizontal = if (compact) 7.dp else 10.dp,
+                vertical = if (compact) 4.dp else 7.dp
+            ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SupermarketMark(name, Modifier.size(iconSize))
+            Spacer(Modifier.width(if (compact) 5.dp else 7.dp))
+            Text(
+                name,
+                color = AppNavy,
+                fontWeight = FontWeight.Black,
+                fontSize = fontSize,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun SupermarketMark(
+    name: String,
+    modifier: Modifier = Modifier
+) {
+    when (name.lowercase(Locale.ITALY)) {
+        "conad" -> {
+            Box(
+                modifier.background(Color(0xFFFFD928), RoundedCornerShape(50)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("✿", color = Color(0xFFE32926), fontWeight = FontWeight.Black, fontSize = 16.sp)
+            }
+        }
+        "lidl" -> {
+            Box(
+                modifier.background(Color(0xFF0050AA), RoundedCornerShape(5.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    Modifier.fillMaxSize(0.78f).background(Color(0xFFFFE500), RoundedCornerShape(50)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("L", color = Color(0xFFE30613), fontWeight = FontWeight.Black, fontSize = 13.sp)
+                }
+            }
+        }
+        "carrefour" -> {
+            Box(modifier, contentAlignment = Alignment.Center) {
+                Text("◆", color = Color(0xFF004E9F), fontSize = 23.sp)
+                Text("C", color = Color.White, fontWeight = FontWeight.Black, fontSize = 10.sp)
+            }
+        }
+        "esselunga" -> {
+            Box(
+                modifier.background(Color.White, RoundedCornerShape(5.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("S", color = Color(0xFFE30613), fontWeight = FontWeight.Black, fontSize = 20.sp)
+            }
+        }
+        "coop" -> {
+            Box(modifier, contentAlignment = Alignment.Center) {
+                Text("coop", color = Color(0xFFE20A16), fontWeight = FontWeight.Black, fontSize = 10.sp)
+            }
+        }
+        "eurospin" -> {
+            Box(
+                modifier.background(Color(0xFF0054A6), RoundedCornerShape(6.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("€", color = Color(0xFFFFE200), fontWeight = FontWeight.Black, fontSize = 15.sp)
+            }
+        }
+        "mercatò", "mercato" -> {
+            Box(
+                modifier.background(Color.White, RoundedCornerShape(5.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("M", color = Color(0xFF0054A6), fontWeight = FontWeight.Black, fontSize = 18.sp)
+                Box(
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth(0.8f).height(3.dp)
+                        .background(Color(0xFFE2231A), RoundedCornerShape(50))
+                )
+            }
+        }
+        else -> {
+            Box(
+                modifier.background(AppMint, RoundedCornerShape(7.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Storefront, null, tint = AppGreen, modifier = Modifier.fillMaxSize(0.65f))
             }
         }
     }
