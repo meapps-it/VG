@@ -1103,15 +1103,24 @@ private fun ProductsScreen(
     var categoryMenu by remember { mutableStateOf(false) }
 
     val categories = remember(products) {
-        products.map { it.category.trim() }.filter { it.isNotBlank() }.distinct().sorted().take(20)
+        products
+            .map { it.category.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
+            .take(20)
     }
 
     val filtered = remember(products, query, selectedStore, selectedCategory) {
         val q = query.trim().lowercase(Locale.ITALY)
         products.filter { product ->
             val textHit = q.isBlank() || listOf(
-                product.name, product.brand, product.code, product.category,
-                product.supermarket, product.description
+                product.name,
+                product.brand,
+                product.code,
+                product.category,
+                product.supermarket,
+                product.description
             ).any { it.lowercase(Locale.ITALY).contains(q) }
             val storeHit = selectedStore.isBlank() || product.supermarket == selectedStore
             val categoryHit = selectedCategory.isBlank() || product.category == selectedCategory
@@ -1119,239 +1128,303 @@ private fun ProductsScreen(
         }
     }
 
+    val averagePrice = if (products.isEmpty()) 0.0 else products.map { it.salePrice }.average()
+    val storeCount = products.map { it.supermarket }.filter { it.isNotBlank() }.distinct().size
+
     Column(
         Modifier
             .fillMaxSize()
-            .background(Color(0xFFF3F9FD))
+            .background(Color(0xFFF7FAFC))
             .statusBarsPadding()
-            .padding(horizontal = 12.dp)
     ) {
-        Spacer(Modifier.height(8.dp))
-
-        // Hero costruito con le stesse proporzioni del mockup.
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(218.dp)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFFEAF8FF), Color(0xFFF4FCFF))
-                    ),
-                    RoundedCornerShape(0.dp)
-                )
+        androidx.compose.foundation.lazy.LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Column(
-                Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 10.dp, top = 8.dp)
-                    .width(225.dp)
-            ) {
-                Row {
-                    Text(
-                        "Archivio ",
-                        color = AppNavy,
-                        fontSize = 31.sp,
-                        fontWeight = FontWeight.Black,
-                        fontFamily = FontFamily.SansSerif
-                    )
-                    Text(
-                        "prodotti",
+            item {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Archivio",
+                            color = AppNavy,
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.SansSerif
+                        )
+                        Text(
+                            "Tutto quello che compri, finalmente in ordine.",
+                            color = Color(0xFF73839A),
+                            fontSize = 13.sp,
+                            fontFamily = FontFamily.SansSerif
+                        )
+                    }
+
+                    Surface(
+                        modifier = Modifier.size(52.dp).clickable(onClick = onNew),
+                        shape = RoundedCornerShape(18.dp),
                         color = AppGreen,
-                        fontSize = 31.sp,
-                        fontWeight = FontWeight.Black,
-                        fontFamily = FontFamily.SansSerif
-                    )
+                        shadowElevation = 5.dp
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Aggiungi prodotto",
+                            tint = Color.White,
+                            modifier = Modifier.padding(14.dp)
+                        )
+                    }
                 }
-                Text(
-                    "Cerca e confronta i prodotti salvati.",
-                    color = AppNavy,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = FontFamily.SansSerif
-                )
             }
 
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth(0.93f)
-                    .height(122.dp),
-                shape = RoundedCornerShape(24.dp),
-                color = Color(0xFFE7FAF2)
-            ) {
-                Column(
-                    Modifier.padding(start = 16.dp, top = 14.dp, end = 150.dp)
+            item {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    ArchiveSummaryCard(
+                        value = products.size.toString(),
+                        label = if (products.size == 1) "prodotto" else "prodotti",
+                        icon = Icons.Default.Inventory2,
+                        background = Color(0xFFEFF8FF),
+                        iconTint = AppBlue,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ArchiveSummaryCard(
+                        value = storeCount.toString(),
+                        label = if (storeCount == 1) "supermercato" else "supermercati",
+                        icon = Icons.Default.Storefront,
+                        background = Color(0xFFECFBF5),
+                        iconTint = AppGreen,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ArchiveSummaryCard(
+                        value = money(averagePrice),
+                        label = "prezzo medio",
+                        icon = Icons.Default.Euro,
+                        background = Color(0xFFFFF7E8),
+                        iconTint = Color(0xFFE49B13),
+                        modifier = Modifier.weight(1.15f)
+                    )
+                }
+            }
+
+            item {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    shadowElevation = 1.dp
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 15.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = Color(0xFF718096),
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        BasicTextField(
+                            value = query,
+                            onValueChange = { query = it },
+                            singleLine = true,
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                color = AppNavy,
+                                fontSize = 15.sp,
+                                fontFamily = FontFamily.SansSerif
+                            ),
+                            modifier = Modifier.weight(1f),
+                            decorationBox = { inner ->
+                                if (query.isBlank()) {
+                                    Text(
+                                        "Cerca nome, marca, codice…",
+                                        color = Color(0xFFA0AEC0),
+                                        fontSize = 14.sp,
+                                        fontFamily = FontFamily.SansSerif
+                                    )
+                                }
+                                inner()
+                            }
+                        )
+                        if (query.isNotBlank()) {
+                            IconButton(onClick = { query = "" }) {
+                                Icon(Icons.Default.Close, "Svuota ricerca", tint = Color(0xFF718096))
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    PremiumFilterChip(
+                        text = "Tutti",
+                        icon = Icons.Default.GridView,
+                        selected = selectedStore.isBlank() && selectedCategory.isBlank()
+                    ) {
+                        selectedStore = ""
+                        selectedCategory = ""
+                    }
+
+                    Box {
+                        PremiumFilterChip(
+                            text = if (selectedStore.isBlank()) "Supermercati" else selectedStore,
+                            icon = Icons.Default.Storefront,
+                            selected = selectedStore.isNotBlank()
+                        ) { storeMenu = true }
+
+                        DropdownMenu(
+                            expanded = storeMenu,
+                            onDismissRequest = { storeMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Tutti i supermercati", fontFamily = FontFamily.SansSerif) },
+                                onClick = {
+                                    selectedStore = ""
+                                    storeMenu = false
+                                }
+                            )
+                            SupportedSupermarkets.forEach { store ->
+                                DropdownMenuItem(
+                                    text = { Text(store, fontFamily = FontFamily.SansSerif) },
+                                    leadingIcon = { SupermarketMark(store, Modifier.size(24.dp)) },
+                                    onClick = {
+                                        selectedStore = store
+                                        storeMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Box {
+                        PremiumFilterChip(
+                            text = if (selectedCategory.isBlank()) "Categorie" else selectedCategory,
+                            icon = Icons.Default.LocalOffer,
+                            selected = selectedCategory.isNotBlank()
+                        ) { categoryMenu = true }
+
+                        DropdownMenu(
+                            expanded = categoryMenu,
+                            onDismissRequest = { categoryMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Tutte le categorie", fontFamily = FontFamily.SansSerif) },
+                                onClick = {
+                                    selectedCategory = ""
+                                    categoryMenu = false
+                                }
+                            )
+                            categories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category, fontFamily = FontFamily.SansSerif) },
+                                    onClick = {
+                                        selectedCategory = category
+                                        categoryMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "I tuoi prodotti\nsempre con te!",
+                        "I tuoi prodotti",
                         color = AppNavy,
                         fontSize = 20.sp,
-                        lineHeight = 22.sp,
                         fontWeight = FontWeight.Black,
                         fontFamily = FontFamily.SansSerif
                     )
-                    Spacer(Modifier.height(5.dp))
-                    Text(
-                        "Consulta i prezzi, confrontali\ne scopri come risparmiare.",
-                        color = AppNavy,
-                        fontSize = 12.sp,
-                        lineHeight = 15.sp,
-                        fontFamily = FontFamily.SansSerif
-                    )
+                    Spacer(Modifier.weight(1f))
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFEEF3F8)
+                    ) {
+                        Text(
+                            filtered.size.toString(),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            color = Color(0xFF60748C),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.SansSerif
+                        )
+                    }
                 }
             }
 
-            GroceryMascot(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(x = 2.dp, y = 2.dp)
-                    .size(width = 184.dp, height = 178.dp),
-                showScanner = false
-            )
-        }
-
-        Spacer(Modifier.height(10.dp))
-
-        Surface(
-            modifier = Modifier.fillMaxWidth().height(58.dp),
-            shape = RoundedCornerShape(22.dp),
-            color = Color.White,
-            shadowElevation = 1.dp,
-            border = BorderStroke(1.dp, Color(0xFFE0E9F2))
-        ) {
-            Row(
-                Modifier.padding(horizontal = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.Search, null, tint = AppNavy, modifier = Modifier.size(25.dp))
-                Spacer(Modifier.width(10.dp))
-                BasicTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    singleLine = true,
-                    textStyle = androidx.compose.ui.text.TextStyle(
-                        color = AppNavy,
-                        fontSize = 15.sp,
-                        fontFamily = FontFamily.SansSerif
-                    ),
-                    modifier = Modifier.weight(1f),
-                    decorationBox = { inner ->
-                        if (query.isBlank()) {
+            if (filtered.isEmpty()) {
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(26.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.dp, Color(0xFFE5EBF1))
+                    ) {
+                        Column(
+                            Modifier.padding(horizontal = 24.dp, vertical = 34.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Surface(
+                                modifier = Modifier.size(64.dp),
+                                shape = RoundedCornerShape(22.dp),
+                                color = AppMint
+                            ) {
+                                Icon(
+                                    Icons.Default.Inventory2,
+                                    null,
+                                    tint = AppGreen,
+                                    modifier = Modifier.padding(17.dp)
+                                )
+                            }
+                            Spacer(Modifier.height(14.dp))
                             Text(
-                                "Cerca un prodotto nell’archivio…",
-                                color = Color(0xFF8A9AAF),
-                                fontSize = 14.sp,
+                                "Nessun prodotto",
+                                color = AppNavy,
+                                fontSize = 19.sp,
+                                fontWeight = FontWeight.Black,
                                 fontFamily = FontFamily.SansSerif
                             )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "Scansiona un codice o aggiungi il prodotto manualmente.",
+                                color = Color(0xFF718096),
+                                fontSize = 13.sp,
+                                fontFamily = FontFamily.SansSerif
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Button(
+                                onClick = onNew,
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = AppGreen)
+                            ) {
+                                Icon(Icons.Default.QrCodeScanner, null)
+                                Spacer(Modifier.width(7.dp))
+                                Text("Aggiungi prodotto", fontWeight = FontWeight.Bold)
+                            }
                         }
-                        inner()
-                    }
-                )
-                Icon(Icons.Default.FilterList, null, tint = AppNavy, modifier = Modifier.size(23.dp))
-            }
-        }
-
-        Spacer(Modifier.height(9.dp))
-
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            ArchiveFilterButton(
-                text = "Tutti",
-                icon = Icons.Default.GridView,
-                selected = selectedStore.isBlank() && selectedCategory.isBlank(),
-                modifier = Modifier.weight(0.80f)
-            ) {
-                selectedStore = ""
-                selectedCategory = ""
-            }
-
-            Box(Modifier.weight(1.25f)) {
-                ArchiveFilterButton(
-                    text = if (selectedStore.isBlank()) "Supermercati" else selectedStore,
-                    icon = Icons.Default.ShoppingCart,
-                    selected = selectedStore.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth()
-                ) { storeMenu = true }
-
-                DropdownMenu(expanded = storeMenu, onDismissRequest = { storeMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Tutti i supermercati", fontFamily = FontFamily.SansSerif) },
-                        onClick = { selectedStore = ""; storeMenu = false }
-                    )
-                    SupportedSupermarkets.forEach { store ->
-                        DropdownMenuItem(
-                            text = { Text(store, fontFamily = FontFamily.SansSerif) },
-                            onClick = { selectedStore = store; storeMenu = false }
-                        )
                     }
                 }
-            }
-
-            Box(Modifier.weight(1.06f)) {
-                ArchiveFilterButton(
-                    text = if (selectedCategory.isBlank()) "Categorie" else selectedCategory,
-                    icon = Icons.Default.LocalOffer,
-                    selected = selectedCategory.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth()
-                ) { categoryMenu = true }
-
-                DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Tutte le categorie", fontFamily = FontFamily.SansSerif) },
-                        onClick = { selectedCategory = ""; categoryMenu = false }
+            } else {
+                items(filtered.size) { index ->
+                    ProductGridCard(
+                        product = filtered[index],
+                        onClick = { onOpen(filtered[index]) }
                     )
-                    categories.forEach { category ->
-                        DropdownMenuItem(
-                            text = { Text(category, fontFamily = FontFamily.SansSerif) },
-                            onClick = { selectedCategory = category; categoryMenu = false }
-                        )
-                    }
-                }
-            }
-
-            ArchiveFilterButton(
-                text = "Aumentati",
-                icon = Icons.Default.TrendingUp,
-                selected = false,
-                modifier = Modifier.weight(0.95f),
-                accent = Negative
-            ) { }
-        }
-
-        Spacer(Modifier.height(10.dp))
-
-        if (filtered.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Inventory2, null, tint = Color(0xFFA5B4C7), modifier = Modifier.size(50.dp))
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Nessun prodotto",
-                        fontWeight = FontWeight.Black,
-                        fontSize = 18.sp,
-                        color = AppNavy,
-                        fontFamily = FontFamily.SansSerif
-                    )
-                    Text(
-                        "Usa lo scanner per aggiungere il primo.",
-                        color = Color(0xFF6B7C93),
-                        fontSize = 12.sp,
-                        fontFamily = FontFamily.SansSerif
-                    )
-                }
-            }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 18.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(filtered, key = { it.code }) { product ->
-                    ProductGridCard(product, onClick = { onOpen(product) })
                 }
             }
         }
@@ -1359,37 +1432,73 @@ private fun ProductsScreen(
 }
 
 @Composable
-private fun ArchiveFilterButton(
+private fun ArchiveSummaryCard(
+    value: String,
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    background: Color,
+    iconTint: Color,
+    modifier: Modifier
+) {
+    Surface(
+        modifier = modifier.height(86.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = background
+    ) {
+        Column(
+            Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(icon, null, tint = iconTint, modifier = Modifier.size(20.dp))
+            Column {
+                Text(
+                    value,
+                    color = AppNavy,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = FontFamily.SansSerif,
+                    maxLines = 1
+                )
+                Text(
+                    label,
+                    color = Color(0xFF718096),
+                    fontSize = 9.sp,
+                    fontFamily = FontFamily.SansSerif,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PremiumFilterChip(
     text: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     selected: Boolean,
-    modifier: Modifier,
-    accent: Color = AppBlue,
     onClick: () -> Unit
 ) {
     Surface(
-        modifier = modifier.height(43.dp).clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        color = if (selected) AppGreen else Color.White,
-        border = if (selected) null else BorderStroke(1.dp, Color(0xFFE1E8F0)),
-        shadowElevation = if (selected) 1.dp else 0.dp
+        modifier = Modifier.height(42.dp).clickable(onClick = onClick),
+        shape = RoundedCornerShape(15.dp),
+        color = if (selected) AppNavy else Color.White,
+        border = if (selected) null else BorderStroke(1.dp, Color(0xFFE0E7EF))
     ) {
         Row(
-            Modifier.padding(horizontal = 7.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            Modifier.padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 icon,
                 null,
-                tint = if (selected) Color.White else accent,
-                modifier = Modifier.size(16.dp)
+                tint = if (selected) Color.White else Color(0xFF60748C),
+                modifier = Modifier.size(17.dp)
             )
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(6.dp))
             Text(
                 text,
                 color = if (selected) Color.White else AppNavy,
-                fontSize = 9.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.SansSerif,
                 maxLines = 1
@@ -1403,129 +1512,130 @@ private fun ProductGridCard(product: SavedProduct, onClick: () -> Unit) {
     val imageModel: Any? = product.imagePath.takeIf { it.isNotBlank() }?.let(::File)
         ?: product.remoteImageUrl.takeIf { it.isNotBlank() }
 
-    Card(
-        Modifier
-            .fillMaxWidth()
-            .height(202.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFE7EDF3)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE5EBF1)),
+        shadowElevation = 2.dp
     ) {
         Row(
-            Modifier.fillMaxSize().padding(10.dp)
+            Modifier.padding(13.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                Modifier
-                    .width(86.dp)
-                    .fillMaxHeight()
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.TopCenter
+            Surface(
+                modifier = Modifier.size(92.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = Color(0xFFF5F8FB)
             ) {
                 if (imageModel != null) {
                     AsyncImage(
                         model = imageModel,
                         contentDescription = product.name,
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxWidth().height(112.dp)
+                        modifier = Modifier.padding(7.dp)
                     )
                 } else {
-                    Surface(
-                        modifier = Modifier.size(72.dp),
-                        shape = RoundedCornerShape(18.dp),
-                        color = Color(0xFFF2F7FB)
-                    ) {
-                        Icon(
-                            Icons.Default.Image,
-                            null,
-                            tint = Color(0xFFB2C1D2),
-                            modifier = Modifier.padding(20.dp)
-                        )
-                    }
+                    Icon(
+                        Icons.Default.Image,
+                        null,
+                        tint = Color(0xFFB4C1CF),
+                        modifier = Modifier.padding(26.dp)
+                    )
                 }
             }
 
-            Spacer(Modifier.width(7.dp))
+            Spacer(Modifier.width(13.dp))
 
             Column(
-                Modifier.weight(1f).fillMaxHeight(),
-                verticalArrangement = Arrangement.Top
+                Modifier.weight(1f)
             ) {
-                Row(verticalAlignment = Alignment.Top) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            product.name,
-                            color = AppNavy,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.SansSerif,
-                            maxLines = 2,
-                            lineHeight = 17.sp
-                        )
-                        if (product.quantity.isNotBlank()) {
-                            Text(
-                                product.quantity,
-                                color = Color(0xFF7C8CA1),
-                                fontSize = 10.sp,
-                                fontFamily = FontFamily.SansSerif,
-                                maxLines = 1
-                            )
-                        }
-                    }
-                    Icon(
-                        Icons.Default.MoreVert,
-                        null,
-                        tint = AppNavy,
-                        modifier = Modifier.size(18.dp)
+                Text(
+                    product.name,
+                    color = AppNavy,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = FontFamily.SansSerif,
+                    maxLines = 2,
+                    lineHeight = 19.sp
+                )
+
+                val meta = listOf(product.brand, product.quantity)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" · ")
+
+                if (meta.isNotBlank()) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        meta,
+                        color = Color(0xFF8493A7),
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.SansSerif,
+                        maxLines = 1
                     )
                 }
 
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(8.dp))
 
-                Text(
-                    money(product.salePrice),
-                    color = AppNavy,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
-                    fontFamily = FontFamily.SansSerif
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        money(product.salePrice),
+                        color = AppNavy,
+                        fontSize = 23.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.SansSerif
+                    )
 
-                Spacer(Modifier.weight(1f))
-
-                if (product.supermarket.isNotBlank()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        SupermarketMark(product.supermarket, Modifier.size(22.dp))
-                        Spacer(Modifier.width(5.dp))
-                        Text(
-                            product.supermarket,
-                            color = AppNavy,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = FontFamily.SansSerif,
-                            maxLines = 1
-                        )
+                    if (product.supermarket.isNotBlank()) {
+                        Spacer(Modifier.width(10.dp))
+                        Surface(
+                            shape = RoundedCornerShape(13.dp),
+                            color = Color(0xFFF7F9FB),
+                            border = BorderStroke(1.dp, Color(0xFFE7ECF1))
+                        ) {
+                            Row(
+                                Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                SupermarketMark(product.supermarket, Modifier.size(19.dp))
+                                Spacer(Modifier.width(5.dp))
+                                Text(
+                                    product.supermarket,
+                                    color = Color(0xFF60748C),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.SansSerif
+                                )
+                            }
+                        }
                     }
-                    Spacer(Modifier.height(5.dp))
                 }
+
+                Spacer(Modifier.height(8.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Default.CalendarMonth,
                         null,
-                        tint = Color(0xFF7D8DA3),
-                        modifier = Modifier.size(13.dp)
+                        tint = Color(0xFFA0AEC0),
+                        modifier = Modifier.size(14.dp)
                     )
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(5.dp))
                     Text(
-                        "Ultimo acquisto: " + displayDate(product.savedAt).substringBefore(" "),
-                        color = Color(0xFF7D8DA3),
-                        fontSize = 8.sp,
-                        fontFamily = FontFamily.SansSerif,
-                        maxLines = 1
+                        displayDate(product.savedAt),
+                        color = Color(0xFF8B9AAF),
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.SansSerif
                     )
                 }
             }
+
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = Color(0xFFB0BCCB),
+                modifier = Modifier.size(22.dp)
+            )
         }
     }
 }
