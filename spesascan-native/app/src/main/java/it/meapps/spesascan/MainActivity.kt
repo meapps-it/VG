@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -350,54 +351,56 @@ private fun MainScaffold(
     Scaffold(
         containerColor = AppBackground,
         topBar = {
-            Surface(color = Color.White, shadowElevation = 3.dp) {
-                Row(
-                    Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Spesa", color = AppNavy, fontSize = 29.sp, fontWeight = FontWeight.Black)
-                        Text("Scan", color = AppGreen, fontSize = 29.sp, fontWeight = FontWeight.Black)
-                    }
-                    Box {
-                        FilledTonalIconButton(
-                            onClick = { menuOpen = true },
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = AppSky,
-                                contentColor = AppNavy
-                            )
-                        ) { Icon(Icons.Default.Menu, "Menu") }
+            if (selectedTab != MainTab.ARTICLES) {
+                Surface(color = Color.White, shadowElevation = 3.dp) {
+                    Row(
+                        Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Spesa", color = AppNavy, fontSize = 29.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif)
+                            Text("Scan", color = AppGreen, fontSize = 29.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif)
+                        }
+                        Box {
+                            FilledTonalIconButton(
+                                onClick = { menuOpen = true },
+                                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                    containerColor = AppSky,
+                                    contentColor = AppNavy
+                                )
+                            ) { Icon(Icons.Default.Menu, "Menu") }
 
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Archivio") },
-                                leadingIcon = { Icon(Icons.Default.Inventory2, null) },
-                                onClick = { menuOpen = false; onSelectTab(MainTab.ARTICLES) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Scanner") },
-                                leadingIcon = { Icon(Icons.Default.QrCodeScanner, null) },
-                                onClick = { menuOpen = false; onSelectTab(MainTab.SCANNER) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Statistiche") },
-                                leadingIcon = { Icon(Icons.Default.BarChart, null) },
-                                onClick = { menuOpen = false; onSelectTab(MainTab.STATS) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Account") },
-                                leadingIcon = { Icon(Icons.Default.Person, null) },
-                                onClick = { menuOpen = false; onSelectTab(MainTab.ACCOUNT) }
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text("Logout") },
-                                leadingIcon = { Icon(Icons.Default.Logout, null) },
-                                onClick = {
-                                    menuOpen = false
-                                    scope.launch { auth.signOut() }
-                                }
-                            )
+                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Archivio", fontFamily = FontFamily.SansSerif) },
+                                    leadingIcon = { Icon(Icons.Default.Inventory2, null) },
+                                    onClick = { menuOpen = false; onSelectTab(MainTab.ARTICLES) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Scanner", fontFamily = FontFamily.SansSerif) },
+                                    leadingIcon = { Icon(Icons.Default.QrCodeScanner, null) },
+                                    onClick = { menuOpen = false; onSelectTab(MainTab.SCANNER) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Statistiche", fontFamily = FontFamily.SansSerif) },
+                                    leadingIcon = { Icon(Icons.Default.BarChart, null) },
+                                    onClick = { menuOpen = false; onSelectTab(MainTab.STATS) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Account", fontFamily = FontFamily.SansSerif) },
+                                    leadingIcon = { Icon(Icons.Default.Person, null) },
+                                    onClick = { menuOpen = false; onSelectTab(MainTab.ACCOUNT) }
+                                )
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text("Logout", fontFamily = FontFamily.SansSerif) },
+                                    leadingIcon = { Icon(Icons.Default.Logout, null) },
+                                    onClick = {
+                                        menuOpen = false
+                                        scope.launch { auth.signOut() }
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -432,16 +435,8 @@ private fun MainScaffold(
                 }
             }
         },
-        floatingActionButton = {
-            if (selectedTab == MainTab.ARTICLES) {
-                FloatingActionButton(
-                    onClick = onNew,
-                    containerColor = AppGreen,
-                    contentColor = Color.White,
-                    shape = RoundedCornerShape(20.dp)
-                ) { Icon(Icons.Default.Add, "Nuovo prodotto", modifier = Modifier.size(30.dp)) }
-            }
-        }
+        floatingActionButton = { }
+
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             when (selectedTab) {
@@ -463,34 +458,63 @@ private fun BottomPill(
     modifier: Modifier,
     onClick: () -> Unit
 ) {
-    Column(
-        modifier.fillMaxHeight().clickable(onClick = onClick).padding(vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = if (selected) AppMint else Color.Transparent
+    if (label == "Scanner") {
+        Box(
+            modifier.fillMaxHeight().clickable(onClick = onClick),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Surface(
+                modifier = Modifier.offset(y = (-15).dp).size(56.dp),
+                shape = RoundedCornerShape(50),
+                color = AppGreen,
+                shadowElevation = 8.dp
+            ) {
+                Icon(
+                    Icons.Default.QrCodeScanner,
+                    "Scanner",
+                    tint = Color.White,
+                    modifier = Modifier.padding(14.dp)
+                )
+            }
+            Text(
+                "Scanner",
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp),
+                fontSize = 9.sp,
+                color = if (selected) AppGreenDark else Color(0xFF667892),
+                fontWeight = if (selected) FontWeight.Black else FontWeight.Medium,
+                fontFamily = FontFamily.SansSerif
+            )
+        }
+    } else {
+        Column(
+            modifier.fillMaxHeight().clickable(onClick = onClick).padding(vertical = 5.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Icon(
                 icon,
                 null,
                 tint = if (selected) AppGreen else Color(0xFF667892),
-                modifier = Modifier.padding(7.dp).size(if (label == "Scanner") 27.dp else 23.dp)
+                modifier = Modifier.size(23.dp)
             )
-        }
-        Text(
-            label,
-            fontSize = 9.sp,
-            fontWeight = if (selected) FontWeight.Black else FontWeight.SemiBold,
-            color = if (selected) AppGreenDark else Color(0xFF667892),
-            maxLines = 1
-        )
-        if (selected) {
-            Box(
-                Modifier.padding(top = 2.dp).width(24.dp).height(3.dp)
-                    .background(AppGreen, RoundedCornerShape(50))
+            Spacer(Modifier.height(4.dp))
+            Text(
+                label,
+                fontSize = 9.sp,
+                fontWeight = if (selected) FontWeight.Black else FontWeight.Medium,
+                color = if (selected) AppGreenDark else Color(0xFF667892),
+                fontFamily = FontFamily.SansSerif,
+                maxLines = 1
             )
+            if (selected) {
+                Box(
+                    Modifier
+                        .padding(top = 3.dp)
+                        .width(34.dp)
+                        .height(3.dp)
+                        .background(AppGreen, RoundedCornerShape(50))
+                )
+            }
         }
     }
 }
@@ -1094,138 +1118,236 @@ private fun ProductsScreen(
         }
     }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
-        Spacer(Modifier.height(12.dp))
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF3F9FD))
+            .statusBarsPadding()
+            .padding(horizontal = 12.dp)
+    ) {
+        Spacer(Modifier.height(8.dp))
 
-        Card(
-            Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = AppMint)
+        // Hero costruito con le stesse proporzioni del mockup.
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(218.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xFFEAF8FF), Color(0xFFF4FCFF))
+                    ),
+                    RoundedCornerShape(0.dp)
+                )
         ) {
-            Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Archivio prodotti", color = AppNavy, fontSize = 28.sp, fontWeight = FontWeight.Black)
+            Column(
+                Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 10.dp, top = 8.dp)
+                    .width(225.dp)
+            ) {
+                Row {
                     Text(
-                        "Cerca, confronta e ritrova ciò che compri.",
-                        color = Color(0xFF5D7189),
-                        fontWeight = FontWeight.SemiBold
+                        "Archivio ",
+                        color = AppNavy,
+                        fontSize = 31.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.SansSerif
+                    )
+                    Text(
+                        "prodotti",
+                        color = AppGreen,
+                        fontSize = 31.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.SansSerif
                     )
                 }
-                GroceryMascot(
-                    modifier = Modifier.size(width = 125.dp, height = 105.dp),
-                    showScanner = false
+                Text(
+                    "Cerca e confronta i prodotti salvati.",
+                    color = AppNavy,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = FontFamily.SansSerif
                 )
             }
+
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth(0.93f)
+                    .height(122.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFFE7FAF2)
+            ) {
+                Column(
+                    Modifier.padding(start = 16.dp, top = 14.dp, end = 150.dp)
+                ) {
+                    Text(
+                        "I tuoi prodotti\nsempre con te!",
+                        color = AppNavy,
+                        fontSize = 20.sp,
+                        lineHeight = 22.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.SansSerif
+                    )
+                    Spacer(Modifier.height(5.dp))
+                    Text(
+                        "Consulta i prezzi, confrontali\ne scopri come risparmiare.",
+                        color = AppNavy,
+                        fontSize = 12.sp,
+                        lineHeight = 15.sp,
+                        fontFamily = FontFamily.SansSerif
+                    )
+                }
+            }
+
+            GroceryMascot(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = 2.dp, y = 2.dp)
+                    .size(width = 184.dp, height = 178.dp),
+                showScanner = false
+            )
         }
 
         Spacer(Modifier.height(10.dp))
 
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
+        Surface(
             modifier = Modifier.fillMaxWidth().height(58.dp),
-            singleLine = true,
-            placeholder = { Text("Cerca un prodotto nell’archivio…") },
-            leadingIcon = { Icon(Icons.Default.Search, null) },
-            shape = RoundedCornerShape(20.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AppGreen,
-                focusedLabelColor = AppGreen,
-                unfocusedContainerColor = Color.White,
-                focusedContainerColor = Color.White
-            )
-        )
+            shape = RoundedCornerShape(22.dp),
+            color = Color.White,
+            shadowElevation = 1.dp,
+            border = BorderStroke(1.dp, Color(0xFFE0E9F2))
+        ) {
+            Row(
+                Modifier.padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Search, null, tint = AppNavy, modifier = Modifier.size(25.dp))
+                Spacer(Modifier.width(10.dp))
+                BasicTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(
+                        color = AppNavy,
+                        fontSize = 15.sp,
+                        fontFamily = FontFamily.SansSerif
+                    ),
+                    modifier = Modifier.weight(1f),
+                    decorationBox = { inner ->
+                        if (query.isBlank()) {
+                            Text(
+                                "Cerca un prodotto nell’archivio…",
+                                color = Color(0xFF8A9AAF),
+                                fontSize = 14.sp,
+                                fontFamily = FontFamily.SansSerif
+                            )
+                        }
+                        inner()
+                    }
+                )
+                Icon(Icons.Default.FilterList, null, tint = AppNavy, modifier = Modifier.size(23.dp))
+            }
+        }
 
         Spacer(Modifier.height(9.dp))
 
         Row(
-            Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            FilterChip(
+            ArchiveFilterButton(
+                text = "Tutti",
+                icon = Icons.Default.GridView,
                 selected = selectedStore.isBlank() && selectedCategory.isBlank(),
-                onClick = { selectedStore = ""; selectedCategory = "" },
-                label = { Text("Tutti", fontWeight = FontWeight.Black) },
-                leadingIcon = { Icon(Icons.Default.GridView, null, Modifier.size(18.dp)) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = AppGreen,
-                    selectedLabelColor = Color.White,
-                    selectedLeadingIconColor = Color.White
-                )
-            )
+                modifier = Modifier.weight(0.80f)
+            ) {
+                selectedStore = ""
+                selectedCategory = ""
+            }
 
-            Box {
-                FilterChip(
+            Box(Modifier.weight(1.25f)) {
+                ArchiveFilterButton(
+                    text = if (selectedStore.isBlank()) "Supermercati" else selectedStore,
+                    icon = Icons.Default.ShoppingCart,
                     selected = selectedStore.isNotBlank(),
-                    onClick = { storeMenu = true },
-                    label = { Text(if (selectedStore.isBlank()) "Supermercati" else selectedStore, fontWeight = FontWeight.Bold) },
-                    leadingIcon = { Icon(Icons.Default.Storefront, null, Modifier.size(18.dp)) }
-                )
+                    modifier = Modifier.fillMaxWidth()
+                ) { storeMenu = true }
+
                 DropdownMenu(expanded = storeMenu, onDismissRequest = { storeMenu = false }) {
-                    DropdownMenuItem(text = { Text("Tutti i supermercati") }, onClick = {
-                        selectedStore = ""; storeMenu = false
-                    })
+                    DropdownMenuItem(
+                        text = { Text("Tutti i supermercati", fontFamily = FontFamily.SansSerif) },
+                        onClick = { selectedStore = ""; storeMenu = false }
+                    )
                     SupportedSupermarkets.forEach { store ->
-                        DropdownMenuItem(text = { Text(store) }, onClick = {
-                            selectedStore = store; storeMenu = false
-                        })
+                        DropdownMenuItem(
+                            text = { Text(store, fontFamily = FontFamily.SansSerif) },
+                            onClick = { selectedStore = store; storeMenu = false }
+                        )
                     }
                 }
             }
 
-            Box {
-                FilterChip(
+            Box(Modifier.weight(1.06f)) {
+                ArchiveFilterButton(
+                    text = if (selectedCategory.isBlank()) "Categorie" else selectedCategory,
+                    icon = Icons.Default.LocalOffer,
                     selected = selectedCategory.isNotBlank(),
-                    onClick = { categoryMenu = true },
-                    label = { Text(if (selectedCategory.isBlank()) "Categorie" else selectedCategory, fontWeight = FontWeight.Bold) },
-                    leadingIcon = { Icon(Icons.Default.LocalOffer, null, Modifier.size(18.dp)) }
-                )
+                    modifier = Modifier.fillMaxWidth()
+                ) { categoryMenu = true }
+
                 DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
-                    DropdownMenuItem(text = { Text("Tutte le categorie") }, onClick = {
-                        selectedCategory = ""; categoryMenu = false
-                    })
+                    DropdownMenuItem(
+                        text = { Text("Tutte le categorie", fontFamily = FontFamily.SansSerif) },
+                        onClick = { selectedCategory = ""; categoryMenu = false }
+                    )
                     categories.forEach { category ->
-                        DropdownMenuItem(text = { Text(category) }, onClick = {
-                            selectedCategory = category; categoryMenu = false
-                        })
+                        DropdownMenuItem(
+                            text = { Text(category, fontFamily = FontFamily.SansSerif) },
+                            onClick = { selectedCategory = category; categoryMenu = false }
+                        )
                     }
                 }
             }
 
-            FilterChip(
+            ArchiveFilterButton(
+                text = "Aumentati",
+                icon = Icons.Default.TrendingUp,
                 selected = false,
-                onClick = onNew,
-                label = { Text("Aggiungi", fontWeight = FontWeight.Black) },
-                leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(18.dp)) }
-            )
+                modifier = Modifier.weight(0.95f),
+                accent = Negative
+            ) { }
         }
 
-        Spacer(Modifier.height(8.dp))
-
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(filtered.size.toString() + " prodotti", color = AppNavy, fontWeight = FontWeight.Black)
-            Spacer(Modifier.weight(1f))
-            Text("Tocca un prodotto per i dettagli", color = Color(0xFF7A8CA4), fontSize = 11.sp)
-        }
-
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(10.dp))
 
         if (filtered.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Inventory2, null, tint = Color(0xFFA5B4C7), modifier = Modifier.size(58.dp))
+                    Icon(Icons.Default.Inventory2, null, tint = Color(0xFFA5B4C7), modifier = Modifier.size(50.dp))
                     Spacer(Modifier.height(8.dp))
-                    Text("Nessun prodotto", fontWeight = FontWeight.Black, fontSize = 20.sp, color = AppNavy)
-                    Text("Scansiona o aggiungi il primo prodotto.", color = Color(0xFF6B7C93))
+                    Text(
+                        "Nessun prodotto",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 18.sp,
+                        color = AppNavy,
+                        fontFamily = FontFamily.SansSerif
+                    )
+                    Text(
+                        "Usa lo scanner per aggiungere il primo.",
+                        color = Color(0xFF6B7C93),
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.SansSerif
+                    )
                 }
             }
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 92.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                contentPadding = PaddingValues(bottom = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filtered, key = { it.code }) { product ->
                     ProductGridCard(product, onClick = { onOpen(product) })
@@ -1236,44 +1358,172 @@ private fun ProductsScreen(
 }
 
 @Composable
+private fun ArchiveFilterButton(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    modifier: Modifier,
+    accent: Color = AppBlue,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier.height(43.dp).clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = if (selected) AppGreen else Color.White,
+        border = if (selected) null else BorderStroke(1.dp, Color(0xFFE1E8F0)),
+        shadowElevation = if (selected) 1.dp else 0.dp
+    ) {
+        Row(
+            Modifier.padding(horizontal = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                icon,
+                null,
+                tint = if (selected) Color.White else accent,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text,
+                color = if (selected) Color.White else AppNavy,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.SansSerif,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
 private fun ProductGridCard(product: SavedProduct, onClick: () -> Unit) {
     val imageModel: Any? = product.imagePath.takeIf { it.isNotBlank() }?.let(::File)
         ?: product.remoteImageUrl.takeIf { it.isNotBlank() }
 
     Card(
-        Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
+        Modifier
+            .fillMaxWidth()
+            .height(202.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, LegacyBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, Color(0xFFE7EDF3)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column {
+        Row(
+            Modifier.fillMaxSize().padding(10.dp)
+        ) {
             Box(
-                Modifier.fillMaxWidth().height(145.dp)
-                    .background(Brush.linearGradient(listOf(AppSky, Color.White))),
-                contentAlignment = Alignment.Center
+                Modifier
+                    .width(86.dp)
+                    .fillMaxHeight()
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.TopCenter
             ) {
                 if (imageModel != null) {
                     AsyncImage(
                         model = imageModel,
                         contentDescription = product.name,
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize().padding(8.dp)
+                        modifier = Modifier.fillMaxWidth().height(112.dp)
                     )
                 } else {
-                    Icon(Icons.Default.Image, null, tint = Color(0xFFA8B7C9), modifier = Modifier.size(48.dp))
+                    Surface(
+                        modifier = Modifier.size(72.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        color = Color(0xFFF2F7FB)
+                    ) {
+                        Icon(
+                            Icons.Default.Image,
+                            null,
+                            tint = Color(0xFFB2C1D2),
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
                 }
             }
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(product.name, fontWeight = FontWeight.Black, fontSize = 16.sp, color = AppNavy, maxLines = 2)
-                if (product.quantity.isNotBlank()) {
-                    Text(product.quantity, color = Color(0xFF75869C), fontSize = 11.sp, maxLines = 1)
+
+            Spacer(Modifier.width(7.dp))
+
+            Column(
+                Modifier.weight(1f).fillMaxHeight(),
+                verticalArrangement = Arrangement.Top
+            ) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            product.name,
+                            color = AppNavy,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.SansSerif,
+                            maxLines = 2,
+                            lineHeight = 17.sp
+                        )
+                        if (product.quantity.isNotBlank()) {
+                            Text(
+                                product.quantity,
+                                color = Color(0xFF7C8CA1),
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.SansSerif,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                    Icon(
+                        Icons.Default.MoreVert,
+                        null,
+                        tint = AppNavy,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
-                Text(money(product.salePrice), fontWeight = FontWeight.Black, fontSize = 21.sp, color = AppNavy)
+
+                Spacer(Modifier.height(4.dp))
+
+                Text(
+                    money(product.salePrice),
+                    color = AppNavy,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = FontFamily.SansSerif
+                )
+
+                Spacer(Modifier.weight(1f))
+
                 if (product.supermarket.isNotBlank()) {
-                    SupermarketBadge(product.supermarket, compact = true)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        SupermarketMark(product.supermarket, Modifier.size(22.dp))
+                        Spacer(Modifier.width(5.dp))
+                        Text(
+                            product.supermarket,
+                            color = AppNavy,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = FontFamily.SansSerif,
+                            maxLines = 1
+                        )
+                    }
+                    Spacer(Modifier.height(5.dp))
                 }
-                Text(displayDate(product.savedAt), color = Color(0xFF8797AA), fontSize = 9.sp, maxLines = 1)
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.CalendarMonth,
+                        null,
+                        tint = Color(0xFF7D8DA3),
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "Ultimo acquisto: " + displayDate(product.savedAt).substringBefore(" "),
+                        color = Color(0xFF7D8DA3),
+                        fontSize = 8.sp,
+                        fontFamily = FontFamily.SansSerif,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
