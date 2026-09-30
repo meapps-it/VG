@@ -373,10 +373,10 @@ private fun SpesaScanBottomBar(
     Surface(
         modifier = Modifier.navigationBarsPadding(),
         color = Color.White,
-        shadowElevation = 18.dp
+        shadowElevation = 12.dp
     ) {
         Row(
-            Modifier.fillMaxWidth().height(78.dp).padding(horizontal = 5.dp, vertical = 6.dp),
+            Modifier.fillMaxWidth().height(66.dp).padding(horizontal = 5.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             ReferenceNavItem("Home", Icons.Default.Home, selectedTab == MainTab.DASHBOARD, Modifier.weight(1f)) {
@@ -390,7 +390,7 @@ private fun SpesaScanBottomBar(
                 contentAlignment = Alignment.TopCenter
             ) {
                 Surface(
-                    modifier = Modifier.offset(y = (-17).dp).size(62.dp),
+                    modifier = Modifier.offset(y = (-14).dp).size(54.dp),
                     shape = RoundedCornerShape(50),
                     color = AppGreen,
                     shadowElevation = 10.dp,
@@ -400,7 +400,7 @@ private fun SpesaScanBottomBar(
                         Icons.Default.QrCodeScanner,
                         "Scanner",
                         tint = Color.White,
-                        modifier = Modifier.padding(14.dp)
+                        modifier = Modifier.padding(12.dp)
                     )
                 }
             }
@@ -472,13 +472,16 @@ private fun DashboardScreen(
     val recentAvg = if (recent.isEmpty()) 0.0 else recent.map { it.salePrice }.average()
     val previousAvg = if (previous.isEmpty()) 0.0 else previous.map { it.salePrice }.average()
     val variation = if (previousAvg > 0.0) ((recentAvg - previousAvg) / previousAvg) * 100.0 else 0.0
-    val displayName = auth.session?.email?.substringBefore("@")?.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ITALY) else it.toString() }
+    val displayName = auth.session?.email
+        ?.substringBefore("@")
+        ?.substringBefore(".")
+        ?.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ITALY) else it.toString() }
         ?.takeIf { it.isNotBlank() } ?: "Maurizio"
 
     androidx.compose.foundation.lazy.LazyColumn(
         Modifier.fillMaxSize().background(Color(0xFFF4FAFD)),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -502,14 +505,14 @@ private fun DashboardScreen(
         }
 
         item {
-            Box(Modifier.fillMaxWidth().height(235.dp)) {
-                Column(Modifier.align(Alignment.TopStart).width(205.dp).padding(top = 10.dp)) {
-                    Text("Buongiorno\n$displayName!", color = AppNavy, fontSize = 30.sp, lineHeight = 31.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif)
-                    Spacer(Modifier.height(9.dp))
-                    Text("Tieni sotto controllo la\ntua spesa e risparmia\nogni giorno.", color = Color(0xFF4E6A88), fontSize = 15.sp, lineHeight = 20.sp, fontFamily = FontFamily.SansSerif)
+            Box(Modifier.fillMaxWidth().height(178.dp)) {
+                Column(Modifier.align(Alignment.TopStart).width(170.dp).padding(top = 8.dp)) {
+                    Text("Buongiorno\n$displayName!", color = AppNavy, fontSize = 24.sp, lineHeight = 25.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif)
+                    Spacer(Modifier.height(7.dp))
+                    Text("Tieni sotto controllo la\ntua spesa e risparmia\nogni giorno.", color = Color(0xFF4E6A88), fontSize = 12.sp, lineHeight = 16.sp, fontFamily = FontFamily.SansSerif)
                 }
                 GroceryMascot(
-                    modifier = Modifier.align(Alignment.BottomEnd).size(width = 220.dp, height = 205.dp),
+                    modifier = Modifier.align(Alignment.BottomEnd).size(width = 165.dp, height = 154.dp),
                     showScanner = false
                 )
             }
@@ -538,19 +541,19 @@ private fun DashboardScreen(
         item {
             Button(
                 onClick = onNew,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = AppGreen)
             ) {
                 Icon(Icons.Default.QrCodeScanner, null, modifier = Modifier.size(23.dp))
                 Spacer(Modifier.width(9.dp))
-                Text("Scansiona un prodotto", fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif)
+                Text("Scansiona un prodotto", fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif)
             }
         }
 
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Ultimi prodotti aggiunti", color = AppNavy, fontSize = 18.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif)
+                Text("Ultimi prodotti aggiunti", color = AppNavy, fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif)
                 Spacer(Modifier.weight(1f))
                 Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF6F86A0))
             }
@@ -584,19 +587,19 @@ private fun HomeMetricCard(
     modifier: Modifier
 ) {
     Surface(
-        modifier = modifier.height(96.dp),
+        modifier = modifier.height(78.dp),
         shape = RoundedCornerShape(22.dp),
         color = Color.White,
         shadowElevation = 2.dp
     ) {
-        Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(modifier = Modifier.size(48.dp), shape = RoundedCornerShape(50), color = background) {
-                Icon(icon, null, tint = AppBlue, modifier = Modifier.padding(12.dp))
+        Row(Modifier.padding(horizontal = 11.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(modifier = Modifier.size(38.dp), shape = RoundedCornerShape(50), color = background) {
+                Icon(icon, null, tint = AppBlue, modifier = Modifier.padding(9.dp))
             }
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(8.dp))
             Column {
-                Text(value, color = AppNavy, fontSize = 20.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif, maxLines = 1)
-                Text(label, color = Color(0xFF6C8199), fontSize = 11.sp, fontFamily = FontFamily.SansSerif, maxLines = 2)
+                Text(value, color = AppNavy, fontSize = 17.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.SansSerif, maxLines = 1)
+                Text(label, color = Color(0xFF6C8199), fontSize = 9.sp, fontFamily = FontFamily.SansSerif, maxLines = 1)
             }
         }
     }
@@ -607,7 +610,7 @@ private fun HomeRecentCard(product: SavedProduct, modifier: Modifier, onClick: (
     val imageModel: Any? = product.imagePath.takeIf { it.isNotBlank() }?.let(::File)
         ?: product.remoteImageUrl.takeIf { it.isNotBlank() }
     Surface(
-        modifier = modifier.height(154.dp).clickable(onClick = onClick),
+        modifier = modifier.height(128.dp).clickable(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
         color = Color.White,
         shadowElevation = 2.dp
