@@ -76,7 +76,7 @@ private val SupportedSupermarkets = listOf(
     "Mercatò", "Conad", "Lidl", "Carrefour", "Esselunga", "Coop", "Eurospin"
 )
 
-private enum class MainTab { DASHBOARD, ARTICLES, SCANNER, ACCOUNT }
+private enum class MainTab { DASHBOARD, ARTICLES, SCANNER, STATS, ACCOUNT }
 
 data class SavedProduct(
     val code: String,
@@ -278,12 +278,22 @@ private fun LoginScreen(auth: AuthController) {
 private fun AuthenticatedApp(repository: ProductRepository, auth: AuthController) {
     var products by remember { mutableStateOf(repository.loadAll()) }
     var editing by remember { mutableStateOf<SavedProduct?>(null) }
+    var viewing by remember { mutableStateOf<SavedProduct?>(null) }
     var creating by rememberSaveable { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableStateOf(MainTab.ARTICLES) }
 
     LaunchedEffect(auth.session?.userId) {
-        if (auth.session != null) {
-            products = repository.syncWithCloud()
+        if (auth.session != null) products = repository.syncWithCloud()
+    }
+
+    viewing?.let { product ->
+        if (!creating && editing == null) {
+            ProductDetailScreen(
+                product = product,
+                onBack = { viewing = null },
+                onEdit = { editing = product; viewing = null }
+            )
+            return
         }
     }
 
@@ -291,10 +301,7 @@ private fun AuthenticatedApp(repository: ProductRepository, auth: AuthController
         ProductEditorScreen(
             repository = repository,
             existing = editing,
-            onBack = {
-                creating = false
-                editing = null
-            },
+            onBack = { creating = false; editing = null },
             onSaved = {
                 products = repository.loadAll()
                 creating = false
@@ -311,7 +318,7 @@ private fun AuthenticatedApp(repository: ProductRepository, auth: AuthController
         selectedTab = selectedTab,
         onSelectTab = { selectedTab = it },
         onNew = { creating = true },
-        onOpen = { editing = it }
+        onOpen = { viewing = it }
     )
 }
 
@@ -327,65 +334,47 @@ private fun MainScaffold(
 ) {
     val scope = rememberCoroutineScope()
     var menuOpen by remember { mutableStateOf(false) }
-    var now by remember { mutableStateOf(System.currentTimeMillis()) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = System.currentTimeMillis()
-            kotlinx.coroutines.delay(1000)
-        }
-    }
-
-    val nowText = remember(now) {
-        DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.MEDIUM, Locale.getDefault()).format(Date(now))
-    }
 
     BackHandler {
         if (selectedTab != MainTab.ARTICLES) onSelectTab(MainTab.ARTICLES)
     }
 
     Scaffold(
+        containerColor = AppBackground,
         topBar = {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .background(Brush.horizontalGradient(listOf(AppNavy, Color(0xFF0E4C92))))
-            ) {
+            Surface(color = Color.White, shadowElevation = 3.dp) {
                 Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("SpesaScan", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black)
-                        Text(nowText, color = Color(0xFFD6D9E2), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Spesa", color = AppNavy, fontSize = 29.sp, fontWeight = FontWeight.Black)
+                        Text("Scan", color = AppGreen, fontSize = 29.sp, fontWeight = FontWeight.Black)
                     }
                     Box {
                         FilledTonalIconButton(
                             onClick = { menuOpen = true },
-                            modifier = Modifier
-                                .size(48.dp)
-                                .border(1.5.dp, Color.White, RoundedCornerShape(50)),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = Color(0xFF1E293B),
-                                contentColor = Color.White
+                                containerColor = AppSky,
+                                contentColor = AppNavy
                             )
-                        ) {
-                            Icon(Icons.Default.Menu, "Menu")
-                        }
+                        ) { Icon(Icons.Default.Menu, "Menu") }
 
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             DropdownMenuItem(
-                                text = { Text("Articoli") },
+                                text = { Text("Archivio") },
                                 leadingIcon = { Icon(Icons.Default.Inventory2, null) },
                                 onClick = { menuOpen = false; onSelectTab(MainTab.ARTICLES) }
                             )
                             DropdownMenuItem(
-                                text = { Text("Scansiona prodotto") },
+                                text = { Text("Scanner") },
                                 leadingIcon = { Icon(Icons.Default.QrCodeScanner, null) },
-                                onClick = { menuOpen = false; onNew() }
+                                onClick = { menuOpen = false; onSelectTab(MainTab.SCANNER) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Statistiche") },
+                                leadingIcon = { Icon(Icons.Default.BarChart, null) },
+                                onClick = { menuOpen = false; onSelectTab(MainTab.STATS) }
                             )
                             DropdownMenuItem(
                                 text = { Text("Account") },
@@ -409,25 +398,25 @@ private fun MainScaffold(
         bottomBar = {
             Surface(
                 modifier = Modifier.navigationBarsPadding(),
-                shadowElevation = 12.dp,
+                shadowElevation = 14.dp,
                 color = Color.White
             ) {
                 Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(68.dp)
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    Modifier.fillMaxWidth().height(74.dp).padding(horizontal = 6.dp, vertical = 7.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    BottomPill("Dashboard", Icons.Default.Home, selectedTab == MainTab.DASHBOARD, Modifier.weight(1f)) {
+                    BottomPill("Home", Icons.Default.Home, selectedTab == MainTab.DASHBOARD, Modifier.weight(1f)) {
                         onSelectTab(MainTab.DASHBOARD)
                     }
-                    BottomPill("Articoli", Icons.Default.Inventory2, selectedTab == MainTab.ARTICLES, Modifier.weight(1f)) {
+                    BottomPill("Archivio", Icons.Default.Inventory2, selectedTab == MainTab.ARTICLES, Modifier.weight(1f)) {
                         onSelectTab(MainTab.ARTICLES)
                     }
                     BottomPill("Scanner", Icons.Default.QrCodeScanner, selectedTab == MainTab.SCANNER, Modifier.weight(1f)) {
                         onSelectTab(MainTab.SCANNER)
+                    }
+                    BottomPill("Statistiche", Icons.Default.BarChart, selectedTab == MainTab.STATS, Modifier.weight(1f)) {
+                        onSelectTab(MainTab.STATS)
                     }
                     BottomPill("Account", Icons.Default.Person, selectedTab == MainTab.ACCOUNT, Modifier.weight(1f)) {
                         onSelectTab(MainTab.ACCOUNT)
@@ -438,13 +427,11 @@ private fun MainScaffold(
         floatingActionButton = {
             if (selectedTab == MainTab.ARTICLES) {
                 FloatingActionButton(
-                    modifier = Modifier.border(1.5.dp, LegacyBorder, RoundedCornerShape(50)),
                     onClick = onNew,
-                    containerColor = AppAmber,
-                    contentColor = AppNavy
-                ) {
-                    Icon(Icons.Default.Add, "Nuovo articolo", modifier = Modifier.size(30.dp))
-                }
+                    containerColor = AppGreen,
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(20.dp)
+                ) { Icon(Icons.Default.Add, "Nuovo prodotto", modifier = Modifier.size(30.dp)) }
             }
         }
     ) { padding ->
@@ -452,7 +439,8 @@ private fun MainScaffold(
             when (selectedTab) {
                 MainTab.DASHBOARD -> DashboardScreen(products, onNew)
                 MainTab.ARTICLES -> ProductsScreen(products, onNew, onOpen)
-                MainTab.SCANNER -> ScannerLanding(onNew)
+                MainTab.SCANNER -> ScannerLanding(products, onNew, onOpen)
+                MainTab.STATS -> StatsScreen(products)
                 MainTab.ACCOUNT -> AccountScreen(auth)
             }
         }
@@ -467,26 +455,33 @@ private fun BottomPill(
     modifier: Modifier,
     onClick: () -> Unit
 ) {
-    Surface(
-        modifier = modifier
-            .fillMaxHeight()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
-        color = if (selected) Color(0xFFE8F1FF) else Color.Transparent,
-        border = if (selected) BorderStroke(1.5.dp, Color(0xFF9FC5FF)) else null
+    Column(
+        modifier.fillMaxHeight().clickable(onClick = onClick).padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = if (selected) AppMint else Color.Transparent
         ) {
-            Icon(icon, null, tint = if (selected) AppBlue else Color(0xFF64748B), modifier = Modifier.size(22.dp))
-            Text(
-                label,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (selected) AppNavy else Color(0xFF64748B),
-                maxLines = 1
+            Icon(
+                icon,
+                null,
+                tint = if (selected) AppGreen else Color(0xFF667892),
+                modifier = Modifier.padding(7.dp).size(if (label == "Scanner") 27.dp else 23.dp)
+            )
+        }
+        Text(
+            label,
+            fontSize = 9.sp,
+            fontWeight = if (selected) FontWeight.Black else FontWeight.SemiBold,
+            color = if (selected) AppGreenDark else Color(0xFF667892),
+            maxLines = 1
+        )
+        if (selected) {
+            Box(
+                Modifier.padding(top = 2.dp).width(24.dp).height(3.dp)
+                    .background(AppGreen, RoundedCornerShape(50))
             )
         }
     }
@@ -547,32 +542,380 @@ private fun StatCard(title: String, value: String, modifier: Modifier) {
 }
 
 @Composable
-private fun ScannerLanding(onNew: () -> Unit) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Card(
-            Modifier.padding(22.dp).fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            border = BorderStroke(1.5.dp, LegacyBorder)
-        ) {
-            Column(
-                Modifier.padding(26.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(Icons.Default.QrCodeScanner, null, tint = AppBlue, modifier = Modifier.size(64.dp))
-                Text("Scanner prodotti", fontSize = 24.sp, fontWeight = FontWeight.Black, color = AppNavy)
-                Text(
-                    "Scansiona il codice a barre, recupera i dati da Open Food Facts e poi inserisci il prezzo prima di salvare.",
-                    color = Color(0xFF64748B)
-                )
-                Button(
-                    onClick = onNew,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
+private fun ProductDetailScreen(
+    product: SavedProduct,
+    onBack: () -> Unit,
+    onEdit: () -> Unit
+) {
+    val imageModel: Any? = product.imagePath.takeIf { it.isNotBlank() }?.let(::File)
+        ?: product.remoteImageUrl.takeIf { it.isNotBlank() }
+
+    Scaffold(
+        containerColor = AppBackground,
+        topBar = {
+            Surface(color = Color.White, shadowElevation = 3.dp) {
+                Row(
+                    Modifier.fillMaxWidth().statusBarsPadding().padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Apri scanner", fontWeight = FontWeight.Black)
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro", tint = AppNavy)
+                    }
+                    Text("Dettaglio prodotto", color = AppNavy, fontSize = 23.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, "Modifica", tint = AppGreen)
+                    }
                 }
             }
+        }
+    ) { padding ->
+        androidx.compose.foundation.lazy.LazyColumn(
+            Modifier.padding(padding).fillMaxSize(),
+            contentPadding = PaddingValues(14.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, LegacyBorder)
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Box(
+                            Modifier.fillMaxWidth().height(235.dp).background(AppSky, RoundedCornerShape(22.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (imageModel != null) {
+                                AsyncImage(
+                                    model = imageModel,
+                                    contentDescription = product.name,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.fillMaxSize().padding(12.dp)
+                                )
+                            } else {
+                                Icon(Icons.Default.Image, null, tint = Color(0xFFA5B5C7), modifier = Modifier.size(64.dp))
+                            }
+                        }
+                        Spacer(Modifier.height(14.dp))
+                        Text(product.name, color = AppNavy, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                        if (product.brand.isNotBlank()) Text(product.brand, color = Color(0xFF6D7F95), fontSize = 16.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DetailChip(Icons.Default.QrCode2, product.code)
+                            if (product.quantity.isNotBlank()) DetailChip(Icons.Default.Scale, product.quantity)
+                            if (product.category.isNotBlank()) DetailChip(Icons.Default.LocalOffer, product.category)
+                        }
+                    }
+                }
+            }
+
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    DetailMetric("Ultimo prezzo", money(product.salePrice), Icons.Default.Euro, AppMint, Modifier.weight(1f))
+                    DetailMetric(
+                        "Supermercato",
+                        product.supermarket.ifBlank { "Non indicato" },
+                        Icons.Default.Storefront,
+                        AppSky,
+                        Modifier.weight(1f)
+                    )
+                }
+            }
+
+            if (product.notes.isNotBlank()) {
+                item {
+                    Card(
+                        Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Note", color = AppNavy, fontWeight = FontWeight.Black)
+                            Spacer(Modifier.height(5.dp))
+                            Text(product.notes, color = Color(0xFF60748C))
+                        }
+                    }
+                }
+            }
+
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = AppMint)
+                ) {
+                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Schedule, null, tint = AppGreen)
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text("Ultimo aggiornamento", color = AppNavy, fontWeight = FontWeight.Black)
+                            Text(displayDate(product.updatedAt.ifBlank { product.savedAt }), color = Color(0xFF60748C))
+                        }
+                    }
+                }
+            }
+
+            item {
+                Button(
+                    onClick = onEdit,
+                    modifier = Modifier.fillMaxWidth().height(58.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppGreen),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Icon(Icons.Default.Edit, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Modifica prodotto", fontWeight = FontWeight.Black)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    Surface(shape = RoundedCornerShape(16.dp), color = AppSky) {
+        Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = AppBlue, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(5.dp))
+            Text(text, color = AppNavy, fontWeight = FontWeight.Bold, fontSize = 11.sp, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun DetailMetric(
+    label: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    background: Color,
+    modifier: Modifier
+) {
+    Card(
+        modifier,
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = background)
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(icon, null, tint = AppGreen, modifier = Modifier.size(25.dp))
+            Text(label, color = Color(0xFF62768E), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text(value, color = AppNavy, fontSize = 20.sp, fontWeight = FontWeight.Black, maxLines = 2)
+        }
+    }
+}
+
+@Composable
+private fun StatsScreen(products: List<SavedProduct>) {
+    val total = products.sumOf { it.salePrice }
+    val average = if (products.isEmpty()) 0.0 else total / products.size
+    val storeCounts = products
+        .filter { it.supermarket.isNotBlank() }
+        .groupingBy { it.supermarket }
+        .eachCount()
+        .entries
+        .sortedByDescending { it.value }
+
+    androidx.compose.foundation.lazy.LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = AppSky)
+            ) {
+                Column(Modifier.padding(18.dp)) {
+                    Text("Le tue statistiche", color = AppNavy, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                    Text("Numeri reali basati sui prodotti che hai salvato.", color = Color(0xFF61758D))
+                }
+            }
+        }
+
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                DetailMetric("Prodotti", products.size.toString(), Icons.Default.Inventory2, AppMint, Modifier.weight(1f))
+                DetailMetric("Prezzo medio", money(average), Icons.Default.Calculate, AppSky, Modifier.weight(1f))
+            }
+        }
+
+        item {
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, LegacyBorder)
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Somma degli ultimi prezzi", color = AppNavy, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    Text(money(total), color = AppGreenDark, fontSize = 31.sp, fontWeight = FontWeight.Black)
+                    Text(
+                        "È la somma dell’ultimo prezzo salvato per ogni prodotto, non ancora la spesa mensile.",
+                        color = Color(0xFF6D7F95),
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        }
+
+        item {
+            Text("Supermercati registrati", color = AppNavy, fontSize = 19.sp, fontWeight = FontWeight.Black)
+        }
+
+        if (storeCounts.isEmpty()) {
+            item {
+                Surface(shape = RoundedCornerShape(20.dp), color = Color.White) {
+                    Text(
+                        "Aggiungi il supermercato ai prodotti per vedere qui i confronti.",
+                        modifier = Modifier.padding(16.dp),
+                        color = Color(0xFF6D7F95)
+                    )
+                }
+            }
+        } else {
+            items(storeCounts.size) { index ->
+                val entry = storeCounts[index]
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Surface(shape = RoundedCornerShape(14.dp), color = AppMint) {
+                            Icon(Icons.Default.Storefront, null, tint = AppGreen, modifier = Modifier.padding(10.dp))
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Text(entry.key, color = AppNavy, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
+                        Text(entry.value.toString() + " prodotti", color = AppGreenDark, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScannerLanding(
+    products: List<SavedProduct>,
+    onNew: () -> Unit,
+    onOpen: (SavedProduct) -> Unit
+) {
+    val latest = products.maxByOrNull { productTimestamp(it) }
+
+    androidx.compose.foundation.lazy.LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        item {
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(30.dp),
+                colors = CardDefaults.cardColors(containerColor = AppMint)
+            ) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Scansiona, confronta, risparmia", color = AppNavy, fontSize = 27.sp, fontWeight = FontWeight.Black)
+                    Text(
+                        "Inquadra il codice a barre. Recuperiamo i dati del prodotto e tu aggiungi il prezzo.",
+                        color = Color(0xFF5F738B),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Box(
+                        Modifier.fillMaxWidth().height(220.dp)
+                            .background(Brush.linearGradient(listOf(Color.White, AppSky)), RoundedCornerShape(26.dp))
+                            .border(2.dp, AppGreen, RoundedCornerShape(26.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.QrCodeScanner, null, tint = AppGreen, modifier = Modifier.size(88.dp))
+                            Spacer(Modifier.height(8.dp))
+                            Text("Punta il codice a barre", color = AppNavy, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                            Text("La fotocamera si apre al tocco", color = Color(0xFF7A8CA4), fontSize = 12.sp)
+                        }
+                    }
+                    Button(
+                        onClick = onNew,
+                        modifier = Modifier.fillMaxWidth().height(58.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AppGreen)
+                    ) {
+                        Icon(Icons.Default.QrCodeScanner, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Scansiona il codice a barre", fontWeight = FontWeight.Black, fontSize = 16.sp)
+                    }
+                }
+            }
+        }
+
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ScannerQuickAction("Flash", Icons.Default.FlashOn, Modifier.weight(1f))
+                ScannerQuickAction("Manuale", Icons.Default.Keyboard, Modifier.weight(1f), onClick = onNew)
+                ScannerQuickAction("Cronologia", Icons.Default.History, Modifier.weight(1f))
+            }
+        }
+
+        latest?.let { product ->
+            item {
+                Card(
+                    Modifier.fillMaxWidth().clickable { onOpen(product) },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, LegacyBorder)
+                ) {
+                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        val imageModel: Any? = product.imagePath.takeIf { it.isNotBlank() }?.let(::File)
+                            ?: product.remoteImageUrl.takeIf { it.isNotBlank() }
+                        Surface(shape = RoundedCornerShape(18.dp), color = AppSky) {
+                            if (imageModel != null) {
+                                AsyncImage(
+                                    model = imageModel,
+                                    contentDescription = product.name,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.size(92.dp).padding(6.dp)
+                                )
+                            } else {
+                                Icon(Icons.Default.Inventory2, null, tint = AppBlue, modifier = Modifier.padding(25.dp).size(42.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Ultima scansione", color = AppBlue, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                            Text(product.name, color = AppNavy, fontSize = 18.sp, fontWeight = FontWeight.Black, maxLines = 2)
+                            Text(money(product.salePrice), color = AppNavy, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                            if (product.supermarket.isNotBlank()) {
+                                Text(product.supermarket, color = AppGreenDark, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Icon(Icons.Default.ChevronRight, null, tint = AppGreen)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScannerQuickAction(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier,
+    onClick: () -> Unit = {}
+) {
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, LegacyBorder)
+    ) {
+        Column(
+            Modifier.padding(vertical = 14.dp, horizontal = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(icon, null, tint = AppNavy, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.height(5.dp))
+            Text(label, color = AppNavy, fontWeight = FontWeight.Bold, fontSize = 11.sp)
         }
     }
 }
@@ -622,133 +965,162 @@ private fun ProductsScreen(
     onOpen: (SavedProduct) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    var photoOnly by rememberSaveable { mutableStateOf(false) }
-    var selectedBrand by rememberSaveable { mutableStateOf("") }
-    var brandMenu by remember { mutableStateOf(false) }
+    var selectedStore by rememberSaveable { mutableStateOf("") }
+    var selectedCategory by rememberSaveable { mutableStateOf("") }
+    var storeMenu by remember { mutableStateOf(false) }
+    var categoryMenu by remember { mutableStateOf(false) }
 
-    val brands = remember(products) {
-        products.map { it.brand.trim() }.filter { it.isNotBlank() }.distinct().sorted()
+    val categories = remember(products) {
+        products.map { it.category.trim() }.filter { it.isNotBlank() }.distinct().sorted().take(20)
     }
 
-    val filtered = remember(products, query, photoOnly, selectedBrand) {
+    val filtered = remember(products, query, selectedStore, selectedCategory) {
         val q = query.trim().lowercase(Locale.ITALY)
         products.filter { product ->
-            val matchesQuery = q.isBlank() || listOf(product.name, product.brand, product.code, product.description)
-                .any { it.lowercase(Locale.ITALY).contains(q) }
-            val matchesPhoto = !photoOnly || product.imagePath.isNotBlank() || product.remoteImageUrl.isNotBlank()
-            val matchesBrand = selectedBrand.isBlank() || product.brand == selectedBrand
-            matchesQuery && matchesPhoto && matchesBrand
+            val textHit = q.isBlank() || listOf(
+                product.name, product.brand, product.code, product.category,
+                product.supermarket, product.description
+            ).any { it.lowercase(Locale.ITALY).contains(q) }
+            val storeHit = selectedStore.isBlank() || product.supermarket == selectedStore
+            val categoryHit = selectedCategory.isBlank() || product.category == selectedCategory
+            textHit && storeHit && categoryHit
         }
     }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .padding(horizontal = 12.dp)
-    ) {
-        Spacer(Modifier.height(2.dp))
+    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
+        Spacer(Modifier.height(12.dp))
+
+        Card(
+            Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = AppMint)
+        ) {
+            Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Archivio prodotti", color = AppNavy, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                    Text(
+                        "Cerca, confronta e ritrova ciò che compri.",
+                        color = Color(0xFF5D7189),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Surface(shape = RoundedCornerShape(22.dp), color = Color.White.copy(alpha = 0.85f)) {
+                    Icon(
+                        Icons.Default.ShoppingBasket,
+                        null,
+                        tint = AppGreen,
+                        modifier = Modifier.padding(14.dp).size(34.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
 
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            modifier = Modifier.fillMaxWidth().height(54.dp),
+            modifier = Modifier.fillMaxWidth().height(58.dp),
             singleLine = true,
-            placeholder = { Text("Cerca nome, codice o marca", fontSize = 13.sp) },
-            leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(22.dp)) },
-            shape = RoundedCornerShape(18.dp)
+            placeholder = { Text("Cerca un prodotto nell’archivio…") },
+            leadingIcon = { Icon(Icons.Default.Search, null) },
+            shape = RoundedCornerShape(20.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AppGreen,
+                focusedLabelColor = AppGreen,
+                unfocusedContainerColor = Color.White,
+                focusedContainerColor = Color.White
+            )
         )
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(9.dp))
 
         Row(
             Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box {
-                OutlinedButton(
-                    onClick = { brandMenu = true },
-                    shape = RoundedCornerShape(18.dp),
-                    border = BorderStroke(1.5.dp, LegacyBorder)
-                ) {
-                    Text(if (selectedBrand.isBlank()) "Marche" else selectedBrand, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Default.ArrowDropDown, null)
-                }
+            FilterChip(
+                selected = selectedStore.isBlank() && selectedCategory.isBlank(),
+                onClick = { selectedStore = ""; selectedCategory = "" },
+                label = { Text("Tutti", fontWeight = FontWeight.Black) },
+                leadingIcon = { Icon(Icons.Default.GridView, null, Modifier.size(18.dp)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = AppGreen,
+                    selectedLabelColor = Color.White,
+                    selectedLeadingIconColor = Color.White
+                )
+            )
 
-                DropdownMenu(expanded = brandMenu, onDismissRequest = { brandMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Tutte le marche") },
-                        onClick = { selectedBrand = ""; brandMenu = false }
-                    )
-                    brands.forEach { brand ->
-                        DropdownMenuItem(
-                            text = { Text(brand) },
-                            onClick = { selectedBrand = brand; brandMenu = false }
-                        )
+            Box {
+                FilterChip(
+                    selected = selectedStore.isNotBlank(),
+                    onClick = { storeMenu = true },
+                    label = { Text(if (selectedStore.isBlank()) "Supermercati" else selectedStore, fontWeight = FontWeight.Bold) },
+                    leadingIcon = { Icon(Icons.Default.Storefront, null, Modifier.size(18.dp)) }
+                )
+                DropdownMenu(expanded = storeMenu, onDismissRequest = { storeMenu = false }) {
+                    DropdownMenuItem(text = { Text("Tutti i supermercati") }, onClick = {
+                        selectedStore = ""; storeMenu = false
+                    })
+                    SupportedSupermarkets.forEach { store ->
+                        DropdownMenuItem(text = { Text(store) }, onClick = {
+                            selectedStore = store; storeMenu = false
+                        })
                     }
                 }
             }
 
-            OutlinedButton(
-                onClick = { photoOnly = !photoOnly },
-                shape = RoundedCornerShape(18.dp),
-                border = BorderStroke(1.5.dp, LegacyBorder),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = if (photoOnly) Color(0xFFE9DDF5) else Color.Transparent
+            Box {
+                FilterChip(
+                    selected = selectedCategory.isNotBlank(),
+                    onClick = { categoryMenu = true },
+                    label = { Text(if (selectedCategory.isBlank()) "Categorie" else selectedCategory, fontWeight = FontWeight.Bold) },
+                    leadingIcon = { Icon(Icons.Default.LocalOffer, null, Modifier.size(18.dp)) }
                 )
-            ) {
-                Text(if (photoOnly) "Con foto ✓" else "Con foto", fontWeight = FontWeight.Bold)
+                DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
+                    DropdownMenuItem(text = { Text("Tutte le categorie") }, onClick = {
+                        selectedCategory = ""; categoryMenu = false
+                    })
+                    categories.forEach { category ->
+                        DropdownMenuItem(text = { Text(category) }, onClick = {
+                            selectedCategory = category; categoryMenu = false
+                        })
+                    }
+                }
             }
 
-            OutlinedButton(
+            FilterChip(
+                selected = false,
                 onClick = onNew,
-                shape = RoundedCornerShape(18.dp),
-                border = BorderStroke(1.5.dp, LegacyBorder)
-            ) {
-                Icon(Icons.Default.QrCodeScanner, null)
-                Spacer(Modifier.width(5.dp))
-                Text("Scansiona", fontWeight = FontWeight.Bold)
-            }
+                label = { Text("Aggiungi", fontWeight = FontWeight.Black) },
+                leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(18.dp)) }
+            )
         }
 
         Spacer(Modifier.height(8.dp))
 
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            FilterChip(
-                selected = !photoOnly && selectedBrand.isBlank(),
-                onClick = { photoOnly = false; selectedBrand = "" },
-                label = { Text("Tutto", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-            )
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(filtered.size.toString() + " prodotti", color = AppNavy, fontWeight = FontWeight.Black)
             Spacer(Modifier.weight(1f))
-            Text(
-                "${filtered.size} articoli",
-                color = Color(0xFF475569),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Black
-            )
-            Spacer(Modifier.width(8.dp))
-            Icon(Icons.Default.GridView, null, tint = AppNavy)
+            Text("Tocca un prodotto per i dettagli", color = Color(0xFF7A8CA4), fontSize = 11.sp)
         }
 
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(6.dp))
 
         if (filtered.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Inventory2, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(54.dp))
+                    Icon(Icons.Default.Inventory2, null, tint = Color(0xFFA5B4C7), modifier = Modifier.size(58.dp))
                     Spacer(Modifier.height(8.dp))
-                    Text("Nessun articolo", fontWeight = FontWeight.Black, fontSize = 20.sp)
-                    Text("Usa + o Scansiona per aggiungerne uno.", color = Color(0xFF64748B))
+                    Text("Nessun prodotto", fontWeight = FontWeight.Black, fontSize = 20.sp, color = AppNavy)
+                    Text("Scansiona o aggiungi il primo prodotto.", color = Color(0xFF6B7C93))
                 }
             }
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 86.dp),
+                contentPadding = PaddingValues(bottom = 92.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -766,116 +1138,43 @@ private fun ProductGridCard(product: SavedProduct, onClick: () -> Unit) {
         ?: product.remoteImageUrl.takeIf { it.isNotBlank() }
 
     Card(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.5.dp, LegacyBorder)
+        border = BorderStroke(1.dp, LegacyBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
             Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(172.dp)
-                    .background(Color(0xFFF1F5FB))
+                Modifier.fillMaxWidth().height(145.dp)
+                    .background(Brush.linearGradient(listOf(AppSky, Color.White))),
+                contentAlignment = Alignment.Center
             ) {
                 if (imageModel != null) {
                     AsyncImage(
                         model = imageModel,
                         contentDescription = product.name,
-                        modifier = Modifier.fillMaxSize()
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize().padding(8.dp)
                     )
                 } else {
-                    Column(
-                        Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(Icons.Default.Image, null, tint = Color(0xFF9BAAC0), modifier = Modifier.size(44.dp))
-                        Spacer(Modifier.height(6.dp))
-                        Text("Nessuna foto", color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    }
-                }
-
-                Surface(
-                    modifier = Modifier.padding(8.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    color = Color(0xFF172033)
-                ) {
-                    Text(
-                        if (imageModel != null) "1 foto" else "0 foto",
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        fontWeight = FontWeight.Black,
-                        fontSize = 11.sp
-                    )
+                    Icon(Icons.Default.Image, null, tint = Color(0xFFA8B7C9), modifier = Modifier.size(48.dp))
                 }
             }
-
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .background(CardSoft)
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                Text(
-                    product.name,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 17.sp,
-                    color = AppNavy,
-                    minLines = 2,
-                    maxLines = 2
-                )
-                Text(
-                    product.code,
-                    color = Color(0xFF64748B),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(product.name, fontWeight = FontWeight.Black, fontSize = 16.sp, color = AppNavy, maxLines = 2)
                 if (product.quantity.isNotBlank()) {
-                    Text(
-                        "Formato: ${product.quantity}",
-                        color = Color(0xFF64748B),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1
-                    )
+                    Text(product.quantity, color = Color(0xFF75869C), fontSize = 11.sp, maxLines = 1)
                 }
-                if (product.brand.isNotBlank()) {
-                    Text(
-                        product.brand,
-                        color = Color(0xFF475569),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
-                    )
-                }
-                Text(
-                    money(product.salePrice),
-                    fontWeight = FontWeight.Black,
-                    fontSize = 22.sp,
-                    color = AppNavy
-                )
+                Text(money(product.salePrice), fontWeight = FontWeight.Black, fontSize = 21.sp, color = AppNavy)
                 if (product.supermarket.isNotBlank()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Storefront, null, tint = AppGreen, modifier = Modifier.size(15.dp))
                         Spacer(Modifier.width(5.dp))
-                        Text(
-                            product.supermarket,
-                            color = AppNavy,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Black
-                        )
+                        Text(product.supermarket, color = AppNavy, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                     }
                 }
-                Text(
-                    displayDate(product.savedAt),
-                    color = Positive,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(displayDate(product.savedAt), color = Color(0xFF8797AA), fontSize = 9.sp, maxLines = 1)
             }
         }
     }
