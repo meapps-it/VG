@@ -754,11 +754,7 @@ private fun HomeRecentCard(product: SavedProduct, modifier: Modifier, onClick: (
     ) {
         Column(Modifier.padding(10.dp)) {
             Row {
-                if (imageModel != null) {
-                    AsyncImage(model = imageModel, contentDescription = product.name, contentScale = ContentScale.Fit, modifier = Modifier.size(56.dp))
-                } else {
-                    Icon(Icons.Default.Image, null, tint = Color(0xFFB3C2D0), modifier = Modifier.size(48.dp))
-                }
+                ProductImage(product, Modifier.size(60.dp), ContentScale.Crop)
                 Spacer(Modifier.width(7.dp))
                 Column(Modifier.weight(1f)) {
                     Text(product.name, color = AppNavy, fontSize = 12.sp, fontWeight = FontWeight.Black, maxLines = 1)
@@ -824,11 +820,11 @@ private fun ProductDetailScreen(
         ) {
             item {
                 Box(Modifier.fillMaxWidth().height(265.dp), contentAlignment = Alignment.Center) {
-                    if (imageModel != null) {
-                        AsyncImage(model = imageModel, contentDescription = product.name, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize().padding(18.dp))
-                    } else {
-                        Icon(Icons.Default.Image, null, tint = Color(0xFFB2C1D0), modifier = Modifier.size(80.dp))
-                    }
+                    ProductImage(
+                        product = product,
+                        modifier = Modifier.fillMaxSize().padding(12.dp),
+                        contentScale = ContentScale.Fit
+                    )
                     Surface(
                         modifier = Modifier.align(Alignment.TopEnd).size(42.dp),
                         shape = RoundedCornerShape(50),
@@ -867,9 +863,9 @@ private fun ProductDetailScreen(
                                 Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                SupermarketMark(store, Modifier.size(36.dp))
-                                Spacer(Modifier.width(12.dp))
-                                Text(store, color = AppNavy, fontSize = 18.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
+                                SupermarketMark(store, Modifier.size(52.dp))
+                                Spacer(Modifier.width(14.dp))
+                                Text(store, color = AppNavy, fontSize = 20.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
                                 if (store == product.supermarket) {
                                     Text(money(product.salePrice), color = AppNavy, fontSize = 20.sp, fontWeight = FontWeight.Black)
                                 } else {
@@ -970,12 +966,7 @@ private fun ShoppingListScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(checked = done, onCheckedChange = { checked[p.code] = it }, colors = CheckboxDefaults.colors(checkedColor = AppGreen))
-                        val imageModel: Any? = p.imagePath.takeIf { it.isNotBlank() }?.let(::File) ?: p.remoteImageUrl.takeIf { it.isNotBlank() }
-                        if (imageModel != null) {
-                            AsyncImage(model = imageModel, contentDescription = p.name, contentScale = ContentScale.Fit, modifier = Modifier.size(50.dp))
-                        } else {
-                            Icon(Icons.Default.Image, null, tint = Color(0xFFB7C5D3), modifier = Modifier.size(42.dp))
-                        }
+                        ProductImage(p, Modifier.size(58.dp), ContentScale.Crop)
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
                             Text(p.name, color = AppNavy, fontWeight = FontWeight.Black, fontSize = 14.sp, maxLines = 1)
@@ -1071,9 +1062,9 @@ private fun StatsScreen(products: List<SavedProduct>) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         byStore.forEach { entry ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                SupermarketMark(entry.key, Modifier.size(30.dp))
-                                Spacer(Modifier.width(9.dp))
-                                Text(entry.key, color = AppNavy, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), maxLines = 1)
+                                SupermarketMark(entry.key, Modifier.size(46.dp))
+                                Spacer(Modifier.width(11.dp))
+                                Text(entry.key, color = AppNavy, fontSize = 18.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f), maxLines = 1)
                                 Text(String.format(Locale.ITALY, "%.0f%%", entry.value / totalByStore * 100.0), color = AppNavy, fontWeight = FontWeight.Black, fontSize = 16.sp)
                             }
                         }
@@ -1461,48 +1452,160 @@ private fun ArchiveChip(
     }
 }
 
+private fun productImageModel(product: SavedProduct): Any? {
+    val local = product.imagePath.trim()
+    if (local.isNotBlank()) {
+        return when {
+            local.startsWith("content://") || local.startsWith("file://") -> Uri.parse(local)
+            File(local).exists() -> File(local)
+            else -> null
+        }
+    }
+    return product.remoteImageUrl.trim().takeIf { it.isNotBlank() }
+}
+
 @Composable
-private fun ArchiveProductCard(product: SavedProduct, onClick: () -> Unit) {
-    val imageModel: Any? = product.imagePath.takeIf { it.isNotBlank() }?.let(::File)
-        ?: product.remoteImageUrl.takeIf { it.isNotBlank() }
+private fun ProductImage(
+    product: SavedProduct,
+    modifier: Modifier,
+    contentScale: ContentScale = ContentScale.Crop
+) {
+    val model = productImageModel(product)
     Surface(
-        modifier = Modifier.fillMaxWidth().height(220.dp).clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        color = Color.White,
-        shadowElevation = 2.dp
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0xFFF3F7FA)
     ) {
-        Column(Modifier.padding(10.dp)) {
-            Row {
-                Box(Modifier.size(67.dp), contentAlignment = Alignment.Center) {
-                    if (imageModel != null) AsyncImage(model = imageModel, contentDescription = product.name, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
-                    else Icon(Icons.Default.Image, null, tint = Color(0xFFB4C3D1), modifier = Modifier.size(38.dp))
-                }
-                Spacer(Modifier.width(7.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(product.name, color = AppNavy, fontSize = 12.sp, fontWeight = FontWeight.Black, maxLines = 1)
-                    Text(product.quantity, color = Color(0xFF7B8DA2), fontSize = 9.sp, maxLines = 1)
-                    Spacer(Modifier.height(4.dp))
-                    Text(money(product.salePrice), color = AppNavy, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                }
-                Icon(Icons.Default.MoreVert, null, tint = Color(0xFF607A98), modifier = Modifier.size(17.dp))
-            }
-            Spacer(Modifier.weight(1f))
-            if (product.supermarket.isNotBlank()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    SupermarketMark(product.supermarket, Modifier.size(34.dp))
-                    Spacer(Modifier.width(9.dp))
-                    Text(product.supermarket, color = AppNavy, fontSize = 16.sp, fontWeight = FontWeight.Black, maxLines = 1)
-                }
-            }
-            Spacer(Modifier.height(6.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CalendarMonth, null, tint = Color(0xFF7890AA), modifier = Modifier.size(13.dp))
-                Spacer(Modifier.width(5.dp))
-                Text(displayDate(product.savedAt).substringBefore(" "), color = Color(0xFF7890AA), fontSize = 12.sp, maxLines = 1)
+        if (model != null) {
+            AsyncImage(
+                model = model,
+                contentDescription = product.name,
+                contentScale = contentScale,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    Icons.Default.Image,
+                    contentDescription = null,
+                    tint = Color(0xFF9DB0C3),
+                    modifier = Modifier.fillMaxSize(0.38f)
+                )
             }
         }
     }
 }
+
+@Composable
+private fun SupermarketBrandRow(
+    name: String,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
+) {
+    val logoSize = if (compact) 44.dp else 54.dp
+    val textSize = if (compact) 17.sp else 19.sp
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        color = Color.White.copy(alpha = 0.96f),
+        border = BorderStroke(1.dp, Color(0xFFDDE8EF)),
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SupermarketMark(name, Modifier.size(logoSize))
+            Spacer(Modifier.width(10.dp))
+            Text(
+                name,
+                color = AppNavy,
+                fontSize = textSize,
+                fontWeight = FontWeight.Black,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun ArchiveProductCard(product: SavedProduct, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(250.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(22.dp),
+        color = Color.White.copy(alpha = 0.97f),
+        shadowElevation = 4.dp
+    ) {
+        Column(Modifier.padding(11.dp)) {
+            Row(verticalAlignment = Alignment.Top) {
+                ProductImage(
+                    product = product,
+                    modifier = Modifier.size(92.dp),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(Modifier.width(9.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        product.name,
+                        color = AppNavy,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Black,
+                        maxLines = 2
+                    )
+                    if (product.quantity.isNotBlank()) {
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            product.quantity,
+                            color = Color(0xFF71869E),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        money(product.salePrice),
+                        color = AppNavy,
+                        fontSize = 23.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            if (product.supermarket.isNotBlank()) {
+                SupermarketBrandRow(
+                    name = product.supermarket,
+                    modifier = Modifier.fillMaxWidth(),
+                    compact = true
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.CalendarMonth,
+                    null,
+                    tint = Color(0xFF7890AA),
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    displayDate(product.savedAt).substringBefore(" "),
+                    color = Color(0xFF7890AA),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
 
 @Composable
 private fun GroceryMascot(
@@ -1522,8 +1625,8 @@ private fun SupermarketBadge(
     name: String,
     compact: Boolean
 ) {
-    val iconSize = if (compact) 24.dp else 34.dp
-    val fontSize = if (compact) 10.sp else 13.sp
+    val iconSize = if (compact) 42.dp else 56.dp
+    val fontSize = if (compact) 16.sp else 20.sp
 
     Surface(
         shape = RoundedCornerShape(if (compact) 12.dp else 16.dp),
