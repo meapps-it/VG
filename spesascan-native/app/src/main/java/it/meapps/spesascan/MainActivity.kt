@@ -3,8 +3,10 @@ package it.meapps.spesascan
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.util.Base64
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -12,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,6 +39,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -1280,105 +1284,12 @@ private fun GroceryMascot(
     modifier: Modifier = Modifier,
     showScanner: Boolean
 ) {
-    Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-
-        // Soft grocery basket.
-        drawRoundRect(
-            color = Color(0xFFEAFBF4),
-            topLeft = Offset(w * 0.43f, h * 0.61f),
-            size = Size(w * 0.50f, h * 0.28f),
-            cornerRadius = CornerRadius(w * 0.06f, w * 0.06f)
-        )
-        drawCircle(Color(0xFFFFB020), radius = w * 0.055f, center = Offset(w * 0.55f, h * 0.63f))
-        drawCircle(Color(0xFF36B66A), radius = w * 0.060f, center = Offset(w * 0.67f, h * 0.61f))
-        drawCircle(Color(0xFFE5484D), radius = w * 0.050f, center = Offset(w * 0.78f, h * 0.64f))
-
-        // Body and apron.
-        drawRoundRect(
-            color = AppGreen,
-            topLeft = Offset(w * 0.23f, h * 0.50f),
-            size = Size(w * 0.43f, h * 0.43f),
-            cornerRadius = CornerRadius(w * 0.14f, w * 0.14f)
-        )
-        drawRoundRect(
-            color = Color.White,
-            topLeft = Offset(w * 0.34f, h * 0.58f),
-            size = Size(w * 0.24f, h * 0.30f),
-            cornerRadius = CornerRadius(w * 0.06f, w * 0.06f)
-        )
-        drawRoundRect(
-            color = AppGreenDark,
-            topLeft = Offset(w * 0.39f, h * 0.72f),
-            size = Size(w * 0.14f, h * 0.045f),
-            cornerRadius = CornerRadius(w * 0.02f, w * 0.02f)
-        )
-
-        // Head.
-        drawCircle(
-            color = Color(0xFFFFC39B),
-            radius = w * 0.19f,
-            center = Offset(w * 0.43f, h * 0.35f)
-        )
-
-        // Hair.
-        val hair = Color(0xFF5B2E1F)
-        drawCircle(hair, radius = w * 0.10f, center = Offset(w * 0.33f, h * 0.18f))
-        drawCircle(hair, radius = w * 0.11f, center = Offset(w * 0.44f, h * 0.15f))
-        drawCircle(hair, radius = w * 0.09f, center = Offset(w * 0.54f, h * 0.19f))
-
-        // Eyes.
-        drawCircle(Color.White, radius = w * 0.043f, center = Offset(w * 0.37f, h * 0.34f))
-        drawCircle(Color.White, radius = w * 0.043f, center = Offset(w * 0.48f, h * 0.34f))
-        drawCircle(AppNavy, radius = w * 0.019f, center = Offset(w * 0.37f, h * 0.34f))
-        drawCircle(AppNavy, radius = w * 0.019f, center = Offset(w * 0.48f, h * 0.34f))
-
-        // Smile.
-        drawArc(
-            color = Color(0xFF7A2B24),
-            startAngle = 15f,
-            sweepAngle = 150f,
-            useCenter = false,
-            topLeft = Offset(w * 0.36f, h * 0.38f),
-            size = Size(w * 0.15f, h * 0.11f),
-            style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.018f)
-        )
-
-        // Raised arm.
-        drawRoundRect(
-            color = Color(0xFFFFC39B),
-            topLeft = Offset(w * 0.60f, h * 0.38f),
-            size = Size(w * 0.12f, h * 0.30f),
-            cornerRadius = CornerRadius(w * 0.05f, w * 0.05f)
-        )
-
-        if (showScanner) {
-            drawRoundRect(
-                color = AppNavy,
-                topLeft = Offset(w * 0.67f, h * 0.25f),
-                size = Size(w * 0.23f, h * 0.14f),
-                cornerRadius = CornerRadius(w * 0.03f, w * 0.03f)
-            )
-            drawRoundRect(
-                color = Negative,
-                topLeft = Offset(w * 0.70f, h * 0.28f),
-                size = Size(w * 0.14f, h * 0.035f),
-                cornerRadius = CornerRadius(w * 0.015f, w * 0.015f)
-            )
-        } else {
-            drawCircle(
-                color = AppAmber,
-                radius = w * 0.07f,
-                center = Offset(w * 0.79f, h * 0.31f)
-            )
-            drawCircle(
-                color = Color.White,
-                radius = w * 0.035f,
-                center = Offset(w * 0.79f, h * 0.31f)
-            )
-        }
-    }
+    EmbeddedBase64Image(
+        base64 = EmbeddedMascot.WEBP_BASE64,
+        modifier = modifier,
+        contentDescription = "Mascotte SpesaScan",
+        contentScale = ContentScale.Fit
+    )
 }
 
 @Composable
@@ -1419,74 +1330,56 @@ private fun SupermarketMark(
     name: String,
     modifier: Modifier = Modifier
 ) {
-    when (name.lowercase(Locale.ITALY)) {
-        "conad" -> {
-            Box(
-                modifier.background(Color(0xFFFFD928), RoundedCornerShape(50)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("✿", color = Color(0xFFE32926), fontWeight = FontWeight.Black, fontSize = 16.sp)
-            }
+    val asset = EmbeddedSupermarketLogos.forName(name)
+    if (asset != null) {
+        EmbeddedBase64Image(
+            base64 = asset,
+            modifier = modifier,
+            contentDescription = "Logo " + name,
+            contentScale = ContentScale.Fit
+        )
+    } else {
+        Box(
+            modifier.background(AppMint, RoundedCornerShape(7.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.Storefront,
+                null,
+                tint = AppGreen,
+                modifier = Modifier.fillMaxSize(0.65f)
+            )
         }
-        "lidl" -> {
-            Box(
-                modifier.background(Color(0xFF0050AA), RoundedCornerShape(5.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    Modifier.fillMaxSize(0.78f).background(Color(0xFFFFE500), RoundedCornerShape(50)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("L", color = Color(0xFFE30613), fontWeight = FontWeight.Black, fontSize = 13.sp)
-                }
-            }
-        }
-        "carrefour" -> {
-            Box(modifier, contentAlignment = Alignment.Center) {
-                Text("◆", color = Color(0xFF004E9F), fontSize = 23.sp)
-                Text("C", color = Color.White, fontWeight = FontWeight.Black, fontSize = 10.sp)
-            }
-        }
-        "esselunga" -> {
-            Box(
-                modifier.background(Color.White, RoundedCornerShape(5.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("S", color = Color(0xFFE30613), fontWeight = FontWeight.Black, fontSize = 20.sp)
-            }
-        }
-        "coop" -> {
-            Box(modifier, contentAlignment = Alignment.Center) {
-                Text("coop", color = Color(0xFFE20A16), fontWeight = FontWeight.Black, fontSize = 10.sp)
-            }
-        }
-        "eurospin" -> {
-            Box(
-                modifier.background(Color(0xFF0054A6), RoundedCornerShape(6.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("€", color = Color(0xFFFFE200), fontWeight = FontWeight.Black, fontSize = 15.sp)
-            }
-        }
-        "mercatò", "mercato" -> {
-            Box(
-                modifier.background(Color.White, RoundedCornerShape(5.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("M", color = Color(0xFF0054A6), fontWeight = FontWeight.Black, fontSize = 18.sp)
-                Box(
-                    Modifier.align(Alignment.BottomCenter).fillMaxWidth(0.8f).height(3.dp)
-                        .background(Color(0xFFE2231A), RoundedCornerShape(50))
-                )
-            }
-        }
-        else -> {
-            Box(
-                modifier.background(AppMint, RoundedCornerShape(7.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Storefront, null, tint = AppGreen, modifier = Modifier.fillMaxSize(0.65f))
-            }
+    }
+}
+
+@Composable
+private fun EmbeddedBase64Image(
+    base64: String,
+    modifier: Modifier,
+    contentDescription: String?,
+    contentScale: ContentScale
+) {
+    val image = remember(base64) {
+        runCatching {
+            val bytes = Base64.decode(base64, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+        }.getOrNull()
+    }
+
+    if (image != null) {
+        Image(
+            bitmap = image,
+            contentDescription = contentDescription,
+            modifier = modifier,
+            contentScale = contentScale
+        )
+    } else {
+        Box(
+            modifier.background(AppMint, RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Default.Image, null, tint = AppGreen)
         }
     }
 }
