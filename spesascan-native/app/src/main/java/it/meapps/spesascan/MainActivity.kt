@@ -315,9 +315,14 @@ private fun AuthenticatedApp(repository: ProductRepository, auth: AuthController
     }
 
     fun navigateBack() {
-        if (navHistory.size <= 1) return
-        navHistory.removeAt(navHistory.lastIndex)
-        selectedTab = navHistory.last()
+        if (navHistory.size > 1) {
+            navHistory.removeAt(navHistory.lastIndex)
+            selectedTab = navHistory.last()
+        } else if (selectedTab != MainTab.DASHBOARD) {
+            navHistory.clear()
+            navHistory.add(MainTab.DASHBOARD)
+            selectedTab = MainTab.DASHBOARD
+        }
     }
 
     LaunchedEffect(auth.session?.userId) {
@@ -387,7 +392,7 @@ private fun MainScaffold(
     onScanned: (String) -> Unit,
     onOpen: (SavedProduct) -> Unit
 ) {
-    BackHandler(enabled = canGoBack) {
+    BackHandler(enabled = selectedTab != MainTab.DASHBOARD || canGoBack) {
         onBack()
     }
 
@@ -398,12 +403,14 @@ private fun MainScaffold(
         }
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
-            when (selectedTab) {
-                MainTab.DASHBOARD -> DashboardScreen(products, auth, onNew, onOpen)
-                MainTab.ARTICLES -> ProductsScreen(products, onNew, onOpen)
-                MainTab.SCANNER -> ScannerLanding(products, onScanned, onBack)
-                MainTab.LISTS -> ShoppingListScreen(products, onOpen)
-                MainTab.STATS -> StatsScreen(products)
+            AppPageBackground {
+                when (selectedTab) {
+                    MainTab.DASHBOARD -> DashboardScreen(products, auth, onNew, onOpen)
+                    MainTab.ARTICLES -> ProductsScreen(products, onNew, onOpen)
+                    MainTab.SCANNER -> ScannerLanding(products, onScanned, onBack)
+                    MainTab.LISTS -> ShoppingListScreen(products, onOpen)
+                    MainTab.STATS -> StatsScreen(products)
+                }
             }
         }
     }
@@ -497,6 +504,31 @@ private fun BrandLogo(fontSize: Int = 29) {
     ) {
         Text("Spesa", color = AppNavy, fontSize = fontSize.sp, fontWeight = FontWeight.Black, fontFamily = SpesaScanFont)
         Text("Scan", color = AppGreen, fontSize = fontSize.sp, fontWeight = FontWeight.Black, fontFamily = SpesaScanFont)
+    }
+}
+
+@Composable
+private fun AppPageBackground(
+    content: @Composable BoxScope.() -> Unit
+) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF1FAF7))
+    ) {
+        Image(
+            painter = painterResource(R.drawable.spesa_header),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            alpha = 0.075f
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Color.White.copy(alpha = 0.64f))
+        )
+        content()
     }
 }
 
@@ -771,7 +803,7 @@ private fun ProductDetailScreen(
         ?: product.remoteImageUrl.takeIf { it.isNotBlank() }
 
     Scaffold(
-        containerColor = Color(0xFFF8FBFE),
+        containerColor = Color(0xFFF1FAF7),
         topBar = {
             Surface(color = Color.White) {
                 Row(
@@ -832,14 +864,14 @@ private fun ProductDetailScreen(
                         val stores = SupportedSupermarkets.take(5)
                         stores.forEachIndexed { index, store ->
                             Row(
-                                Modifier.fillMaxWidth().padding(horizontal = 13.dp, vertical = 11.dp),
+                                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                SupermarketMark(store, Modifier.size(28.dp))
-                                Spacer(Modifier.width(10.dp))
-                                Text(store, color = AppNavy, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                                SupermarketMark(store, Modifier.size(36.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Text(store, color = AppNavy, fontSize = 18.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
                                 if (store == product.supermarket) {
-                                    Text(money(product.salePrice), color = AppNavy, fontWeight = FontWeight.Black)
+                                    Text(money(product.salePrice), color = AppNavy, fontSize = 20.sp, fontWeight = FontWeight.Black)
                                 } else {
                                     Text("—", color = Color(0xFF9AA9B9), fontWeight = FontWeight.Bold)
                                 }
@@ -905,7 +937,7 @@ private fun ShoppingListScreen(
     val checked = remember { mutableStateMapOf<String, Boolean>() }
 
     Column(
-        Modifier.fillMaxSize().background(Color(0xFFF7FBFE)).padding(horizontal = 16.dp)
+        Modifier.fillMaxSize().background(Color.Transparent).padding(horizontal = 16.dp)
     ) {
         Spacer(Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -979,7 +1011,7 @@ private fun StatsScreen(products: List<SavedProduct>) {
     val totalByStore = byStore.sumOf { it.value }.takeIf { it > 0 } ?: 1.0
 
     androidx.compose.foundation.lazy.LazyColumn(
-        Modifier.fillMaxSize().background(Color(0xFFF7FBFE)),
+        Modifier.fillMaxSize().background(Color.Transparent),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -1039,10 +1071,10 @@ private fun StatsScreen(products: List<SavedProduct>) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         byStore.forEach { entry ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                SupermarketMark(entry.key, Modifier.size(22.dp))
-                                Spacer(Modifier.width(7.dp))
-                                Text(entry.key, color = AppNavy, fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
-                                Text(String.format(Locale.ITALY, "%.0f%%", entry.value / totalByStore * 100.0), color = AppNavy, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                                SupermarketMark(entry.key, Modifier.size(30.dp))
+                                Spacer(Modifier.width(9.dp))
+                                Text(entry.key, color = AppNavy, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), maxLines = 1)
+                                Text(String.format(Locale.ITALY, "%.0f%%", entry.value / totalByStore * 100.0), color = AppNavy, fontWeight = FontWeight.Black, fontSize = 16.sp)
                             }
                         }
                         if (byStore.isEmpty()) Text("Aggiungi i supermercati ai prodotti per vedere la distribuzione.", color = Color(0xFF7A8DA4), fontSize = 11.sp)
@@ -1322,7 +1354,7 @@ private fun ProductsScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().background(Color(0xFFF4FAFD)).padding(horizontal = 14.dp)
+        Modifier.fillMaxSize().background(Color.Transparent).padding(horizontal = 14.dp)
     ) {
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1434,7 +1466,7 @@ private fun ArchiveProductCard(product: SavedProduct, onClick: () -> Unit) {
     val imageModel: Any? = product.imagePath.takeIf { it.isNotBlank() }?.let(::File)
         ?: product.remoteImageUrl.takeIf { it.isNotBlank() }
     Surface(
-        modifier = Modifier.fillMaxWidth().height(204.dp).clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().height(220.dp).clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         color = Color.White,
         shadowElevation = 2.dp
@@ -1457,16 +1489,16 @@ private fun ArchiveProductCard(product: SavedProduct, onClick: () -> Unit) {
             Spacer(Modifier.weight(1f))
             if (product.supermarket.isNotBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    SupermarketMark(product.supermarket, Modifier.size(24.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(product.supermarket, color = AppNavy, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    SupermarketMark(product.supermarket, Modifier.size(34.dp))
+                    Spacer(Modifier.width(9.dp))
+                    Text(product.supermarket, color = AppNavy, fontSize = 16.sp, fontWeight = FontWeight.Black, maxLines = 1)
                 }
             }
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.CalendarMonth, null, tint = Color(0xFF7890AA), modifier = Modifier.size(13.dp))
                 Spacer(Modifier.width(5.dp))
-                Text(displayDate(product.savedAt).substringBefore(" "), color = Color(0xFF7890AA), fontSize = 8.sp, maxLines = 1)
+                Text(displayDate(product.savedAt).substringBefore(" "), color = Color(0xFF7890AA), fontSize = 12.sp, maxLines = 1)
             }
         }
     }
@@ -1693,7 +1725,7 @@ private fun ProductEditorScreen(
         ?: remoteImageUrl.takeIf { it.isNotBlank() }
 
     Scaffold(
-        containerColor = AppBackground,
+        containerColor = Color(0xFFF1FAF7),
         topBar = {
             Surface(color = Color.White, shadowElevation = 2.dp) {
                 Row(
