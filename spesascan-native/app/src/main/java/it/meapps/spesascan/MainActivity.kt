@@ -2420,7 +2420,12 @@ class ProductRepository(
         val cleanCode = code.trim()
         if (cleanCode.isBlank()) return@withContext null
 
-        runCatching {
+        lookupOpenFactsUniversal(cleanCode)
+            ?: lookupUpcItemDb(cleanCode)
+    }
+
+    private fun lookupOpenFactsUniversal(code: String): SavedProduct? {
+        return runCatching {
             val fields = listOf(
                 "code",
                 "product_name",
@@ -2439,7 +2444,7 @@ class ProductRepository(
 
             val url =
                 "https://world.openfoodfacts.org/api/v3/product/" +
-                    cleanCode +
+                    code +
                     "?product_type=all&lc=it&cc=it&fields=" +
                     fields
 
@@ -2451,26 +2456,26 @@ class ProductRepository(
                 .build()
 
             val body = client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@withContext null
+                if (!response.isSuccessful) return@runCatching null
                 response.body?.string().orEmpty()
             }
 
             val json = JSONObject(body)
-            val p = json.optJSONObject("product") ?: return@withContext null
+            val p = json.optJSONObject("product") ?: return@runCatching null
 
             val name = p.optString("product_name_it")
                 .ifBlank { p.optString("product_name") }
                 .ifBlank { p.optString("generic_name_it") }
                 .ifBlank { p.optString("generic_name") }
 
+            if (name.isBlank()) return@runCatching null
+
             val description = p.optString("generic_name_it")
                 .ifBlank { p.optString("generic_name") }
                 .ifBlank { p.optString("categories") }
 
-            val bestImage = bestOpenFactsImage(p)
-
             SavedProduct(
-                code = p.optString("code").ifBlank { cleanCode },
+                code = p.optString("code").ifBlank { code },
                 name = name,
                 brand = p.optString("brands"),
                 quantity = p.optString("quantity"),
@@ -2478,9 +2483,65 @@ class ProductRepository(
                 salePrice = 0.0,
                 savedAt = "",
                 imagePath = "",
-                remoteImageUrl = bestImage,
+                remoteImageUrl = bestOpenFactsImage(p),
                 updatedAt = "",
                 category = p.optString("categories")
+            )
+        }.getOrNull()
+    }
+
+    private fun lookupUpcItemDb(code: String): SavedProduct? {
+        return runCatching {
+            val request = Request.Builder()
+                .url("https://api.upcitemdb.com/prod/trial/lookup?upc=$code")
+                .header("User-Agent", "SpesaScan/0.4.0 (Android)")
+                .header("Accept", "application/json")
+                .get()
+                .build()
+
+            val body = client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@runCatching null
+                response.body?.string().orEmpty()
+            }
+
+            val json = JSONObject(body)
+            val items = json.optJSONArray("items") ?: return@runCatching null
+            if (items.length() == 0) return@runCatching null
+
+            val item = items.optJSONObject(0) ?: return@runCatching null
+            val title = item.optString("title").trim()
+            if (title.isBlank()) return@runCatching null
+
+            val images = item.optJSONArray("images")
+            var image = ""
+            if (images != null) {
+                for (i in 0 until images.length()) {
+                    val candidate = images.optString(i).trim()
+                    if (candidate.startsWith("https://") || candidate.startsWith("http://")) {
+                        image = candidate
+                        break
+                    }
+                }
+            }
+
+            val quantityText = item.optString("dimension")
+                .ifBlank { item.optString("weight") }
+
+            SavedProduct(
+                code = item.optString("ean")
+                    .ifBlank { item.optString("gtin") }
+                    .ifBlank { item.optString("upc") }
+                    .ifBlank { code },
+                name = title,
+                brand = item.optString("brand"),
+                quantity = quantityText,
+                description = item.optString("description"),
+                salePrice = 0.0,
+                savedAt = "",
+                imagePath = "",
+                remoteImageUrl = image,
+                updatedAt = "",
+                category = item.optString("category")
             )
         }.getOrNull()
     }
@@ -2497,14 +2558,12 @@ class ProductRepository(
                         "it", "en", "display", "small", "thumb",
                         "front", "selected", "url"
                     )
-
                     for (key in preferredKeys) {
                         if (value.has(key)) {
                             val found = firstUrl(value.opt(key))
                             if (found.isNotBlank()) return found
                         }
                     }
-
                     val keys = value.keys()
                     while (keys.hasNext()) {
                         val key = keys.next()
@@ -2527,8 +2586,7 @@ class ProductRepository(
         }
 
         val selected = product.optJSONObject("selected_images")
-        val front = selected?.optJSONObject("front")
-        val selectedFront = firstUrl(front)
+        val selectedFront = firstUrl(selected?.optJSONObject("front"))
         if (selectedFront.isNotBlank()) return selectedFront
 
         return listOf(
