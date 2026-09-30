@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import coil3.compose.AsyncImage
+import com.journeyapps.barcodescanner.CaptureActivity
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.Dispatchers
@@ -106,6 +107,8 @@ data class SavedProduct(
     val supermarket: String = "",
     val notes: String = ""
 )
+
+class SpesaScanCaptureActivity : CaptureActivity()
 
 class MainActivity : ComponentActivity() {
     private val auth by lazy { AuthController(this) }
@@ -1114,52 +1117,119 @@ private fun ScannerLanding(
     onScanned: (String) -> Unit,
     onBack: () -> Unit
 ) {
+    var scannerError by remember { mutableStateOf("") }
+
     val scanner = rememberLauncherForActivityResult(ScanContract()) { result ->
         val code = result.contents.orEmpty().trim()
-        if (code.isNotBlank()) onScanned(code) else onBack()
+        if (code.isNotBlank()) {
+            onScanned(code)
+        }
     }
 
-    LaunchedEffect(Unit) {
-        scanner.launch(
-            ScanOptions()
-                .setPrompt("Inquadra il codice a barre")
-                .setBeepEnabled(false)
-                .setOrientationLocked(false)
-                .setBarcodeImageEnabled(false)
-        )
+    fun launchScanner() {
+        scannerError = ""
+        runCatching {
+            scanner.launch(
+                ScanOptions()
+                    .setCaptureActivity(SpesaScanCaptureActivity::class.java)
+                    .setPrompt("Inquadra il codice a barre")
+                    .setBeepEnabled(false)
+                    .setOrientationLocked(false)
+                    .setBarcodeImageEnabled(false)
+            )
+        }.onFailure {
+            scannerError = "Impossibile avviare la fotocamera."
+        }
     }
 
     Box(
-        Modifier.fillMaxSize().background(Color(0xFF101419)),
-        contentAlignment = Alignment.Center
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF4FAFD))
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                Icons.Default.QrCodeScanner,
-                contentDescription = null,
-                tint = AppGreen,
-                modifier = Modifier.size(72.dp)
-            )
-            Spacer(Modifier.height(16.dp))
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 22.dp, vertical = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Indietro",
+                        tint = AppNavy
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                Text(
+                    "Scanner",
+                    color = AppNavy,
+                    fontSize = 25.sp,
+                    fontWeight = FontWeight.Black
+                )
+                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.size(48.dp))
+            }
+
+            Spacer(Modifier.height(42.dp))
+
+            Surface(
+                modifier = Modifier.size(210.dp),
+                shape = RoundedCornerShape(36.dp),
+                color = AppMint
+            ) {
+                Icon(
+                    Icons.Default.QrCodeScanner,
+                    contentDescription = null,
+                    tint = AppGreen,
+                    modifier = Modifier.padding(55.dp)
+                )
+            }
+
+            Spacer(Modifier.height(28.dp))
+
             Text(
-                "Apertura fotocamera…",
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                "Scansiona il codice a barre",
+                color = AppNavy,
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Black
             )
             Spacer(Modifier.height(8.dp))
-            TextButton(onClick = {
-                scanner.launch(
-                    ScanOptions()
-                        .setPrompt("Inquadra il codice a barre")
-                        .setBeepEnabled(false)
-                        .setOrientationLocked(false)
+            Text(
+                "La fotocamera si aprirà solo quando premi il pulsante.",
+                color = Color(0xFF6C8199),
+                fontSize = 13.sp
+            )
+
+            if (scannerError.isNotBlank()) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    scannerError,
+                    color = Negative,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
                 )
-            }) {
-                Text("Riapri scanner", color = AppGreen, fontWeight = FontWeight.Bold)
             }
-            TextButton(onClick = onBack) {
-                Text("Indietro", color = Color.White)
+
+            Spacer(Modifier.height(28.dp))
+
+            Button(
+                onClick = ::launchScanner,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AppGreen)
+            ) {
+                Icon(Icons.Default.PhotoCamera, null)
+                Spacer(Modifier.width(9.dp))
+                Text(
+                    "Avvia scanner",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 16.sp
+                )
             }
         }
     }
