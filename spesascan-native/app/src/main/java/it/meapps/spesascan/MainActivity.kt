@@ -72,6 +72,10 @@ private val Negative = Color(0xFFE5484D)
 private val LegacyBorder = Color(0xFFD7E3EF)
 private val CardSoft = Color(0xFFFFFFFF)
 
+private val SupportedSupermarkets = listOf(
+    "Mercatò", "Conad", "Lidl", "Carrefour", "Esselunga", "Coop", "Eurospin"
+)
+
 private enum class MainTab { DASHBOARD, ARTICLES, SCANNER, ACCOUNT }
 
 data class SavedProduct(
@@ -84,7 +88,10 @@ data class SavedProduct(
     val savedAt: String,
     val imagePath: String = "",
     val remoteImageUrl: String = "",
-    val updatedAt: String = ""
+    val updatedAt: String = "",
+    val category: String = "",
+    val supermarket: String = "",
+    val notes: String = ""
 )
 
 class MainActivity : ComponentActivity() {
@@ -851,6 +858,18 @@ private fun ProductGridCard(product: SavedProduct, onClick: () -> Unit) {
                     fontSize = 22.sp,
                     color = AppNavy
                 )
+                if (product.supermarket.isNotBlank()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Storefront, null, tint = AppGreen, modifier = Modifier.size(15.dp))
+                        Spacer(Modifier.width(5.dp))
+                        Text(
+                            product.supermarket,
+                            color = AppNavy,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
                 Text(
                     displayDate(product.savedAt),
                     color = Positive,
@@ -882,6 +901,10 @@ private fun ProductEditorScreen(
     }
     var remoteImageUrl by rememberSaveable(existing?.code) { mutableStateOf(existing?.remoteImageUrl.orEmpty()) }
     var localImagePath by rememberSaveable(existing?.code) { mutableStateOf(existing?.imagePath.orEmpty()) }
+    var category by rememberSaveable(existing?.code) { mutableStateOf(existing?.category.orEmpty()) }
+    var supermarket by rememberSaveable(existing?.code) { mutableStateOf(existing?.supermarket.orEmpty()) }
+    var notes by rememberSaveable(existing?.code) { mutableStateOf(existing?.notes.orEmpty()) }
+    var supermarketMenu by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
@@ -898,6 +921,9 @@ private fun ProductEditorScreen(
                 price = if (local.salePrice > 0) "%.2f".format(Locale.ITALY, local.salePrice) else ""
                 remoteImageUrl = local.remoteImageUrl
                 localImagePath = local.imagePath
+                category = local.category
+                supermarket = local.supermarket
+                notes = local.notes
                 status = "Prodotto già presente nel tuo archivio"
             } else {
                 scope.launch {
@@ -909,6 +935,7 @@ private fun ProductEditorScreen(
                         brand = found.brand
                         quantity = found.quantity
                         description = found.description
+                        category = found.category
                         remoteImageUrl = found.remoteImageUrl
                         status = "Prodotto trovato su Open Food Facts"
                     } else {
@@ -1212,7 +1239,52 @@ private fun ProductEditorScreen(
                         AppStyledField(name, { name = it }, "Nome prodotto *", Icons.Default.Edit)
                         AppStyledField(brand, { brand = it }, "Marca", Icons.Default.LocalOffer)
                         AppStyledField(quantity, { quantity = it }, "Quantità / formato", Icons.Default.Scale)
-                        AppStyledField(description, { description = it }, "Categoria / descrizione", Icons.Default.Category, minLines = 2)
+                        AppStyledField(category, { category = it }, "Categoria", Icons.Default.Category)
+                        AppStyledField(description, { description = it }, "Descrizione", Icons.Default.Subject, minLines = 2)
+
+                        Box {
+                            OutlinedTextField(
+                                value = supermarket,
+                                onValueChange = {},
+                                readOnly = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text("Supermercato") },
+                                leadingIcon = { Icon(Icons.Default.Storefront, null) },
+                                trailingIcon = {
+                                    IconButton(onClick = { supermarketMenu = true }) {
+                                        Icon(Icons.Default.ArrowDropDown, null)
+                                    }
+                                },
+                                shape = RoundedCornerShape(18.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = AppGreen,
+                                    focusedLabelColor = AppGreen
+                                )
+                            )
+                            DropdownMenu(
+                                expanded = supermarketMenu,
+                                onDismissRequest = { supermarketMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Nessuno") },
+                                    onClick = {
+                                        supermarket = ""
+                                        supermarketMenu = false
+                                    }
+                                )
+                                SupportedSupermarkets.forEach { store ->
+                                    DropdownMenuItem(
+                                        text = { Text(store) },
+                                        onClick = {
+                                            supermarket = store
+                                            supermarketMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        AppStyledField(notes, { notes = it }, "Note (opzionale)", Icons.Default.Notes, minLines = 2)
 
                         OutlinedTextField(
                             value = price,
@@ -1282,7 +1354,10 @@ private fun ProductEditorScreen(
                                             savedAt = existing?.savedAt ?: java.time.Instant.now().toString(),
                                             imagePath = imagePath,
                                             remoteImageUrl = remoteImageUrl,
-                                            updatedAt = java.time.Instant.now().toString()
+                                            updatedAt = java.time.Instant.now().toString(),
+                                            category = category.trim(),
+                                            supermarket = supermarket.trim(),
+                                            notes = notes.trim()
                                         )
                                     )
                                     saving = false
@@ -1436,7 +1511,7 @@ class ProductRepository(
 
     private fun fetchRemote(session: AuthSession): List<SavedProduct> {
         val request = Request.Builder()
-            .url("$baseUrl/rest/v1/spesascan_articoli?select=code,name,brand,quantity,description,sale_price,saved_at,image_path,remote_image_url,updated_at&user_id=eq.${session.userId}&order=updated_at.desc")
+            .url("$baseUrl/rest/v1/spesascan_articoli?select=code,name,brand,quantity,description,sale_price,saved_at,image_path,remote_image_url,updated_at,category,supermarket,notes&user_id=eq.${session.userId}&order=updated_at.desc")
             .header("apikey", apiKey)
             .header("Authorization", "Bearer ${session.accessToken}")
             .header("Accept", "application/json")
@@ -1462,7 +1537,10 @@ class ProductRepository(
                     savedAt = json.optString("saved_at"),
                     imagePath = "",
                     remoteImageUrl = json.optString("remote_image_url"),
-                    updatedAt = json.optString("updated_at")
+                    updatedAt = json.optString("updated_at"),
+                    category = json.optString("category"),
+                    supermarket = json.optString("supermarket"),
+                    notes = json.optString("notes")
                 )
             }
         }
@@ -1482,6 +1560,9 @@ class ProductRepository(
                 .put("image_path", "")
                 .put("remote_image_url", product.remoteImageUrl)
                 .put("updated_at", product.updatedAt.ifBlank { java.time.Instant.now().toString() })
+                .put("category", product.category)
+                .put("supermarket", product.supermarket)
+                .put("notes", product.notes)
         )
 
         val body = payload.toString()
@@ -1533,7 +1614,8 @@ class ProductRepository(
                 savedAt = "",
                 imagePath = "",
                 remoteImageUrl = p.optString("image_front_url"),
-                updatedAt = ""
+                updatedAt = "",
+                category = p.optString("categories")
             )
         }.getOrNull()
     }
@@ -1620,6 +1702,9 @@ private fun SavedProduct.toJson(): JSONObject = JSONObject().apply {
     put("imagePath", imagePath)
     put("remoteImageUrl", remoteImageUrl)
     put("updatedAt", updatedAt)
+    put("category", category)
+    put("supermarket", supermarket)
+    put("notes", notes)
 }
 
 private fun JSONObject.toSavedProduct(): SavedProduct = SavedProduct(
@@ -1632,7 +1717,10 @@ private fun JSONObject.toSavedProduct(): SavedProduct = SavedProduct(
     savedAt = optString("savedAt"),
     imagePath = optString("imagePath"),
     remoteImageUrl = optString("remoteImageUrl"),
-    updatedAt = optString("updatedAt").ifBlank { optString("savedAt") }
+    updatedAt = optString("updatedAt").ifBlank { optString("savedAt") },
+    category = optString("category"),
+    supermarket = optString("supermarket"),
+    notes = optString("notes")
 )
 
 private fun money(value: Double): String = String.format(Locale.ITALY, "%.2f €", value)
