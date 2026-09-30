@@ -2417,11 +2417,36 @@ class ProductRepository(
     }
 
     suspend fun lookupOpenFoodFacts(code: String): SavedProduct? = withContext(Dispatchers.IO) {
+        val cleanCode = code.trim()
+        if (cleanCode.isBlank()) return@withContext null
+
         runCatching {
-            val url = "https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=code,product_name,product_name_it,brands,quantity,generic_name,generic_name_it,categories,image_front_url"
+            val fields = listOf(
+                "code",
+                "product_name",
+                "product_name_it",
+                "brands",
+                "quantity",
+                "generic_name",
+                "generic_name_it",
+                "categories",
+                "product_type",
+                "selected_images",
+                "image_front_url",
+                "image_url",
+                "image_small_url"
+            ).joinToString(",")
+
+            val url =
+                "https://world.openfoodfacts.org/api/v3/product/" +
+                    cleanCode +
+                    "?product_type=all&lc=it&cc=it&fields=" +
+                    fields
+
             val request = Request.Builder()
                 .url(url)
-                .header("User-Agent", "SpesaScan/0.3.0 (Android)")
+                .header("User-Agent", "SpesaScan/0.4.0 (Android)")
+                .header("Accept", "application/json")
                 .get()
                 .build()
 
@@ -2431,25 +2456,88 @@ class ProductRepository(
             }
 
             val json = JSONObject(body)
-            if (json.optInt("status") != 1) return@withContext null
             val p = json.optJSONObject("product") ?: return@withContext null
 
+            val name = p.optString("product_name_it")
+                .ifBlank { p.optString("product_name") }
+                .ifBlank { p.optString("generic_name_it") }
+                .ifBlank { p.optString("generic_name") }
+
+            val description = p.optString("generic_name_it")
+                .ifBlank { p.optString("generic_name") }
+                .ifBlank { p.optString("categories") }
+
+            val bestImage = bestOpenFactsImage(p)
+
             SavedProduct(
-                code = code,
-                name = p.optString("product_name_it").ifBlank { p.optString("product_name") },
+                code = p.optString("code").ifBlank { cleanCode },
+                name = name,
                 brand = p.optString("brands"),
                 quantity = p.optString("quantity"),
-                description = p.optString("generic_name_it").ifBlank {
-                    p.optString("generic_name").ifBlank { p.optString("categories") }
-                },
+                description = description,
                 salePrice = 0.0,
                 savedAt = "",
                 imagePath = "",
-                remoteImageUrl = p.optString("image_front_url"),
+                remoteImageUrl = bestImage,
                 updatedAt = "",
                 category = p.optString("categories")
             )
         }.getOrNull()
+    }
+
+    private fun bestOpenFactsImage(product: JSONObject): String {
+        fun firstUrl(value: Any?): String {
+            return when (value) {
+                is String -> value.takeIf {
+                    it.startsWith("https://") || it.startsWith("http://")
+                }.orEmpty()
+
+                is JSONObject -> {
+                    val preferredKeys = listOf(
+                        "it", "en", "display", "small", "thumb",
+                        "front", "selected", "url"
+                    )
+
+                    for (key in preferredKeys) {
+                        if (value.has(key)) {
+                            val found = firstUrl(value.opt(key))
+                            if (found.isNotBlank()) return found
+                        }
+                    }
+
+                    val keys = value.keys()
+                    while (keys.hasNext()) {
+                        val key = keys.next()
+                        val found = firstUrl(value.opt(key))
+                        if (found.isNotBlank()) return found
+                    }
+                    ""
+                }
+
+                is JSONArray -> {
+                    for (index in 0 until value.length()) {
+                        val found = firstUrl(value.opt(index))
+                        if (found.isNotBlank()) return found
+                    }
+                    ""
+                }
+
+                else -> ""
+            }
+        }
+
+        val selected = product.optJSONObject("selected_images")
+        val front = selected?.optJSONObject("front")
+        val selectedFront = firstUrl(front)
+        if (selectedFront.isNotBlank()) return selectedFront
+
+        return listOf(
+            product.optString("image_front_url"),
+            product.optString("image_url"),
+            product.optString("image_small_url")
+        ).firstOrNull {
+            it.startsWith("https://") || it.startsWith("http://")
+        }.orEmpty()
     }
 
     suspend fun persistManualImage(code: String, sourceUri: Uri): String = withContext(Dispatchers.IO) {
