@@ -12,8 +12,8 @@ android {
         applicationId = "it.meapps.gestionale"
         minSdk = 26
         targetSdk = 36
-        versionCode = 15
-        versionName = "0.7.4"
+        versionCode = 16
+        versionName = "0.7.5"
 
         buildConfigField("String", "SUPABASE_URL", "\"https://qfjwtawsqfwmsmrrgqfi.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_-EUVjwsk3txKk2Opqrc7Kw_xFNa9Hw1\"")
