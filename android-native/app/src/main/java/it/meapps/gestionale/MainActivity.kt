@@ -16,9 +16,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -45,6 +47,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -58,19 +63,19 @@ import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import java.text.DateFormat
+import java.util.Date
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.text.DateFormat
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import java.time.LocalDate
 import java.time.YearMonth
 import java.text.NumberFormat
-import java.util.Date
 import java.util.Locale
 
 
@@ -172,7 +177,43 @@ private val AppBackground = Color(0xFFF5F8FC)
 private val WarmSurface = Color(0xFFFFFBEB)
 private val Positive = Color(0xFF0AA66E)
 private val Negative = Color(0xFFB42318)
-private val LegacyBorder = Color(0xFFC9D0D9)
+private val LegacyBorder = Color(0xFFE2E8F0)
+
+@Composable
+private fun AppMascot(size: androidx.compose.ui.unit.Dp = 56.dp) {
+    Surface(
+        modifier = Modifier.size(size), shape = RoundedCornerShape(size * .30f),
+        color = AppNavy, shadowElevation = 3.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = .16f))
+    ) {
+        Image(
+            painterResource(R.drawable.ic_launcher_foreground), contentDescription = null,
+            modifier = Modifier.fillMaxSize().padding(2.dp), contentScale = ContentScale.Fit
+        )
+    }
+}
+
+@Composable
+private fun BrandHeading(title: String, subtitle: String, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        AppMascot(48.dp)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun EditorHeading(title: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        AppMascot(36.dp)
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+            maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -215,7 +256,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun GestionaleRoot(vm: AppViewModel) {
+internal fun GestionaleRoot(vm: AppViewModel) {
     val originalDensity = LocalDensity.current
     val scaledDensity = remember(originalDensity.density, vm.fontScale) { Density(originalDensity.density, vm.fontScale) }
     val useDark = when (vm.themeMode) {
@@ -225,13 +266,24 @@ private fun GestionaleRoot(vm: AppViewModel) {
     }
     val colors = if (useDark) darkColorScheme(
         primary = Color(0xFF93C5FD), secondary = Color(0xFFFBBF24), background = Color(0xFF020617),
-        surface = Color(0xFF0F172A), surfaceVariant = Color(0xFF1E293B), error = Color(0xFFFCA5A5)
+        surface = Color(0xFF0F172A), surfaceVariant = Color(0xFF1E293B),
+        surfaceContainerLowest = Color(0xFF020617), surfaceContainerLow = Color(0xFF0F172A),
+        surfaceContainer = Color(0xFF142037), surfaceContainerHigh = Color(0xFF1E293B),
+        surfaceContainerHighest = Color(0xFF26354D), outlineVariant = Color(0xFF334155),
+        outline = Color(0xFF94A3B8), error = Color(0xFFFCA5A5)
     ) else lightColorScheme(
         primary = AppBlue, secondary = AppAmber, background = AppBackground, surface = Color.White,
-        surfaceVariant = Color(0xFFF1F5F9), error = Negative, onPrimary = Color.White
+        surfaceVariant = Color(0xFFF1F5F9), surfaceContainer = Color.White,
+        surfaceContainerLowest = Color.White, surfaceContainerLow = Color.White,
+        surfaceContainerHigh = Color(0xFFF1F5F9), surfaceContainerHighest = Color(0xFFE8EEF7),
+        outlineVariant = LegacyBorder, outline = Color(0xFF64748B),
+        error = Negative, onPrimary = Color.White
     )
     CompositionLocalProvider(LocalDensity provides scaledDensity) {
-        MaterialTheme(colorScheme = colors, typography = Typography()) {
+        MaterialTheme(colorScheme = colors, typography = Typography(), shapes = Shapes(
+            small = RoundedCornerShape(12.dp), medium = RoundedCornerShape(18.dp),
+            large = RoundedCornerShape(24.dp), extraLarge = RoundedCornerShape(28.dp)
+        )) {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 when {
                     vm.checkingAuth -> LoadingScreen(stringResource(R.string.verify_access))
@@ -250,12 +302,16 @@ private fun LoginScreen(vm: AppViewModel) {
     var register by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
 
-    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Card(Modifier.fillMaxWidth().widthIn(max = 440.dp), shape = RoundedCornerShape(24.dp)) {
+    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(AppNavy, AppBackground)))
+        .statusBarsPadding().navigationBarsPadding().imePadding().verticalScroll(rememberScrollState())
+        .padding(24.dp), contentAlignment = Alignment.Center) {
+        Card(Modifier.widthIn(max = 440.dp).fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(24.dp)) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Icon(Icons.Default.ShowChart, null, tint = AppBlue, modifier = Modifier.size(48.dp))
+                AppMascot(80.dp)
                 Text(if (register) stringResource(R.string.create_account) else stringResource(R.string.app_name), fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.tagline), color = Color(0xFF667085))
+                Text(stringResource(R.string.tagline), color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                 OutlinedButton(
                     onClick = {
@@ -277,7 +333,7 @@ private fun LoginScreen(vm: AppViewModel) {
 
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     HorizontalDivider(Modifier.weight(1f), color = Color(0xFFDADCE0))
-                    Text("  oppure  ", color = Color(0xFF64748B), fontSize = 12.sp)
+                    Text("  oppure  ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     HorizontalDivider(Modifier.weight(1f), color = Color(0xFFDADCE0))
                 }
 
@@ -327,7 +383,7 @@ private fun AuthenticatedApp(vm: AppViewModel) {
         )
         AlertDialog(
             onDismissRequest = vm::dismissTutorial,
-            icon = { Icon(Icons.Default.TipsAndUpdates, null, tint = AppAmber) },
+            icon = { AppMascot(64.dp) },
             title = { Text("Guida rapida · ${tutorialStep + 1}/4", fontWeight = FontWeight.Black) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -370,12 +426,12 @@ private fun AuthenticatedApp(vm: AppViewModel) {
     if (vm.premiumRequired) {
         AlertDialog(
             onDismissRequest = vm::dismissPremiumPrompt,
-            icon = { Icon(Icons.Default.WorkspacePremium, null, tint = AppAmber) },
+            icon = { AppMascot(64.dp) },
             title = { Text(stringResource(R.string.premium_limit_title), fontWeight = FontWeight.Black) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.premium_limit_text))
-                    Text(stringResource(R.string.premium_play_pending), color = Color(0xFF64748B), fontSize = 12.sp)
+                    Text(stringResource(R.string.premium_play_pending), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
             },
             confirmButton = {
@@ -412,14 +468,6 @@ private fun AuthenticatedApp(vm: AppViewModel) {
 @Composable
 private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
     var menuOpen by remember { mutableStateOf(false) }
-    var now by remember { mutableStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = System.currentTimeMillis()
-            delay(1_000)
-        }
-    }
-    val nowText = remember(now) { DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.MEDIUM, Locale.getDefault()).format(Date(now)) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
@@ -436,9 +484,11 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    AppMascot(48.dp)
+                    Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(stringResource(R.string.app_name), color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
-                        Text(nowText, color = Color(0xFFD6D9E2), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                        Text(tabTitle(vm.selectedTab), color = Color(0xFFBFDBFE), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
                     Box {
                         FilledTonalIconButton(
@@ -477,12 +527,12 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
             Surface(
                 modifier = Modifier.navigationBarsPadding(),
                 shadowElevation = 12.dp,
-                color = Color.White
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .height(64.dp)
+                        .heightIn(min = 76.dp)
                         .padding(horizontal = 10.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -532,7 +582,7 @@ private fun BottomPill(
     onClick: () -> Unit
 ) {
     Surface(
-        modifier = modifier.height(52.dp).clickable(onClick = onClick),
+        modifier = modifier.heightIn(min = 56.dp).clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         color = if (selected) accent.copy(alpha = .12f) else Color.Transparent,
         border = if (selected) androidx.compose.foundation.BorderStroke(1.2.dp, accent.copy(alpha = .40f)) else null
@@ -546,8 +596,8 @@ private fun BottomPill(
             Text(
                 label,
                 fontWeight = if (selected) FontWeight.Black else FontWeight.Bold,
-                fontSize = 10.sp,
-                color = if (selected) AppNavy else Color(0xFF64748B),
+                fontSize = 11.sp,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1
             )
         }
@@ -579,27 +629,43 @@ private fun HomeScreen(vm: AppViewModel) {
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(26.dp),
+                colors = CardDefaults.cardColors(containerColor = AppNavy)) {
+                Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(stringResource(R.string.dashboard), color = Color(0xFF93C5FD),
+                            style = MaterialTheme.typography.labelLarge)
+                        Text("Tutto sotto controllo", color = Color.White,
+                            style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text("Articoli, clienti e ordini. In un solo posto.", color = Color(0xFFCBD5E1),
+                            style = MaterialTheme.typography.bodySmall)
+                    }
+                    AppMascot(76.dp)
+                }
+            }
+        }
+        item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF8)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 shape = RoundedCornerShape(28.dp),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.featured), color = Color(0xFF64748B), fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Text(stringResource(R.string.featured), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Black)
                     Text(
-                        if (orders.size < 4) "Vendite sotto media" else stringResource(R.string.sales_trend),
-                        fontSize = 25.sp, fontWeight = FontWeight.Black, color = AppNavy
+                        stringResource(R.string.sales_trend),
+                        fontSize = 25.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        if (orders.size < 4) "Meno di una vendita a settimana: serve più movimento."
-                        else stringResource(R.string.sales_trend_hint),
-                        color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold
+                        stringResource(R.string.sales_trend_hint),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold
                     )
                     Spacer(Modifier.height(6.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(stringResource(R.string.last_six_months), fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color(0xFF64748B))
-                        Text(stringResource(R.string.collected), fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color(0xFF64748B))
+                        Text(stringResource(R.string.last_six_months), fontSize = 11.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.collected), fontSize = 11.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Row(
                         Modifier.fillMaxWidth().height(128.dp),
@@ -642,7 +708,7 @@ private fun HomeScreen(vm: AppViewModel) {
                                     monthNames[month.monthValue - 1],
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF64748B),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1
                                 )
                             }
@@ -696,26 +762,26 @@ private fun HomeScreen(vm: AppViewModel) {
         item {
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(stringResource(R.string.quick_actions), fontSize = 22.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                    Text(stringResource(R.string.quick_actions), fontSize = 22.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
                     Button(
                         onClick = { vm.openProduct() },
                         modifier = Modifier.fillMaxWidth().height(54.dp),
                         shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AppBlue),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
-                    ) { Text(stringResource(R.string.new_product), fontWeight = FontWeight.Black) }
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) { Icon(Icons.Default.AddBox, null); Spacer(Modifier.width(10.dp)); Text(stringResource(R.string.new_product), fontWeight = FontWeight.Bold) }
                     OutlinedButton(
                         onClick = { vm.openOrder() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(18.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
-                    ) { Text(stringResource(R.string.new_order), fontWeight = FontWeight.Black, color = AppNavy) }
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) { Icon(Icons.Default.ShoppingCart, null); Spacer(Modifier.width(10.dp)); Text(stringResource(R.string.new_order), fontWeight = FontWeight.Bold) }
                     OutlinedButton(
                         onClick = { vm.openCustomer() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(18.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
-                    ) { Text(stringResource(R.string.new_customer), fontWeight = FontWeight.Black, color = AppNavy) }
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) { Icon(Icons.Default.PersonAdd, null); Spacer(Modifier.width(10.dp)); Text(stringResource(R.string.new_customer), fontWeight = FontWeight.Bold) }
                 }
             }
         }
@@ -729,19 +795,24 @@ private fun LegacyStatCard(
     value: String,
     subtitle: String,
     modifier: Modifier = Modifier,
-    valueColor: Color = AppNavy,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
     onClick: (() -> Unit)? = null
 ) {
     val cardModifier = if (onClick != null) modifier.clickable(onClick = onClick) else modifier
     Card(
         cardModifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(22.dp),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFF475569))
-            Text(value, fontSize = 25.sp, fontWeight = FontWeight.Black, color = valueColor, maxLines = 1)
-            Text(subtitle, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF64748B))
+            Box(Modifier.width(28.dp).height(4.dp).background(
+                if (valueColor == Positive) Positive else AppBlue, RoundedCornerShape(50)))
+            Spacer(Modifier.height(6.dp))
+            Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = valueColor, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -750,7 +821,7 @@ private fun DashboardStat(label: String, value: String, accent: Color, modifier:
     Card(
         modifier,
         shape = RoundedCornerShape(18.dp),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(Modifier.padding(16.dp)) {
             Box(Modifier.width(34.dp).height(5.dp).background(accent, RoundedCornerShape(50)))
@@ -785,10 +856,11 @@ private fun ProductsScreen(vm: AppViewModel) {
             .fillMaxSize()
             .padding(horizontal = 12.dp)
     ) {
+        BrandHeading(stringResource(R.string.articles), "${vm.products.size} articoli nel catalogo")
         OutlinedTextField(
             value = vm.query,
             onValueChange = { vm.query = it },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             singleLine = true,
             placeholder = { Text(stringResource(R.string.search_product), fontSize = 13.sp) },
             leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(20.dp)) },
@@ -900,8 +972,8 @@ private fun ProductsScreen(vm: AppViewModel) {
 private fun ArticleCounter(label: String, value: String, modifier: Modifier = Modifier) {
     Card(modifier, shape = RoundedCornerShape(18.dp)) {
         Column(Modifier.padding(14.dp)) {
-            Text(label, fontSize = 11.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
-            Text(value, fontSize = 24.sp, color = AppNavy, fontWeight = FontWeight.Black)
+            Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+            Text(value, fontSize = 24.sp, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Black)
         }
     }
 }
@@ -933,7 +1005,7 @@ private fun ProductPhotoCarousel(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.Image, null, Modifier.size(42.dp), tint = Color(0xFF94A3B8))
                     Spacer(Modifier.height(4.dp))
-                    Text(stringResource(R.string.no_photo), fontSize = 10.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.no_photo), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -1046,7 +1118,7 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
     Card(
         Modifier.fillMaxWidth().clickable { vm.openProductDetail(product) },
         shape = RoundedCornerShape(20.dp),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column {
             Box {
@@ -1085,12 +1157,12 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                 if (brandName.isNotBlank()) {
                     Text(brandName.uppercase(), color = AppBlue, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 1)
                 }
-                Text(product.name, fontWeight = FontWeight.Black, maxLines = 2, minLines = if (vm.compactMode) 1 else 2, color = AppNavy)
-                Text(code, color = Color(0xFF64748B), fontSize = 11.sp, maxLines = 1)
+                Text(product.name, fontWeight = FontWeight.Black, maxLines = 2, minLines = if (vm.compactMode) 1 else 2, color = MaterialTheme.colorScheme.onSurface)
+                Text(code, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, maxLines = 1)
                 if (product.measureValue.isNotBlank()) {
                     Text(
                         (if (product.measureType == "peso") "Peso: " else if (product.measureType == "misura") "Misura: " else "") + product.measureValue,
-                        color = Color(0xFF64748B),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 10.sp,
                         maxLines = 1
                     )
@@ -1103,9 +1175,9 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                         }
                         Text(money(product.promotionalPrice), fontWeight = FontWeight.Black, fontSize = 19.sp, color = Negative)
                     }
-                    Text(money(product.salePrice), fontSize = 11.sp, color = Color(0xFF64748B))
+                    Text(money(product.salePrice), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    Text(money(product.salePrice), fontWeight = FontWeight.Black, fontSize = 19.sp, color = AppNavy)
+                    Text(money(product.salePrice), fontWeight = FontWeight.Black, fontSize = 19.sp, color = MaterialTheme.colorScheme.onSurface)
                 }
                 if (vm.showEconomicDetails) {
                     if (product.effectiveMarginEuro < 0) {
@@ -1132,7 +1204,7 @@ private fun ProductGridCard(product: Product, vm: AppViewModel) {
                 OutlinedButton(
                     onClick = { vm.openOrder(product) },
                     modifier = Modifier.fillMaxWidth().height(38.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFFFF3CF)),
                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
                 ) {
@@ -1176,7 +1248,7 @@ private fun ProductCard(product: Product, vm: AppViewModel) {
     Card(
         Modifier.fillMaxWidth().clickable { vm.openProductDetail(product) },
         shape = RoundedCornerShape(18.dp),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(Modifier.size(72.dp), color = Color(0xFFEFF4FF), shape = RoundedCornerShape(14.dp)) {
@@ -1187,15 +1259,15 @@ private fun ProductCard(product: Product, vm: AppViewModel) {
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(product.name, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                Text(listOf(product.code, product.sku).filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "Nessun codice" }, color = Color(0xFF667085), fontSize = 12.sp)
+                Text(listOf(product.code, product.sku).filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "Nessun codice" }, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 Spacer(Modifier.height(5.dp))
                 Text(
                     if (vm.showEconomicDetails) "Vendita ${money(product.salePrice)}  ·  Margine ${money(product.marginEuro)}"
                     else "Vendita ${money(product.salePrice)}",
-                    color = if (vm.showEconomicDetails && product.marginEuro < 0) Negative else AppNavy,
+                    color = if (vm.showEconomicDetails && product.marginEuro < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
                 )
-                Text("Quantità ${product.quantity}${if (!product.available) " · Non disponibile" else ""}", fontSize = 12.sp, color = Color(0xFF667085))
+                Text("Quantità ${product.quantity}${if (!product.available) " · Non disponibile" else ""}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF98A2B3))
         }
@@ -1220,13 +1292,15 @@ private fun CustomersScreen(vm: AppViewModel) {
     ) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                AppMascot(44.dp)
+                Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Clienti", fontSize = 24.sp, fontWeight = FontWeight.Black, color = AppNavy)
-                    Text("${filteredCustomers.size} di ${vm.customers.size} clienti", color = Color(0xFF64748B))
+                    Text("Clienti", fontSize = 24.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                    Text("${filteredCustomers.size} di ${vm.customers.size} clienti", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 OutlinedButton(
                     onClick = { vm.openCustomer() },
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
             }
         }
@@ -1238,17 +1312,17 @@ private fun CustomersScreen(vm: AppViewModel) {
                 Card(
                     Modifier.fillMaxWidth().clickable { vm.openCustomerDetail(customer) },
                     shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text(customer.displayName, fontSize = 19.sp, fontWeight = FontWeight.Black, color = AppNavy)
-                            if (customer.phone.isNotBlank()) Text("Tel. ${customer.phone}", color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold)
+                            Text(customer.displayName, fontSize = 19.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                            if (customer.phone.isNotBlank()) Text("Tel. ${customer.phone}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
                             val place = listOf(customer.city, customer.province).filter { it.isNotBlank() }.joinToString(" • ")
-                            if (place.isNotBlank()) Text(place, color = Color(0xFF64748B))
+                            if (place.isNotBlank()) Text(place, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         if (customer.country.isNotBlank()) {
-                            Surface(shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder), color = Color.White) {
+                            Surface(shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), color = Color.White) {
                                 Text(customer.country, Modifier.padding(horizontal = 13.dp, vertical = 8.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
@@ -1290,13 +1364,15 @@ private fun OrdersScreen(vm: AppViewModel) {
     ) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                AppMascot(44.dp)
+                Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Ordini", fontSize = 24.sp, fontWeight = FontWeight.Black, color = AppNavy)
-                    Text("${filteredOrders.size} di ${vm.orders.size} ordini", color = Color(0xFF64748B))
+                    Text("Ordini", fontSize = 24.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                    Text("${filteredOrders.size} di ${vm.orders.size} ordini", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 OutlinedButton(
                     onClick = { vm.openOrder() },
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Nuovo") }
             }
         }
@@ -1330,13 +1406,13 @@ private fun OrdersScreen(vm: AppViewModel) {
                 Card(
                     Modifier.fillMaxWidth().clickable { vm.openOrderDetail(order) },
                     shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text(order.customerName.ifBlank { "Cliente" }, fontSize = 19.sp, fontWeight = FontWeight.Black, color = AppNavy)
-                                Text(order.date, color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold)
+                                Text(order.customerName.ifBlank { "Cliente" }, fontSize = 19.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                                Text(order.date, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
                             }
                             val delivered = order.status == "consegnato"
                             Surface(
@@ -1355,14 +1431,14 @@ private fun OrdersScreen(vm: AppViewModel) {
                         if (order.itemNames.isNotEmpty()) {
                             Text(
                                 "Articoli: " + order.itemNames.joinToString(" · "),
-                                color = Color(0xFF64748B),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 3
                             )
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             val amountLabel = if (order.paid || order.totalPaid > 0) "Pagato" else "Totale"
                             val amount = if (order.totalPaid > 0) order.totalPaid else order.total
-                            Text("$amountLabel: ${money(amount)}", fontWeight = FontWeight.Bold, color = if (order.paid || order.totalPaid > 0) Positive else AppNavy)
+                            Text("$amountLabel: ${money(amount)}", fontWeight = FontWeight.Bold, color = if (order.paid || order.totalPaid > 0) Positive else MaterialTheme.colorScheme.onSurface)
                             if (vm.showEconomicDetails) {
                                 Text("Guadagno ${money(order.profit)}", fontWeight = FontWeight.Bold, color = if (order.profit >= 0) Positive else Negative)
                             }
@@ -1370,12 +1446,12 @@ private fun OrdersScreen(vm: AppViewModel) {
                         if (order.paymentStatus.isNotBlank()) {
                             Text(
                                 "Pagamento: " + order.paymentStatus.replace('_', ' '),
-                                color = Color(0xFF64748B),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
-                        if (order.trackingCode.isNotBlank()) Text("Tracking: ${order.trackingCode}", color = Color(0xFF64748B))
+                        if (order.trackingCode.isNotBlank()) Text("Tracking: ${order.trackingCode}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -1394,6 +1470,7 @@ private fun orderStatusLabel(status: String): String = when (status) {
 @Composable
 private fun ArchivesScreen(vm: AppViewModel) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        BrandHeading(stringResource(R.string.archives), "Marche, fornitori e categorie")
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             listOf(EntityKind.BRAND to "Marche", EntityKind.SUPPLIER to "Fornitori", EntityKind.CATEGORY to "Categorie").forEachIndexed { index, pair ->
                 SegmentedButton(
@@ -1413,7 +1490,7 @@ private fun ArchivesScreen(vm: AppViewModel) {
             items(rows, key = { it.first }) { row ->
                 Card(Modifier.fillMaxWidth().clickable { vm.openEntity(vm.archiveKind, row.first) }) {
                     Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) { Text(row.second, fontWeight = FontWeight.Bold); if (row.third.isNotBlank()) Text(row.third, color = Color(0xFF667085), fontSize = 12.sp) }
+                        Column(Modifier.weight(1f)) { Text(row.second, fontWeight = FontWeight.Bold); if (row.third.isNotBlank()) Text(row.third, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) }
                         if (vm.archiveKind == EntityKind.CATEGORY) {
                             IconButton(onClick = { vm.categories.firstOrNull { it.id == row.first }?.let { vm.moveCategory(it, -1) } }) { Icon(Icons.Default.KeyboardArrowUp, "Sposta su") }
                             IconButton(onClick = { vm.categories.firstOrNull { it.id == row.first }?.let { vm.moveCategory(it, 1) } }) { Icon(Icons.Default.KeyboardArrowDown, "Sposta giù") }
@@ -1476,6 +1553,7 @@ private fun SettingsScreen(vm: AppViewModel) {
     }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item { BrandHeading(stringResource(R.string.settings), "La tua app, come piace a te") }
         item {
             SettingsHeader(
                 if (vm.isPremium) stringResource(R.string.premium_plan) else stringResource(R.string.free_plan),
@@ -1485,7 +1563,7 @@ private fun SettingsScreen(vm: AppViewModel) {
             Card(
                 Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = if (vm.isPremium) Color(0xFFFFF7E8) else Color(0xFFF8FAFC)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 border = androidx.compose.foundation.BorderStroke(1.2.dp, if (vm.isPremium) AppAmber.copy(alpha = .45f) else LegacyBorder)
             ) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1511,7 +1589,7 @@ private fun SettingsScreen(vm: AppViewModel) {
                             Text(
                                 if (vm.isPremium) stringResource(R.string.premium_unlimited)
                                 else stringResource(R.string.free_limit_status, vm.freeProductCount, AppViewModel.FREE_PRODUCT_LIMIT),
-                                color = Color(0xFF64748B),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp
                             )
                             if (!vm.isPremium && vm.premiumPrice != null) {
@@ -1553,7 +1631,7 @@ private fun SettingsScreen(vm: AppViewModel) {
             Card(
                 Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = if (vm.trialActive) Color(0xFFEFFBF5) else Color(0xFFF8FAFC))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
             ) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
@@ -1571,7 +1649,7 @@ private fun SettingsScreen(vm: AppViewModel) {
                             vm.trialActive -> "Restano ${vm.trialDaysRemaining} giorni di prova completa."
                             else -> "Per continuare con le funzioni Pro è necessario l’abbonamento."
                         },
-                        color = Color(0xFF64748B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -1581,7 +1659,7 @@ private fun SettingsScreen(vm: AppViewModel) {
             Card(
                 Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 border = androidx.compose.foundation.BorderStroke(1.2.dp, AppBlue.copy(alpha = .25f))
             ) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1616,7 +1694,7 @@ private fun SettingsScreen(vm: AppViewModel) {
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.delete_demo), color = Negative, fontWeight = FontWeight.Bold)
                     }
-                    Text(stringResource(R.string.demo_notice), color = Color(0xFF64748B), fontSize = 12.sp)
+                    Text(stringResource(R.string.demo_notice), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     HorizontalDivider()
                     OutlinedButton(
                         onClick = { dataAction = "all" },
@@ -1766,7 +1844,7 @@ private fun DetailScaffold(
 ) {
     Scaffold(
         topBar = {
-            Surface(color = AppNavy) {
+            Surface(color = MaterialTheme.colorScheme.onSurface) {
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -1777,8 +1855,10 @@ private fun DetailScaffold(
                     IconButton(onClick = { vm.closeDetail() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro", tint = Color.White)
                     }
+                    AppMascot(42.dp)
+                    Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(stringResource(R.string.app_name), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                        Text(stringResource(R.string.app_name), color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Black)
                         Text(subtitle, color = Color(0xFFD6D9E2), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
                     IconButton(
@@ -1793,7 +1873,7 @@ private fun DetailScaffold(
         bottomBar = {
             Surface(
                 modifier = Modifier.navigationBarsPadding(),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 10.dp
             ) {
                 Row(
@@ -1811,7 +1891,7 @@ private fun DetailScaffold(
 }
 
 @Composable
-private fun DetailInfoRow(label: String, value: String, valueColor: Color = AppNavy) {
+private fun DetailInfoRow(label: String, value: String, valueColor: Color = MaterialTheme.colorScheme.onSurface) {
     Column {
         Row(
             Modifier.fillMaxWidth().padding(vertical = 12.dp),
@@ -1820,7 +1900,7 @@ private fun DetailInfoRow(label: String, value: String, valueColor: Color = AppN
             Text(
                 label,
                 modifier = Modifier.width(118.dp),
-                color = Color(0xFF64748B),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Black
             )
             Text(
@@ -1859,14 +1939,14 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
             item {
                 Card(
                     shape = RoundedCornerShape(24.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF8))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
                 ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(verticalAlignment = Alignment.Top) {
                             Column(Modifier.weight(1f)) {
-                                Text(product.name, fontSize = 30.sp, fontWeight = FontWeight.Black, color = AppNavy)
-                                Text("Cod. $code", color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                                Text(product.name, fontSize = 30.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                                Text("Cod. $code", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                             }
                             Surface(
                                 shape = RoundedCornerShape(18.dp),
@@ -1895,7 +1975,7 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
             item {
                 Card(
                     shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(Modifier.padding(horizontal = 16.dp)) {
                         DetailInfoRow("Marca", brand)
@@ -1918,19 +1998,19 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
             item {
                 Card(
                     shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8DF))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
                 ) {
                     Row(Modifier.fillMaxWidth().padding(16.dp)) {
                         Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.sale_price), color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
-                            Text(money(product.effectiveSalePrice), fontSize = 26.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                            Text(stringResource(R.string.sale_price), color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                            Text(money(product.effectiveSalePrice), fontSize = 26.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
                         }
                         if (vm.showEconomicDetails) {
                             VerticalDivider(Modifier.height(58.dp), color = Color(0xFFCBD5E1))
                             Spacer(Modifier.width(16.dp))
                             Column(Modifier.weight(1f)) {
-                                Text("Margine", color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                                Text("Margine", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                                 Text(
                                     money(product.effectiveMarginEuro),
                                     fontSize = 26.sp,
@@ -1948,7 +2028,7 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
                     modifier = Modifier.fillMaxWidth().height(54.dp),
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AppBlue),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Icon(Icons.Default.ShoppingCart, null)
                     Spacer(Modifier.width(8.dp))
@@ -1960,7 +2040,7 @@ private fun ProductDetailScreen(vm: AppViewModel, productId: String) {
                     OutlinedButton(
                         onClick = { vm.openProduct(product) },
                         modifier = Modifier.weight(1f).height(54.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Icon(Icons.Default.Edit, null)
                         Spacer(Modifier.width(6.dp))
@@ -2004,12 +2084,12 @@ private fun CustomerDetailScreen(vm: AppViewModel, customerId: String) {
             item {
                 Card(
                     shape = RoundedCornerShape(24.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF8))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
                 ) {
                     Column(Modifier.padding(18.dp)) {
                         Row(verticalAlignment = Alignment.Top) {
-                            Text(customer.displayName, Modifier.weight(1f), fontSize = 30.sp, fontWeight = FontWeight.Black, color = AppNavy)
+                            Text(customer.displayName, Modifier.weight(1f), fontSize = 30.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
                             if (customer.country.isNotBlank()) {
                                 Surface(
                                     shape = RoundedCornerShape(18.dp),
@@ -2037,16 +2117,16 @@ private fun CustomerDetailScreen(vm: AppViewModel, customerId: String) {
                         vm.selectTab(MainTab.ORDERS)
                     },
                     shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("ORDINI", color = Color(0xFF64748B), fontWeight = FontWeight.Black)
-                            Text(customerOrders.size.toString(), fontSize = 28.sp, fontWeight = FontWeight.Black, color = AppNavy)
-                            Text("ordini totali", color = Color(0xFF64748B))
+                            Text("ORDINI", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Black)
+                            Text(customerOrders.size.toString(), fontSize = 28.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                            Text("ordini totali", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Column(Modifier.weight(1f)) {
-                            Text("TOTALE ACQUISTI", color = Color(0xFF64748B), fontWeight = FontWeight.Black)
+                            Text("TOTALE ACQUISTI", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Black)
                             Text(money(totalPurchases), fontSize = 24.sp, fontWeight = FontWeight.Black, color = Positive)
                         }
                         Icon(Icons.Default.ChevronRight, null)
@@ -2057,11 +2137,11 @@ private fun CustomerDetailScreen(vm: AppViewModel, customerId: String) {
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { vm.openOrderDetail(lastOrder) },
                     shape = RoundedCornerShape(22.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("ULTIMO ORDINE", color = Color(0xFF64748B), fontWeight = FontWeight.Black)
+                            Text("ULTIMO ORDINE", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Black)
                             Text(lastOrder.date, fontSize = 20.sp, fontWeight = FontWeight.Black)
                         }
                         Text(money(if (lastOrder.totalPaid > 0) lastOrder.totalPaid else lastOrder.total), fontWeight = FontWeight.Black, fontSize = 20.sp)
@@ -2074,7 +2154,7 @@ private fun CustomerDetailScreen(vm: AppViewModel, customerId: String) {
                     OutlinedButton(
                         onClick = { vm.openCustomer(customer) },
                         modifier = Modifier.weight(1f).height(54.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Icon(Icons.Default.Edit, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.edit), fontWeight = FontWeight.Black)
                     }
@@ -2109,14 +2189,14 @@ private fun OrderDetailScreen(vm: AppViewModel, orderId: String) {
             item {
                 Card(
                     shape = RoundedCornerShape(24.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF8))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
                 ) {
                     Column(Modifier.padding(18.dp)) {
                         Row(verticalAlignment = Alignment.Top) {
                             Column(Modifier.weight(1f)) {
-                                Text(order.customerName.ifBlank { "Ordine" }, fontSize = 30.sp, fontWeight = FontWeight.Black, color = AppNavy)
-                                Text(order.number.ifBlank { "Ordine del ${order.date}" }, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                                Text(order.customerName.ifBlank { "Ordine" }, fontSize = 30.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                                Text(order.number.ifBlank { "Ordine del ${order.date}" }, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                             }
                             val delivered = order.status == "consegnato"
                             Surface(
@@ -2140,13 +2220,13 @@ private fun OrderDetailScreen(vm: AppViewModel, orderId: String) {
                         DetailInfoRow(
                             if (order.paid || order.totalPaid > 0) "Totale pagato" else "Totale",
                             money(if (order.totalPaid > 0) order.totalPaid else order.total),
-                            if (order.paid || order.totalPaid > 0) Positive else AppNavy
+                            if (order.paid || order.totalPaid > 0) Positive else MaterialTheme.colorScheme.onSurface
                         )
                         if (vm.showEconomicDetails) {
                             DetailInfoRow("Guadagno", money(order.profit), if (order.profit >= 0) Positive else Negative)
                         }
                         DetailInfoRow("Tracking", order.trackingCode)
-                        DetailInfoRow("Stato", orderStatusLabel(order.status), if (order.status == "consegnato") Positive else AppNavy)
+                        DetailInfoRow("Stato", orderStatusLabel(order.status), if (order.status == "consegnato") Positive else MaterialTheme.colorScheme.onSurface)
                         if (order.notes.isNotBlank()) DetailInfoRow("Note", order.notes)
                     }
                 }
@@ -2156,7 +2236,7 @@ private fun OrderDetailScreen(vm: AppViewModel, orderId: String) {
                     OutlinedButton(
                         onClick = { vm.editOrder(order) },
                         modifier = Modifier.weight(1f).height(54.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Icon(Icons.Default.Edit, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.edit), fontWeight = FontWeight.Black)
                     }
@@ -2208,7 +2288,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
 
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text(if (d.id.isBlank()) stringResource(R.string.new_product) else stringResource(R.string.edit), fontWeight = FontWeight.Bold) },
+            title = { EditorHeading(if (d.id.isBlank()) stringResource(R.string.new_product) else stringResource(R.string.edit)) },
             navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
             actions = { TextButton(onClick = vm::saveProduct, enabled = !vm.saving) { Text(stringResource(R.string.save), fontWeight = FontWeight.Bold) } }
         )
@@ -2234,7 +2314,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                         )
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Icon(Icons.Default.QrCodeScanner, null)
                     Spacer(Modifier.width(8.dp))
@@ -2293,7 +2373,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
             }
             if (vm.showEconomicDetails) item {
                 val preview = d.toProduct(existing)
-                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF4FF))) { Column(Modifier.padding(14.dp)) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) { Column(Modifier.padding(14.dp)) {
                     Text("Costo totale ${money(preview.totalCost)}")
                     Text("Margine ${money(preview.effectiveMarginEuro)} · ${"%.1f".format(Locale.ITALY, preview.effectiveMarginPercent)}%", fontWeight = FontWeight.Bold, color = if (preview.effectiveMarginEuro >= 0) Positive else Negative)
                 } }
@@ -2305,11 +2385,11 @@ private fun ProductEditorScreen(vm: AppViewModel) {
             item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = { gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) { Icon(Icons.Default.PhotoLibrary, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.gallery)) }
                 OutlinedButton(
                     onClick = ::launchCamera,
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) { Icon(Icons.Default.CameraAlt, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.camera)) }
             } }
             if (existing != null && existing.photos.isNotEmpty()) item {
@@ -2321,7 +2401,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                 }
             }
             if (vm.pendingPhotos.isNotEmpty()) item {
-                Text(stringResource(R.string.pending_upload), fontSize = 12.sp, color = Color(0xFF667085))
+                Text(stringResource(R.string.pending_upload), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(vm.pendingPhotos, key = { it.toString() }) { uri -> PhotoTile(uri, { vm.removePendingPhoto(uri) }) }
                 }
@@ -2331,7 +2411,7 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                     onClick = vm::saveProduct,
                     enabled = !vm.saving,
                     modifier = Modifier.fillMaxWidth().height(50.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) { Text(if (vm.saving) stringResource(R.string.saving) else stringResource(R.string.save_product)) }
             }
             if (existing != null) item { OutlinedButton(onClick = { vm.requestDelete(DeleteTarget.ProductTarget(existing)) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.delete_product), color = Negative) } }
@@ -2360,7 +2440,7 @@ private fun CustomerEditorScreen(vm: AppViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (d.id.isBlank()) "Nuovo cliente" else "Modifica cliente", fontWeight = FontWeight.Bold) },
+                title = { EditorHeading(if (d.id.isBlank()) "Nuovo cliente" else "Modifica cliente") },
                 navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
                 actions = { TextButton(onClick = vm::saveCustomer, enabled = !vm.saving) { Text(stringResource(R.string.save), fontWeight = FontWeight.Bold) } }
             )
@@ -2431,7 +2511,7 @@ private fun CustomerEditorScreen(vm: AppViewModel) {
                                                     municipality.caps.firstOrNull()?.let { "CAP $it" }.orEmpty()
                                                 ).filter { it.isNotBlank() }.joinToString(" "),
                                                 fontSize = 12.sp,
-                                                color = Color(0xFF64748B)
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     },
@@ -2452,9 +2532,9 @@ private fun CustomerEditorScreen(vm: AppViewModel) {
                         }
                     }
                     if (lookupFailed) {
-                        Text("Ricerca comuni non disponibile: puoi compilare i campi manualmente.", fontSize = 11.sp, color = Color(0xFF64748B))
+                        Text("Ricerca comuni non disponibile: puoi compilare i campi manualmente.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else if (d.city.isNotBlank()) {
-                        Text("Seleziona il comune dall’elenco per compilare automaticamente Provincia e CAP.", fontSize = 11.sp, color = Color(0xFF64748B))
+                        Text("Seleziona il comune dall’elenco per compilare automaticamente Provincia e CAP.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -2479,7 +2559,7 @@ private fun CustomerEditorScreen(vm: AppViewModel) {
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (d.city.isNotBlank() && d.postalCode.isNotBlank()) {
-                    Text("Il CAP resta modificabile manualmente, utile per i comuni con più CAP.", fontSize = 11.sp, color = Color(0xFF64748B))
+                    Text("Il CAP resta modificabile manualmente, utile per i comuni con più CAP.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             item { AppTextField(d.notes, { vm.updateCustomerDraft(d.copy(notes = it)) }, stringResource(R.string.notes), minLines = 3) }
@@ -2489,7 +2569,7 @@ private fun CustomerEditorScreen(vm: AppViewModel) {
                     enabled = !vm.saving,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(18.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) { Text(if (vm.saving) "Salvataggio…" else "Salva cliente", fontWeight = FontWeight.Black) }
             }
             if (d.id.isNotBlank()) item {
@@ -2518,7 +2598,7 @@ private fun OrderEditorScreen(vm: AppViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (d.id.isBlank()) "Nuovo ordine" else "Modifica ordine", fontWeight = FontWeight.Bold) },
+                title = { EditorHeading(if (d.id.isBlank()) "Nuovo ordine" else "Modifica ordine") },
                 navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
                 actions = { TextButton(onClick = vm::saveOrder, enabled = !vm.saving) { Text(stringResource(R.string.save), fontWeight = FontWeight.Bold) } }
             )
@@ -2551,12 +2631,12 @@ private fun OrderEditorScreen(vm: AppViewModel) {
             }
             if (d.id.isNotBlank() && existingOrder != null) item {
                 Card(
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     shape = RoundedCornerShape(18.dp)
                 ) {
                     Column(Modifier.padding(14.dp)) {
-                        Text(stringResource(R.string.order_products), fontWeight = FontWeight.Black, color = AppNavy)
-                        Text(existingOrder.itemNames.joinToString("\n").ifBlank { "Nessun articolo" }, color = Color(0xFF64748B))
+                        Text(stringResource(R.string.order_products), fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                        Text(existingOrder.itemNames.joinToString("\n").ifBlank { "Nessun articolo" }, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -2611,9 +2691,9 @@ private fun OrderEditorScreen(vm: AppViewModel) {
             }
             item {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF4FF)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     shape = RoundedCornerShape(18.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(stringResource(R.string.summary), fontWeight = FontWeight.Black)
@@ -2634,7 +2714,7 @@ private fun OrderEditorScreen(vm: AppViewModel) {
                     enabled = !vm.saving,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(18.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) { Text(if (vm.saving) "Salvataggio…" else if (d.id.isBlank()) "Crea ordine" else "Salva modifiche", fontWeight = FontWeight.Black) }
             }
         }
@@ -2648,7 +2728,7 @@ private fun EntityEditorScreen(vm: AppViewModel, kind: EntityKind) {
     val title = when (kind) { EntityKind.BRAND -> "marca"; EntityKind.SUPPLIER -> "fornitore"; EntityKind.CATEGORY -> "categoria" }
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text(if (d.id.isBlank()) "Nuova $title" else "Modifica $title", fontWeight = FontWeight.Bold) },
+            title = { EditorHeading(if (d.id.isBlank()) "Nuova $title" else "Modifica $title") },
             navigationIcon = { IconButton(onClick = { vm.navigateBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
             actions = { TextButton(onClick = vm::saveEntity, enabled = !vm.saving) { Text(stringResource(R.string.save), fontWeight = FontWeight.Bold) } }
         )
@@ -2686,7 +2766,7 @@ private fun SelectionField(label: String, selected: String?, options: List<Pair<
         OutlinedButton(
             onClick = { open = true },
             modifier = if (compact) Modifier.height(38.dp).widthIn(min = 112.dp) else Modifier.fillMaxWidth(),
-            border = androidx.compose.foundation.BorderStroke(1.5.dp, LegacyBorder),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             contentPadding = if (compact) PaddingValues(horizontal = 10.dp, vertical = 0.dp) else ButtonDefaults.ContentPadding
         ) {
             Text(
@@ -2728,16 +2808,20 @@ private fun NumberField(value: String, onValueChange: (String) -> Unit, label: S
 private fun EmptyState(title: String, subtitle: String) {
     Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Inventory2, null, Modifier.size(48.dp), tint = Color(0xFF98A2B3))
+            AppMascot(80.dp)
             Spacer(Modifier.height(10.dp)); Text(title, fontWeight = FontWeight.Bold, fontSize = 19.sp)
-            Text(subtitle, color = Color(0xFF667085))
+            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         }
     }
 }
 
 @Composable
 private fun LoadingScreen(label: String) = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) { CircularProgressIndicator(); Spacer(Modifier.height(12.dp)); Text(label) }
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        AppMascot(88.dp)
+        CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }
 
 private fun money(value: Double): String {
