@@ -63,19 +63,19 @@ import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import java.text.DateFormat
+import java.util.Date
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.text.DateFormat
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import java.time.LocalDate
 import java.time.YearMonth
 import java.text.NumberFormat
-import java.util.Date
 import java.util.Locale
 
 
@@ -266,11 +266,17 @@ internal fun GestionaleRoot(vm: AppViewModel) {
     }
     val colors = if (useDark) darkColorScheme(
         primary = Color(0xFF93C5FD), secondary = Color(0xFFFBBF24), background = Color(0xFF020617),
-        surface = Color(0xFF0F172A), surfaceVariant = Color(0xFF1E293B), error = Color(0xFFFCA5A5)
+        surface = Color(0xFF0F172A), surfaceVariant = Color(0xFF1E293B),
+        surfaceContainerLowest = Color(0xFF020617), surfaceContainerLow = Color(0xFF0F172A),
+        surfaceContainer = Color(0xFF142037), surfaceContainerHigh = Color(0xFF1E293B),
+        surfaceContainerHighest = Color(0xFF26354D), outlineVariant = Color(0xFF334155),
+        outline = Color(0xFF94A3B8), error = Color(0xFFFCA5A5)
     ) else lightColorScheme(
         primary = AppBlue, secondary = AppAmber, background = AppBackground, surface = Color.White,
         surfaceVariant = Color(0xFFF1F5F9), surfaceContainer = Color.White,
-        surfaceContainerLow = Color.White, surfaceContainerHigh = Color(0xFFF1F5F9),
+        surfaceContainerLowest = Color.White, surfaceContainerLow = Color.White,
+        surfaceContainerHigh = Color(0xFFF1F5F9), surfaceContainerHighest = Color(0xFFE8EEF7),
+        outlineVariant = LegacyBorder, outline = Color(0xFF64748B),
         error = Negative, onPrimary = Color.White
     )
     CompositionLocalProvider(LocalDensity provides scaledDensity) {
@@ -299,7 +305,9 @@ private fun LoginScreen(vm: AppViewModel) {
     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(AppNavy, AppBackground)))
         .statusBarsPadding().navigationBarsPadding().imePadding().verticalScroll(rememberScrollState())
         .padding(24.dp), contentAlignment = Alignment.Center) {
-        Card(Modifier.fillMaxWidth().widthIn(max = 440.dp), shape = RoundedCornerShape(24.dp)) {
+        Card(Modifier.widthIn(max = 440.dp).fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(24.dp)) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 AppMascot(80.dp)
                 Text(if (register) stringResource(R.string.create_account) else stringResource(R.string.app_name), fontSize = 28.sp, fontWeight = FontWeight.Bold)
