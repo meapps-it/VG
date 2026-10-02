@@ -137,6 +137,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var supplierFilter by mutableStateOf<String?>(null)
     var categoryFilter by mutableStateOf<String?>(null)
     var promoOnly by mutableStateOf(false)
+    var orderCustomerFilter by mutableStateOf<String?>(null)
+        private set
     var orderMonthFilter by mutableStateOf<String?>(null)
         private set
     var orderActiveOnly by mutableStateOf(false)
@@ -260,18 +262,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun openOrdersForMonth(month: java.time.YearMonth) {
+        orderCustomerFilter = null
         orderMonthFilter = month.toString()
         orderActiveOnly = false
         selectTab(MainTab.ORDERS)
     }
 
     fun openActiveOrders() {
+        orderCustomerFilter = null
         orderMonthFilter = null
         orderActiveOnly = true
         selectTab(MainTab.ORDERS)
     }
 
     fun clearOrderDrillDown() {
+        orderCustomerFilter = null
         orderMonthFilter = null
         orderActiveOnly = false
     }
@@ -319,6 +324,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             noticeMessage = "Cliente salvato"
         }
     }
+
+    fun openOrderForCustomer(customer: Customer) {
+        openOrder()
+        orderDraft = orderDraft.copy(customerId = customer.id)
+    }
+    fun openOrdersForCustomer(customer: Customer) {
+        clearOrderDrillDown()
+        orderCustomerFilter = customer.id
+        closeDetail()
+        selectTab(MainTab.ORDERS)
+    }
+    fun showContactError() { showError("Nessuna app disponibile per questo contatto") }
 
     fun openOrder(product: Product? = null) {
         orderDraft = OrderDraft(productId = product?.id)

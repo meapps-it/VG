@@ -12,13 +12,15 @@ android {
         applicationId = "it.meapps.gestionale"
         minSdk = 26
         targetSdk = 36
-        versionCode = 15
-        versionName = "0.7.4"
+        versionCode = 16
+        versionName = "0.8.0"
 
         buildConfigField("String", "SUPABASE_URL", "\"https://qfjwtawsqfwmsmrrgqfi.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_-EUVjwsk3txKk2Opqrc7Kw_xFNa9Hw1\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
+    bundle { language { enableSplit = false } }
 
     buildFeatures {
         compose = true
@@ -58,6 +60,9 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling:1.11.4")
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.11.4")
+    testImplementation("androidx.compose.ui:ui-test-junit4:1.11.4")
+    testImplementation("androidx.test:core:1.7.0")
+    testImplementation("org.robolectric:robolectric:4.16.1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 }

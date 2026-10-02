@@ -1,9 +1,9 @@
 <resources>
     <style name="Theme.Gestionale" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:statusBarColor">#F7F8FC</item>
-        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#102C48</item>
+        <item name="android:navigationBarColor">#F3F4F2</item>
         <item name="android:windowSplashScreenBackground">#155EEF</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
     </style>
