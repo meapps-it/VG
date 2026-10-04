@@ -19,7 +19,7 @@ html,body{margin:0;height:100%;background:#0f172a;font-family:system-ui,-apple-s
 </head>
 <body>
 <div id="bar"></div>
-<div id="msg"><div class="card"><h1 id="title">Attivazione Gestionale</h1><p id="text">Inserisci la chiave licenza associata al cliente.</p><input id="licenseInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Chiave licenza"><button id="go">Attiva</button></div></div>
+<div id="msg" class="hidden"><div class="card"><h1 id="title">Attivazione Gestionale</h1><p id="text">Inserisci la chiave licenza associata al cliente.</p><input id="licenseInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Chiave licenza"><button id="go">Attiva</button></div></div>
 <iframe id="appFrame" src="./index.html" title="Gestionale"></iframe>
 <script>
 (()=>{'use strict';
@@ -57,7 +57,6 @@ function apply(c){
 }
 async function activate(key){
  try{
-   setBar('Controllo licenza…');
    const c=await config(key);
    if(c.status==='suspended'){hideBar();message('Licenza sospesa','Questa copia del Gestionale è stata sospesa.',false);return}
    if(c.status==='expired'){hideBar();message('Licenza scaduta','Questa licenza non è più attiva.',false);return}
@@ -65,8 +64,8 @@ async function activate(key){
    const run=()=>{try{apply(c)}catch{}};
    if(frame.contentDocument?.readyState==='complete')run(); else frame.addEventListener('load',run,{once:true});
    frame.addEventListener('load',run);
-   if(c.status==='demo')setBar('VERSIONE DEMO · '+(c.name||'Cliente'));
-   else {setBar((c.name||'Licenza')+' · attiva',true);setTimeout(hideBar,2500)}
+   if(c.status==='demo')setBar('VERSIONE DEMO');
+   else hideBar()
    try{
     const obs=new MutationObserver(run);
     frame.addEventListener('load',()=>{try{obs.disconnect();obs.observe(frame.contentDocument.documentElement,{subtree:true,childList:true})}catch{}});
