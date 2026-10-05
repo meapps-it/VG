@@ -691,10 +691,9 @@ window.addEventListener('error',e=>{
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
       <div style="margin-top:10px">
         <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, marca, modello, categoria, qualità, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
-        <div class="visualSearchRow">
-          <button class="btn visualSearchBtn" type="button" data-action="searchArticleByPhoto">🖼️ Cerca con foto</button>
-          <input id="visualSearchFile" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none"/>
-          <div id="visualSearchStatus" class="visualSearchStatus">Confronto locale con le foto già presenti sul dispositivo. Zero traffico Supabase.</div>
+        <div style="display:none!important">
+          <input id="visualSearchFile" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif"/>
+          <div id="visualSearchStatus"></div>
         </div>
       </div>
       <div class="grid2 artFilterGrid" style="margin-top:10px">
@@ -16125,7 +16124,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.121', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.122', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
