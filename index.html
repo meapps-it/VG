@@ -609,7 +609,6 @@ window.addEventListener('error',e=>{
         <button class="topMenuLink" type="button" data-go="clienti"><span class="topMenuEmoji">👥</span><span class="topMenuText"><span class="topMenuTitle">Clienti</span><span class="topMenuSub">Schede e contatti</span></span></button>
         <button class="topMenuLink" type="button" data-go="ordini"><span class="topMenuEmoji">📦</span><span class="topMenuText"><span class="topMenuTitle">Ordini</span><span class="topMenuSub">Vendite e tracking</span></span></button>
         <button class="topMenuLink" type="button" data-go="finanze"><span class="topMenuEmoji">💶</span><span class="topMenuText"><span class="topMenuTitle">Finanze</span><span class="topMenuSub">Incassi e margini</span></span></button>
-        <button class="topMenuLink" type="button" data-go="social"><span class="topMenuEmoji">📣</span><span class="topMenuText"><span class="topMenuTitle">Bacheca</span><span class="topMenuSub">Post e pubblicazioni</span></span></button>
         <button class="topMenuLink" type="button" data-go="impostazioni"><span class="topMenuEmoji">⚙️</span><span class="topMenuText"><span class="topMenuTitle">Impostazioni</span><span class="topMenuSub">Configurazione app</span></span></button>
       </div>
     </div>
@@ -821,40 +820,6 @@ window.addEventListener('error',e=>{
   </div>
 
   <!-- SEZIONE SOCIAL MEDIA -->
-  <div id="sec_social" class="section">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-        <div class="h2">Bacheca</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-          <button class="btn smallish" type="button" data-action="manageSocialCategories">⚙️ Categorie</button>
-          <button class="btn" type="button" data-action="newSocialPost">+ Nuovo</button>
-        </div>
-      </div>
-      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap" id="socialFilterBtns">
-        <button class="btn smallish" style="background:#e0ecff;border-color:#93c5fd" data-action="filterSocial" data-filter="categorie">📂 Categorie</button>
-        <button class="btn smallish" data-action="filterSocial" data-filter="oggi">📅 Oggi</button>
-        <button class="btn smallish" data-action="filterSocial" data-filter="fb">📘 FB</button>
-        <button class="btn smallish" data-action="filterSocial" data-filter="ig">📸 IG</button>
-        <button class="btn smallish" data-action="filterSocial" data-filter="tutti">📋 Tutti</button>
-      </div>
-    </div>
-
-    <div class="heroSpot" style="margin-top:12px;cursor:pointer" data-action="toggleSocialSuggest">
-      <div class="eyebrow">💡 Ispirazione</div>
-      <div class="title" style="font-size:17px">Idee per i tuoi post FB/IG</div>
-      <div class="desc">Tocca per vedere template pronti da usare subito →</div>
-    </div>
-    <div id="socialSuggestPanel" style="display:none;margin-top:0">
-      <div class="socialSuggestGrid" id="socialSuggestGrid"></div>
-    </div>
-
-    <div style="height:10px"></div>
-    <div id="listSocial" class="list"></div>
-    <div id="socialEmpty" style="display:none;margin-top:12px">
-      <div class="agendaEmpty">Nessun post salvato. Crea il tuo primo post! 🚀</div>
-    </div>
-  </div>
-
   <div id="sec_impostazioni" class="section">
     <div class="card">
       <div class="h2">Impostazioni</div>
@@ -1011,104 +976,9 @@ window.addEventListener('error',e=>{
     <button data-go="clienti" data-nav="clienti">Clienti</button>
     <button data-go="ordini" data-nav="ordini">Ordini</button>
     <button data-go="finanze" data-nav="finanze">Finanze</button>
-    <button data-go="social" data-nav="social">Bacheca</button>
     <button data-go="impostazioni" data-nav="impostazioni">Impost.</button>
   </div>
 </div>
-
-<!-- MODAL SOCIAL POST -->
-<div id="mSocialEdit" class="modalwrap"><div class="modal artModal">
-  <div class="h2" id="socialEditTitle">Nuovo post</div>
-  <div style="margin-top:10px"><div class="k">Titolo / Tema</div><input id="sp_titolo" placeholder="Es. Promo settimana, Unboxing Prada..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
-  <div class="grid2" style="margin-top:10px">
-    <div><div class="k">Categoria post</div>
-      <select id="sp_tipo">
-        <option value="informativo">💡 Informativo</option>
-        <option value="promo">🔥 Promo / Offerta</option>
-        <option value="carosello">🎠 Carosello prodotti</option>
-        <option value="video">🎥 Video / Reel</option>
-        <option value="consigli">📚 Consigli / Guida</option>
-        <option value="lancio">🆕 Lancio prodotto</option>
-        <option value="testimonial">⭐ Recensione cliente</option>
-        <option value="faq">❓ FAQ</option>
-        <option value="unboxing">📦 Unboxing</option>
-        <option value="trend">✨ Trend / Novità</option>
-      </select>
-    </div>
-    <div><div class="k">Piattaforma</div>
-      <select id="sp_piattaforma">
-        <option value="entrambi">✅ FB + IG</option>
-        <option value="fb">📘 Solo Facebook</option>
-        <option value="ig">📸 Solo Instagram</option>
-      </select>
-    </div>
-  </div>
-  <div style="margin-top:10px"><div class="k">Testo / Copy del post</div><textarea id="sp_testo" placeholder="Scrivi il copy del post qui... Puoi usare emoji, hashtag, call to action." style="min-height:120px"></textarea></div>
-  <div class="grid2" style="margin-top:10px">
-    <div>
-      <div class="k">Ciclo pubblicazione</div>
-      <select id="sp_ciclo">
-        <option value="0">📌 Nessun ciclo (una tantum)</option>
-        <option value="7">🔁 Ogni settimana</option>
-        <option value="14">🔁 Ogni 2 settimane</option>
-        <option value="21">🔁 Ogni 3 settimane</option>
-        <option value="30">🔁 Ogni mese</option>
-        <option value="60">🔁 Ogni 2 mesi</option>
-        <option value="90">🔁 Ogni 3 mesi</option>
-      </select>
-    </div>
-    <div><div class="k">Prossima pubblicazione</div><input id="sp_data" type="date"/></div>
-  </div>
-  <div style="margin-top:10px"><div class="k">Note interne</div><textarea id="sp_note" placeholder="Note private, idee, promemoria..." style="min-height:60px"></textarea></div>
-  <div style="margin-top:10px">
-    <div class="k">📎 Foto e video — caricati su cloud</div>
-    <input id="sp_media" type="file" accept="image/*,video/*" multiple style="margin-top:6px"/>
-    <div id="sp_media_prev" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
-    <div class="helper" style="margin-top:4px">Immagini e video vengono caricati su Supabase. Max 5 file. Richiede connessione.</div>
-  </div>
-  <div class="actions compact bottomMini" style="margin-top:12px">
-    <button class="btn primary smallish" type="button" data-action="saveSocialPost">Salva</button>
-    <button class="btn smallish" type="button" data-action="closeSocialEdit">Annulla</button>
-    <button class="btn danger smallish" type="button" data-action="deleteSocialPost">Elimina</button>
-  </div>
-</div></div>
-
-<!-- MODAL GESTIONE CATEGORIE BACHECA -->
-<div id="mSocialCategories" class="modalwrap"><div class="modal">
-  <div class="h2">Categorie Bacheca</div>
-  <div class="small">Puoi aggiungere categorie, cambiarne nome o emoji e spostare i post da una categoria all’altra.</div>
-  <div class="grid2" style="margin-top:12px;grid-template-columns:72px minmax(0,1fr)">
-    <div><div class="k">Emoji</div><input id="socialCatEmoji" maxlength="8" placeholder="📁" autocomplete="off"/></div>
-    <div><div class="k">Nuova categoria</div><input id="socialCatName" placeholder="Es. Curiosità" autocomplete="off" autocapitalize="words" spellcheck="false"/></div>
-  </div>
-  <div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="addSocialCategory">Aggiungi</button></div>
-  <div id="socialCatList" class="list" style="margin-top:12px"></div>
-  <div class="actions compact bottomMini" style="margin-top:12px"><button class="btn" type="button" data-action="closeSocialCategories">Chiudi</button></div>
-</div></div>
-
-<!-- MODAL SPOSTA POST / CATEGORIA BACHECA -->
-<div id="mSocialMove" class="modalwrap"><div class="modal">
-  <div class="h2" id="socialMoveTitle">Sposta post</div>
-  <div id="socialMoveInfo" class="socialMoveInfo">Scegli la categoria di destinazione.</div>
-  <div style="margin-top:12px"><div class="k">Categoria di destinazione</div><select id="socialMoveTarget"></select></div>
-  <div class="actions compact bottomMini" style="margin-top:12px">
-    <button class="btn primary smallish" type="button" data-action="confirmSocialMove">Sposta</button>
-    <button class="btn smallish" type="button" data-action="closeSocialMove">Annulla</button>
-  </div>
-</div></div>
-
-<!-- MODAL RICERCA VISIVA AI -->
-<div id="mVisualArticleSearch" class="modalwrap visualAiModal"><div class="modal">
-  <div class="h2">Ricerca articolo con foto</div>
-  <div class="visualAiQuery" style="margin-top:10px">
-    <img id="visualAiQueryImg" alt="Foto da cercare"/>
-    <div><div class="t">Confronto visivo AI</div><div class="small">Scegli una foto dalla galleria. La confronto con la foto principale memorizzata per ciascun articolo.</div></div>
-  </div>
-  <div id="visualAiProgress" class="visualAiProgress">Preparazione ricerca…</div>
-  <div id="visualAiResults" class="visualAiResults"></div>
-  <div class="visualAiHint">La percentuale indica una somiglianza locale di colori e forme. La ricerca non scarica foto da Supabase.</div>
-  <div class="actions compact viewBottomSpace"><button class="btn" type="button" data-action="closeVisualArticleSearch">Chiudi</button></div>
-</div></div>
 
 <!-- MODALS -->
 <div id="mArtView" class="modalwrap"><div class="modal">
@@ -1144,8 +1014,7 @@ window.addEventListener('error',e=>{
     </div>
   </div>
   <div id="vArtOfficialWrap" style="display:none!important"><div id="vArtOfficialPrice"></div></div>
-  <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="vArtPostFb" placeholder="Descrizione dell’articolo"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia descrizione</button><span id="vArtFbSaveMeta" class="pubMeta" style="display:none"></span><span id="vArtPubMetaFb" class="pubMeta" style="display:none">0 · mai</span></div></div>
-  <div style="display:none!important"><textarea id="vArtPost"></textarea><textarea id="vArtPostIg"></textarea><span id="vArtPubMetaTg"></span><span id="vArtPubMetaIg"></span><input id="vArtSupplierLink"/></div>
+  <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="vArtPostFb" placeholder="Descrizione dell’articolo"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia descrizione</button><input id="vArtSupplierLink"/></div>
   <div class="actions compact viewBottomSpace">
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
@@ -5664,151 +5533,6 @@ function formatPromoDayMonth(v=''){
   const monthName=months[Math.max(0, Math.min(11, Number(mm)-1))] || mm;
   return `${Number(dd)} ${monthName}`;
 }
-const ARTICLE_PUBLISH_COUNT_WINDOW_DAYS=7;
-const ARTICLE_PUBLISH_CHANNELS=['fb','tg','wa','ig'];
-function normalizeArticlePublishLog(raw, refDay=todayStr()){
-  const src=(raw && typeof raw==='object') ? raw : {};
-  const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
-  const out={fb:[],tg:[],wa:[],ig:[]};
-  ARTICLE_PUBLISH_CHANNELS.forEach(ch=>{
-    const vals=Array.isArray(src?.[ch]) ? src[ch] : (Array.isArray(src?.[`${ch}Dates`]) ? src[`${ch}Dates`] : []);
-    const seen=new Set();
-    const clean=vals.map(v=>typeof v==='string' ? v : (v?.data||v?.date||''))
-      .map(v=>String(v||'').trim())
-      .filter(v=>{
-        const dt=parseIsoDay(v);
-        if(!dt) return false;
-        if(ref && dt>ref) return false;
-        if(seen.has(v)) return false;
-        seen.add(v);
-        return true;
-      })
-      .sort();
-    out[ch]=clean;
-  });
-  return out;
-}
-function getArticlePublishDates(article, channel='all', refDay=todayStr()){
-  const log=normalizeArticlePublishLog(article?.pubblicazioniCanali||article?.publishStats||article?.socialPub||{}, refDay);
-  const channels=ARTICLE_PUBLISH_CHANNELS.includes(channel) ? [channel] : ARTICLE_PUBLISH_CHANNELS;
-  const set=new Set();
-  channels.forEach(ch=>{
-    (Array.isArray(log?.[ch]) ? log[ch] : []).forEach(v=>{ if(parseIsoDay(v)) set.add(v); });
-  });
-  return [...set].sort();
-}
-function getArticleLastPublishDate(article, channel='all', refDay=todayStr()){
-  const dates=getArticlePublishDates(article, channel, refDay);
-  return dates.length ? dates[dates.length-1] : '';
-}
-function formatArticlePublishDate(v=''){
-  const dt=parseIsoDay(v);
-  if(!dt) return 'mai';
-  return dt.toLocaleDateString('it-IT',{day:'numeric',month:'short'}).replace('.', '');
-}
-function getArticlePublishMeta(article, channel, refDay=todayStr()){
-  const log=normalizeArticlePublishLog(article?.pubblicazioniCanali||article?.publishStats||article?.socialPub||{}, refDay);
-  const list=Array.isArray(log?.[channel]) ? log[channel] : [];
-  const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
-  const count=list.filter(v=>{
-    const dt=parseIsoDay(v);
-    if(!dt || !ref) return false;
-    const diff=Math.round((ref-dt)/86400000);
-    return diff>=0 && diff<ARTICLE_PUBLISH_COUNT_WINDOW_DAYS;
-  }).length;
-  const lastDate=list.length ? list[list.length-1] : '';
-  return { count, lastDate, label:`${count} · ${formatArticlePublishDate(lastDate)}`, log };
-}
-function renderArticlePublishMeta(article){
-  const nodes={
-    fb:[document.getElementById('vArtPubMetaFb'), document.getElementById('vArtPubMetaFbPrice')],
-    tg:[document.getElementById('vArtPubMetaTg')],
-    ig:[document.getElementById('vArtPubMetaIg')]
-  };
-  ARTICLE_PUBLISH_CHANNELS.forEach(ch=>{
-    const meta=getArticlePublishMeta(article, ch);
-    (nodes[ch]||[]).filter(Boolean).forEach(el=>{
-      el.textContent=meta.label;
-      el.title=meta.lastDate ? `Ultima pubblicazione ${formatPromoDateLabel(meta.lastDate)} · ${meta.count} negli ultimi 7 giorni` : 'Mai pubblicato';
-    });
-  });
-}
-function getArticlePublishPreviewState(article, refDay=todayStr()){
-  const lastDate=getArticleLastPublishDate(article, 'all', refDay);
-  const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
-  const last=lastDate ? parseIsoDay(lastDate) : null;
-  const diff=(ref && last) ? Math.max(0, Math.round((ref-last)/86400000)) : null;
-  if(!lastDate || diff===null){
-    return { cls:'ready', title:'Mai pubblicato' };
-  }
-  if(diff>=7){
-    return { cls:'ready', title:`Pubblicato da 7 giorni o più · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
-  }
-  if(diff>=3){
-    return { cls:'mid', title:`Pubblicato da 3 a 6 giorni · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
-  }
-  return { cls:'recent', title:`Pubblicato negli ultimi 2 giorni · ultima pubblicazione ${formatPromoDateLabel(lastDate)}` };
-}
-
-function articleChannelStatusHtml(article){
-  const log=normalizeArticlePublishLog(article?.pubblicazioniCanali||article?.publishStats||article?.socialPub||{});
-  const channels=[['fb','FB','Facebook'],['wa','WA','WhatsApp'],['tg','TG','Telegram']];
-  return `<div class="artChannelStatus" aria-label="Canali di pubblicazione">${channels.map(([ch,shortName,fullName])=>{
-    const dates=Array.isArray(log?.[ch])?log[ch]:[];
-    const last=dates.length?dates[dates.length-1]:'';
-    const done=dates.length>0;
-    const title=done ? `${fullName}: pubblicato${last?' il '+formatPromoDateLabel(last):''}` : `${fullName}: non ancora pubblicato`;
-    return `<span class="artChannelBadge ${ch} ${done?'done':'pending'}" title="${esc(title)}" aria-label="${esc(title)}">${shortName} ${done?'✓':'–'}</span>`;
-  }).join('')}</div>`;
-}
-function articlePublishPreviewDot(article){
-  const state=getArticlePublishPreviewState(article);
-  return `<span class="artPreviewDot ${state.cls}" title="${esc(state.title)}" aria-label="${esc(state.title)}"></span>`;
-}
-function getArticlePreviewOrderMeta(article, refDay=todayStr()){
-  const lastDate=getArticleLastPublishDate(article, 'all', refDay);
-  const ref=parseIsoDay(refDay) || parseIsoDay(todayStr());
-  const last=lastDate ? parseIsoDay(lastDate) : null;
-  const diff=(ref && last) ? Math.max(0, Math.round((ref-last)/86400000)) : null;
-  return {
-    never: !lastDate || diff===null,
-    daysSince: diff===null ? Number.POSITIVE_INFINITY : diff,
-    lastTs: last ? last.getTime() : 0,
-    lastDate
-  };
-}
-function compareArticlesForPreview(a,b, refDay=todayStr()){
-  const A=getArticlePreviewOrderMeta(a, refDay);
-  const B=getArticlePreviewOrderMeta(b, refDay);
-  if(A.never!==B.never) return A.never ? -1 : 1;
-  if(A.daysSince!==B.daysSince) return B.daysSince-A.daysSince;
-  if(A.lastTs!==B.lastTs) return A.lastTs-B.lastTs;
-  const aTs=Number(a?._ts||0);
-  const bTs=Number(b?._ts||0);
-  if(aTs!==bTs) return aTs-bTs;
-  return String(a?.modello||a?.codice||a?.id||'').localeCompare(String(b?.modello||b?.codice||b?.id||''),'it',{sensitivity:'base'});
-}
-function recordArticlePublication(channel, articleId=currentArtId, refDay=todayStr()){
-  const cleanChannel=ARTICLE_PUBLISH_CHANNELS.includes(channel) ? channel : '';
-  if(!cleanChannel || !articleId) return null;
-  const db=loadDB();
-  const idx=(db.articoli||[]).findIndex(a=>String(a?.id)===String(articleId));
-  if(idx<0) return null;
-  const art=db.articoli[idx]||{};
-  const nextLog=normalizeArticlePublishLog(art?.pubblicazioniCanali||art?.publishStats||art?.socialPub||{}, refDay);
-  const currentList=Array.isArray(nextLog[cleanChannel]) ? nextLog[cleanChannel] : [];
-  const alreadyToday=currentList.includes(refDay);
-  if(!alreadyToday){
-    nextLog[cleanChannel]=[...currentList, refDay].sort();
-    const updated={...art, pubblicazioniCanali:nextLog, _ts:Date.now()};
-    db.articoli[idx]=updated;
-    saveDB(db);
-    if(String(currentArtId||'')===String(articleId||'')) renderArticlePublishMeta(updated);
-    return updated;
-  }
-  if(String(currentArtId||'')===String(articleId||'')) renderArticlePublishMeta(art);
-  return art;
-}
 function promoHasHistory(a){
   return !!(a && (a.promoAttiva || Number(a.prezzoPromo||0)>0 || getPromoSupplierUsd(a)>0 || getPromoStartDate(a) || a.dataInizioPromoFornitore || a.scadenzaPromoFornitore));
 }
@@ -8356,7 +8080,6 @@ function renderActivePage(name){
     else if(name==='clienti') renderCli();
     else if(name==='ordini') renderOrd();
     else if(name==='finanze') renderFinanze();
-    else if(name==='social') renderSocial();
     else if(name==='impostazioni'){ renderCategorySettings(); renderBrandSettings(); renderDiagnostics(); }
   }catch(err){ console.warn('Render pagina fallito', name, err); }
 }
@@ -10191,7 +9914,7 @@ function renderArt(){
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
     const promoActive=promoValid(a);
     const promoBadge=promoActive ? `<div class="artPromoBadge">🔥 IN PROMOZIONE</div>` : '';
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''} ${promoActive ? 'is-promo' : ''}" data-open="art" data-id="${a.id}">${noteHtml}${promoBadge}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s">${a.codice?`Cod. ${esc(a.codice)} • `:''}${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articlePublishPreviewDot(a)}</div>${articleUnderMarginListBadgeHtml(a)}<div class="artActions artActionsSocial"><button class="btn smallish articleShareCompact" style="background:#1877F2;border-color:#1877F2;color:#fff" type="button" data-action="shareArtFacebookFromList" data-id="${a.id}"><span>Condividi<br>su FB</span></button><button class="btn smallish articleShareCompact" style="background:#229ED9;border-color:#229ED9;color:#fff" type="button" data-action="shareArtTelegramFromList" data-id="${a.id}"><span>Condividi<br>su TG</span></button></div></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''} ${promoActive ? 'is-promo' : ''}" data-open="art" data-id="${a.id}">${noteHtml}${promoBadge}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s">${a.codice?`Cod. ${esc(a.codice)} • `:''}${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div></div>${articleUnderMarginListBadgeHtml(a)}</div>`;
   }).join('');
   const emptyText=noPhotoOnly ? 'Nessun articolo senza foto.' : (promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.');
   const activeHtml=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
@@ -12112,8 +11835,7 @@ async function saveArt(){
       note: document.getElementById('a_note').value,
       foto: keptFoto,
       photoIds: keptPhotoIds,
-      videoIds: Array.isArray(old?.videoIds)?[...old.videoIds]:[],
-      pubblicazioniCanali: preservedPublishLog
+      videoIds: Array.isArray(old?.videoIds)?[...old.videoIds]:[]
     });
     const selectedFiles=Array.from(currentArtPendingFiles||[]).filter(f=>f && String(f.type||'').startsWith('image/'));
     let photoUploadWarning='';
@@ -13845,7 +13567,6 @@ function importDB(file){
         try{ saveSocialCategoryMeta(parsed.bachecaCategorie); }catch(_e){}
       }
       renderAll();
-      renderSocial();
       const msg=`Import completato: ${after.articoli} articoli, ${after.clienti} clienti, ${after.ordini} ordini.`;
       if(hint) hint.textContent=msg+' Foto escluse dal database operativo per evitare il blocco di Android; il JSON integrale è conservato come copia di emergenza.';
       toast(msg);
@@ -13886,9 +13607,6 @@ function getSearchSuggestions(kind, query){
       add(a.modello);
       add(a.brand);
       add(displayCategoryValue(a.categoria));
-      add(articleQualityLabel(a));
-      const quality=articleQualityLabel(a);
-      add(quality ? `Qualità ${quality}` : '');
     });
   }
   if(kind==='cli' || kind==='orderCli'){
@@ -14324,12 +14042,7 @@ document.addEventListener('click',(ev)=>{
     return openOrdEdit(currentOrdId||null, art.id);
   }
   if(a==='shareArtFromList' || a==='shareArtFacebookFromList') return shareArticleFromListByChannel(el.dataset.id || null, 'fb');
-  if(a==='shareArtTelegramFromList') return shareArticleFromListByChannel(el.dataset.id || null, 'tg');
-  if(a==='shareArtWhatsAppFromList') return shareArticleFromListByChannel(el.dataset.id || null, 'wa');
-  if(a==='duplicateArt') return duplicateCurrentArticle(el.dataset.id || null);
-  if(a==='editFromView'){ hide('mArtView', true); return openArtEdit(currentArtId); }
-  if(a==='closeView') return hide('mArtView');
-  if(a==='pickMoreArtPhotos'){ document.getElementById('a_photo')?.click(); return; }
+  
   if(a==='clearPendingArtPhotos'){ resetPendingArtPhotoFiles(); renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Nuove foto annullate'); return; }
   if(a==='pickArtVideos'){ document.getElementById('a_video')?.click(); return; }
   if(a==='clearArtVideos'){ currentArtExistingVideoIds=[]; currentArtPendingVideos=[]; renderArtVideoPreview(); toast('Video rimossi'); return; }
@@ -14363,44 +14076,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='confirmNo') return closeConfirm(false);
   if(a==='delRow'){ const i=Number(el.dataset.i); ordRows.splice(i,1); renderOrdRows(); updateOrderShoeSizeState(); saveOrderDraft(); return; }
 
-  /* Social actions */
-  if(a==='manageSocialCategories') return openSocialCategoryManager();
-  if(a==='closeSocialCategories') return closeSocialCategoryManager();
-  if(a==='addSocialCategory') return addSocialCategory();
-  if(a==='saveSocialCategory') return saveSocialCategoryFromButton(el);
-  if(a==='deleteSocialCategory') return deleteSocialCategoryFromButton(el);
-  if(a==='moveSocialCategory') return openSocialMoveCategory(el.dataset.key||'');
-  if(a==='moveSocialPost'){ const id=el.dataset.id||el.closest('[data-id]')?.dataset.id; if(id) openSocialMovePost(id); return; }
-  if(a==='confirmSocialMove') return confirmSocialMove();
-  if(a==='closeSocialMove') return closeSocialMove();
-  if(a==='newSocialPost') return openSocialEdit(null);
-  if(a==='editSocialPost'){
-    if(ev.target.closest('button')) return; // click su pulsante interno → ignora
-    const id=el.closest('[data-id]')?.dataset.id||el.dataset.id;
-    return openSocialEdit(id);
-  }
-  if(a==='saveSocialPost') return saveSocialPost();
-  if(a==='closeSocialEdit'){ document.getElementById('mSocialEdit').style.display='none'; activeModalId=null; editingSocialId=null; return; }
-  if(a==='deleteSocialPost') return deleteSocialPost();
-  if(a==='markSocialPublished'){ const id=el.dataset.id; if(id) markSocialPublished(id); return; }
-  if(a==='copyPostSocial'){ const id=el.dataset.id; if(id) copyPostSocialById(id); return; }
-  if(a==='shareSocialPost'){ const id=el.closest('[data-id]')?.dataset.id||el.dataset.id; if(id) shareSocialPost(id); return; }
-  if(a==='downloadSocialPost'){ const id=el.closest('[data-id]')?.dataset.id||el.dataset.id; if(id) downloadSocialPostMedia(id); return; }
-  if(a==='filterSocial'){
-    socialFilter=el.dataset.filter||'categorie';
-    renderSocial(); return;
-  }
-  if(a==='backSocialCategories'){
-    socialFilter='categorie';
-    renderSocial(); return;
-  }
-  if(a==='toggleSocialSuggest'){
-    socialSuggestOpen=!socialSuggestOpen;
-    const panel=document.getElementById('socialSuggestPanel');
-    if(panel) panel.style.display=socialSuggestOpen?'block':'none';
-    return;
-  }
-  if(a==='useSocialSuggest'){ const idx=Number(el.dataset.idx); useSocialSuggestion(idx); return; }
+
 });
 
 const __viewFbPostEl=document.getElementById('vArtPostFb');
@@ -14721,8 +14397,7 @@ function prepareLocalDataForCloudUser(userId){
     if(previous && previous!==next){
       [
         KEY, KEY+'_backup_latest', KEY+'_backup_before_cloud_pull', KEY+'_pre_import_backup',
-        ART_DRAFT_KEY, CLI_DRAFT_KEY, ORD_DRAFT_KEY, AGENDA_KEY, CAT_IMAGES_KEY,
-        'vg_social_v1'
+        ART_DRAFT_KEY, CLI_DRAFT_KEY, ORD_DRAFT_KEY, AGENDA_KEY, CAT_IMAGES_KEY
       ].forEach(k=>{ try{ localStorage.removeItem(k); }catch(_e){} });
     }
     localStorage.setItem(CLOUD_LOCAL_USER_KEY,next);
@@ -14774,7 +14449,6 @@ function clearAllArticlePublishLogsInDb(db){
     changed=true;
     return {
       ...art,
-      pubblicazioniCanali:{fb:[],tg:[],wa:[],ig:[]},
       publishStats:{fb:[],tg:[],ig:[]},
       socialPub:{fb:[],tg:[],ig:[]},
       _ts: Date.now()
@@ -15345,722 +15019,6 @@ async function cloudLogout(){
   }catch(err){ toast('Logout fallito'); console.error(err); }
 }
 
-/* ====== SOCIAL MEDIA POSTS ====== */
-const SOCIAL_KEY='vg_social_v1';
-const SOCIAL_MEDIA_BUCKET='social-videos'; // bucket già configurato
-
-/* ---- Supabase Storage per media social (foto + video) ---- */
-async function uploadSocialMediaFile(postId, file, _idx){
-  const sb=await ensureCloud();
-  if(!sb||!cloudSession) throw new Error('Non connesso a Supabase');
-  const isVideo=file.type.startsWith('video');
-  const ext=(file.name||'').split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g,'')||(isVideo?'mp4':'jpg');
-  // Path univoco — usa uid() per evitare conflitti anche se si cancellano e riaggiungono file
-  const path=`${postId}/${uid()}.${ext}`;
-  const {error}=await sb.storage.from(SOCIAL_MEDIA_BUCKET).upload(path,file,{upsert:false,contentType:file.type||(isVideo?'video/mp4':'image/jpeg')});
-  if(error) throw error;
-  return {path, type:isVideo?'video':'image', mime:file.type};
-}
-
-async function getSocialMediaSignedUrl(path){
-  if(!path) return null;
-  try{
-    const sb=await ensureCloud();
-    if(!sb) return null;
-    const {data,error}=await sb.storage.from(SOCIAL_MEDIA_BUCKET).createSignedUrl(path,7200);
-    if(error) return null;
-    return data?.signedUrl||null;
-  }catch(_e){ return null; }
-}
-
-async function deleteSocialMediaFiles(paths=[]){
-  if(!paths.length) return;
-  try{
-    const sb=await ensureCloud();
-    if(!sb||!cloudSession) return;
-    await sb.storage.from(SOCIAL_MEDIA_BUCKET).remove(paths);
-  }catch(e){ console.warn('Delete media fallito:',e); }
-}
-
-async function downloadSocialMediaBlob(path){
-  try{
-    const sb=await ensureCloud();
-    if(!sb) return null;
-    const {data,error}=await sb.storage.from(SOCIAL_MEDIA_BUCKET).download(path);
-    if(error||!data) return null;
-    return data;
-  }catch(_e){ return null; }
-}
-
-let socialFilter='categorie';
-
-let editingSocialId=null;
-let socialSuggestOpen=false;
-
-const SOCIAL_SUGGESTIONS=[
-  {emoji:'📦',titolo:'Unboxing prodotto',desc:'Mostra come arriva la borsa',tipo:'unboxing',piattaforma:'ig',ciclo:14,testo:'Guardate che arrivo! 😍✨\nQuesta meraviglia è appena arrivata e non vediamo l\'ora di mostrarvi ogni dettaglio.\n💌 Scriveteci in DM per info e disponibilità!\n.\n#unboxing #borse #luxury #shopparallelo'},
-  {emoji:'🔥',titolo:'Promo della settimana',desc:'Offerta a tempo limitato',tipo:'promo',piattaforma:'entrambi',ciclo:7,testo:'⚡ PROMO SETTIMANA ⚡\n\nOfferta speciale per questa settimana soltanto!\n👜 [NOME PRODOTTO] a soli €[PREZZO]\n\n⏳ Disponibilità limitata\n📲 Scrivi in DM per info\n.\n#promo #offerta #borse #luxury'},
-  {emoji:'💡',titolo:'Come riconoscere la qualità',desc:'Post educativo sul prodotto',tipo:'consigli',piattaforma:'entrambi',ciclo:30,testo:'💡 Lo sapevi?\n\nEcco come riconoscere un prodotto di qualità A-grade:\n✅ Pelle morbida e uniforme\n✅ Cuciture precise e simmetriche\n✅ Hardware pesante e non ossidato\n✅ Odore di vera pelle\n\nI nostri prodotti soddisfano tutti questi criteri 💪\n📲 Scrivi per info!\n#guide #qualità #borse'},
-  {emoji:'⭐',titolo:'Recensione cliente',desc:'Testimonianza con foto',tipo:'testimonial',piattaforma:'entrambi',ciclo:21,testo:'La nostra cliente [NOME] è raggiante con la sua nuova borsa! 🥰\n\n"[CITAZIONE CLIENTE]"\n\nGrazie per la fiducia! Ogni ordine è una gioia ❤️\n💌 Vuoi essere la prossima? Scrivici!\n#clientisoddisfatti #recensione #borse'},
-  {emoji:'🆕',titolo:'Nuovo arrivo',desc:'Lancio di un prodotto',tipo:'lancio',piattaforma:'entrambi',ciclo:0,testo:'🆕 NUOVO ARRIVO 🆕\n\n[BRAND] [MODELLO] disponibile adesso!\n✨ Colore: [COLORE]\n📐 Misure: [MISURE]\n💰 Prezzo: €[PREZZO]\n\n🔥 Quantità limitata - chi prima arriva!\n📲 DM per prenotare\n#nuovoarrivo #[brand] #borse'},
-  {emoji:'❓',titolo:'FAQ: Come funzioniamo',desc:'Spiega il servizio',tipo:'faq',piattaforma:'entrambi',ciclo:60,testo:'❓ DOMANDE FREQUENTI ❓\n\n🙋 Come faccio un ordine?\n➡️ Scrivi in DM con il prodotto che ti interessa!\n\n🚚 Quanto ci vuole per la spedizione?\n➡️ Di solito 7-15 giorni lavorativi\n\n💳 Come si paga?\n➡️ Bonifico, PayPal o contrassegno\n\nHai altre domande? Scrivici! 👇\n#faq #info #borse'},
-  {emoji:'🎠',titolo:'Carosello nuovi arrivi',desc:'Slideshow di più prodotti',tipo:'carosello',piattaforma:'ig',ciclo:14,testo:'Scorri per vedere tutti i nuovi arrivi della settimana! 👉\n\nBorse, accessori e tanto altro ti aspettano!\n💌 Scrivi per info su qualsiasi pezzo\n📦 Spedizioni in tutta Italia\n.\n#nuoviarrivi #carosello #borse #luxury'},
-  {emoji:'✨',titolo:'Trend del momento',desc:'Le borse più richieste ora',tipo:'trend',piattaforma:'entrambi',ciclo:30,testo:'✨ TREND DEL MOMENTO ✨\n\nLe borse più richieste in questo periodo?\nEccole!\n\n1️⃣ [PRODOTTO 1]\n2️⃣ [PRODOTTO 2]\n3️⃣ [PRODOTTO 3]\n\nSono già disponibili nel nostro catalogo!\n📲 DM per prezzi e info\n#trend #borse #luxury #moda'},
-];
-
-const SOCIAL_CAT_KEY='vg_social_categories_v2';
-const SOCIAL_LEGACY_CATEGORY_META={
-  informativo:{emoji:'💡',label:'Informativo'}, promo:{emoji:'🔥',label:'Promo'}, carosello:{emoji:'🎠',label:'Carosello'},
-  video:{emoji:'🎥',label:'Video'}, consigli:{emoji:'📚',label:'Consigli'}, lancio:{emoji:'🆕',label:'Lancio'},
-  testimonial:{emoji:'⭐',label:'Recensione'}, faq:{emoji:'❓',label:'FAQ'}, unboxing:{emoji:'📦',label:'Unboxing'}, trend:{emoji:'✨',label:'Trend'}
-};
-function socialCleanCategoryKey(value=''){
-  return String(value||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48);
-}
-function socialCategoryFallback(key=''){
-  const k=String(key||'').trim();
-  const known=SOCIAL_LEGACY_CATEGORY_META[k];
-  if(known) return {key:k,emoji:known.emoji,label:known.label};
-  const label=(k.replace(/[-_]+/g,' ').trim()||'Altro').replace(/\b\w/g,m=>m.toUpperCase());
-  return {key:k||'altro',emoji:'📁',label};
-}
-function normalizeSocialCategoryMeta(item){
-  if(!item) return null;
-  if(typeof item==='string') return socialCategoryFallback(socialCleanCategoryKey(item));
-  if(typeof item!=='object') return null;
-  const key=socialCleanCategoryKey(item.key||item.id||item.label||item.nome);
-  if(!key) return null;
-  const fb=socialCategoryFallback(key);
-  return {key,emoji:String(item.emoji||fb.emoji||'📁').trim().slice(0,8)||'📁',label:String(item.label||item.nome||fb.label).trim()||fb.label};
-}
-function loadSocial(){
-  try{ const db=JSON.parse(localStorage.getItem(SOCIAL_KEY)||'{"posts":[]}'); db.posts=Array.isArray(db.posts)?db.posts:[]; return db; }catch(_e){ return {posts:[]}; }
-}
-function saveSocial(db){ localStorage.setItem(SOCIAL_KEY, JSON.stringify(db&&typeof db==='object'?db:{posts:[]})); }
-function loadSocialCategoryMeta(postsArg=null){
-  const posts=Array.isArray(postsArg)?postsArg:(loadSocial().posts||[]);
-  let raw=[];
-  try{ const parsed=JSON.parse(localStorage.getItem(SOCIAL_CAT_KEY)||'[]'); if(Array.isArray(parsed)) raw=parsed; }catch(_e){}
-  const out=[]; const seen=new Set();
-  const push=(item)=>{ const c=normalizeSocialCategoryMeta(item); if(!c||seen.has(c.key)) return; seen.add(c.key); out.push(c); };
-  raw.forEach(push);
-  posts.forEach(p=>push(socialCategoryFallback(String(p?.tipo||'informativo'))));
-  if(!out.length) push(socialCategoryFallback('informativo'));
-  return out;
-}
-function saveSocialCategoryMeta(list){
-  const out=[]; const seen=new Set();
-  (Array.isArray(list)?list:[]).forEach(item=>{ const c=normalizeSocialCategoryMeta(item); if(!c||seen.has(c.key)) return; seen.add(c.key); out.push(c); });
-  if(!out.length) out.push(socialCategoryFallback('informativo'));
-  localStorage.setItem(SOCIAL_CAT_KEY,JSON.stringify(out));
-  return out;
-}
-function ensureSocialCategoryAvailable(key,label='',emoji=''){
-  const clean=socialCleanCategoryKey(key)||'informativo';
-  const db=loadSocial(); const list=loadSocialCategoryMeta(db.posts);
-  if(!list.some(c=>c.key===clean)){
-    const fb=socialCategoryFallback(clean);
-    list.push({key:clean,label:String(label||fb.label).trim()||fb.label,emoji:String(emoji||fb.emoji).trim().slice(0,8)||'📁'});
-    saveSocialCategoryMeta(list);
-  }
-  return clean;
-}
-function socialCategoryMetaFor(tipo,postsArg=null){
-  const key=socialCleanCategoryKey(tipo||'informativo')||'informativo';
-  return loadSocialCategoryMeta(postsArg).find(c=>c.key===key)||socialCategoryFallback(key);
-}
-function todaySocialStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-
-function socialTypeName(tipo){
-  const c=socialCategoryMetaFor(tipo);
-  return `${c.emoji||'📁'} ${c.label||'Altro'}`.trim();
-}
-function socialTipoClass(tipo){
-  const m={promo:'promo',carosello:'carosello',video:'video',consigli:'consigli',testimonial:'testimonial',lancio:'lancio'};
-  return m[tipo]||'';
-}
-function socialIsCategoryFilter(value){
-  const v=String(value||'');
-  return !!v && !['categorie','tutti','oggi','fb','ig'].includes(v);
-}
-function socialCategoryEntries(posts){
-  const source=Array.isArray(posts)?posts:[];
-  const counts=new Map();
-  source.forEach(p=>{ const t=socialCleanCategoryKey(p?.tipo||'informativo')||'informativo'; counts.set(t,(counts.get(t)||0)+1); });
-  const meta=loadSocialCategoryMeta(source);
-  return meta.filter(c=>(counts.get(c.key)||0)>0).map(c=>({tipo:c.key,count:counts.get(c.key)||0}));
-}
-function socialTypeParts(tipo){
-  const full=socialTypeName(tipo);
-  const m=full.match(/^(\S+)\s+(.*)$/);
-  return m?{icon:m[1],name:m[2]}:{icon:'📁',name:full};
-}
-function renderSocialFolders(posts){
-  const cats=socialCategoryEntries(posts);
-  if(!cats.length) return '<div class="agendaEmpty">Nessun post salvato. Crea il tuo primo post! 🚀</div>';
-  return `<div class="socialFolderGrid">${cats.map(c=>{ const part=socialTypeParts(c.tipo); return `<button type="button" class="socialFolder" data-action="filterSocial" data-filter="${esc(c.tipo)}"><span class="socialFolderMain"><span class="socialFolderIcon">${esc(part.icon)}</span><span><span class="socialFolderName">${esc(part.name)}</span><span class="socialFolderMeta">Apri i post della categoria</span></span></span><span class="socialFolderCount">${c.count}</span></button>`; }).join('')}</div>`;
-}
-function populateSocialCategorySelect(selectId,selected='',exclude=''){
-  const el=document.getElementById(selectId); if(!el) return;
-  const db=loadSocial(); const cats=loadSocialCategoryMeta(db.posts).filter(c=>c.key!==exclude);
-  let wanted=socialCleanCategoryKey(selected||'');
-  if(wanted && !cats.some(c=>c.key===wanted) && wanted!==exclude){
-    const fb=socialCategoryFallback(wanted); cats.push(fb); saveSocialCategoryMeta(cats);
-  }
-  el.innerHTML=cats.map(c=>`<option value="${esc(c.key)}">${esc((c.emoji||'📁')+' '+(c.label||'Altro'))}</option>`).join('');
-  if(wanted && cats.some(c=>c.key===wanted)) el.value=wanted;
-  else if(cats[0]) el.value=cats[0].key;
-}
-function socialCategoryPostCount(key,dbArg=null){
-  const db=dbArg||loadSocial(); const clean=socialCleanCategoryKey(key);
-  return (db.posts||[]).filter(p=>(socialCleanCategoryKey(p?.tipo||'informativo')||'informativo')===clean).length;
-}
-function renderSocialCategoryManager(){
-  const db=loadSocial(); const cats=loadSocialCategoryMeta(db.posts);
-  const box=document.getElementById('socialCatList'); if(!box) return;
-  box.innerHTML=cats.map(c=>{
-    const count=socialCategoryPostCount(c.key,db);
-    return `<div class="socialCatManageRow" data-social-cat-row="${esc(c.key)}"><div class="socialCatManageTop"><input data-social-cat-emoji maxlength="8" value="${esc(c.emoji||'📁')}" aria-label="Emoji categoria"/><input data-social-cat-label value="${esc(c.label||'')}" aria-label="Nome categoria"/></div><div class="socialCatManageCount">${count} ${count===1?'post':'post'} in questa categoria</div><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="saveSocialCategory" data-key="${esc(c.key)}">Salva</button>${count?`<button class="btn smallish" type="button" data-action="moveSocialCategory" data-key="${esc(c.key)}">Sposta ${count}</button>`:''}<button class="btn danger smallish" type="button" data-action="deleteSocialCategory" data-key="${esc(c.key)}">Elimina</button></div></div>`;
-  }).join('');
-}
-function openSocialCategoryManager(){ renderSocialCategoryManager(); show('mSocialCategories'); }
-function closeSocialCategoryManager(){ hide('mSocialCategories'); }
-function addSocialCategory(){
-  const name=String(document.getElementById('socialCatName')?.value||'').trim();
-  const emoji=String(document.getElementById('socialCatEmoji')?.value||'📁').trim().slice(0,8)||'📁';
-  if(!name){ toast('Scrivi il nome della categoria'); return; }
-  const db=loadSocial(); const list=loadSocialCategoryMeta(db.posts);
-  if(list.some(c=>String(c.label||'').trim().toLowerCase()===name.toLowerCase())){ toast('Categoria già presente'); return; }
-  const base=socialCleanCategoryKey(name)||'categoria'; let key=base,n=2;
-  while(list.some(c=>c.key===key)) key=`${base}-${n++}`;
-  list.push({key,label:name,emoji}); saveSocialCategoryMeta(list);
-  const nEl=document.getElementById('socialCatName'); if(nEl) nEl.value='';
-  const eEl=document.getElementById('socialCatEmoji'); if(eEl) eEl.value='';
-  renderSocialCategoryManager(); renderSocial(); toast('Categoria aggiunta ✅');
-}
-function saveSocialCategoryFromButton(btn){
-  const key=String(btn?.dataset?.key||''); const row=btn?.closest?.('[data-social-cat-row]'); if(!key||!row) return;
-  const label=String(row.querySelector('[data-social-cat-label]')?.value||'').trim();
-  const emoji=String(row.querySelector('[data-social-cat-emoji]')?.value||'📁').trim().slice(0,8)||'📁';
-  if(!label){ toast('Il nome categoria non può essere vuoto'); return; }
-  const db=loadSocial(); const list=loadSocialCategoryMeta(db.posts);
-  if(list.some(c=>c.key!==key&&String(c.label||'').trim().toLowerCase()===label.toLowerCase())){ toast('Esiste già una categoria con questo nome'); return; }
-  const cat=list.find(c=>c.key===key); if(!cat) return;
-  cat.label=label; cat.emoji=emoji; saveSocialCategoryMeta(list);
-  renderSocialCategoryManager(); renderSocial(); populateSocialCategorySelect('sp_tipo',document.getElementById('sp_tipo')?.value||key); toast('Categoria aggiornata ✅');
-}
-function deleteSocialCategoryFromButton(btn){
-  const key=String(btn?.dataset?.key||''); if(!key) return;
-  const db=loadSocial(); const count=socialCategoryPostCount(key,db);
-  if(count){ toast('Prima sposta i post in un’altra categoria'); openSocialMoveCategory(key); return; }
-  const list=loadSocialCategoryMeta(db.posts);
-  if(list.length<=1){ toast('Deve restare almeno una categoria'); return; }
-  const cat=list.find(c=>c.key===key)||socialCategoryFallback(key);
-  askConfirm(`Eliminare ${cat.emoji||'📁'} ${cat.label||'categoria'}?`,()=>{ const now=loadSocialCategoryMeta(loadSocial().posts).filter(c=>c.key!==key); saveSocialCategoryMeta(now); if(socialFilter===key) socialFilter='categorie'; renderSocialCategoryManager(); renderSocial(); toast('Categoria eliminata'); },'Elimina categoria','Elimina','danger');
-}
-let socialMoveMode=''; let socialMovePostId=''; let socialMoveSourceType='';
-function openSocialMovePost(id){
-  const db=loadSocial(); const p=(db.posts||[]).find(x=>String(x.id)===String(id)); if(!p) return;
-  const source=socialCleanCategoryKey(p.tipo||'informativo')||'informativo'; const cats=loadSocialCategoryMeta(db.posts).filter(c=>c.key!==source);
-  if(!cats.length){ toast('Crea prima un’altra categoria'); return; }
-  socialMoveMode='post'; socialMovePostId=String(id); socialMoveSourceType=source;
-  const title=document.getElementById('socialMoveTitle'); if(title) title.textContent='Sposta post';
-  const info=document.getElementById('socialMoveInfo'); if(info) info.textContent=`${p.titolo||'Post senza titolo'} · da ${socialTypeName(source)}`;
-  populateSocialCategorySelect('socialMoveTarget','',source); show('mSocialMove');
-}
-function openSocialMoveCategory(source){
-  const db=loadSocial(); const clean=socialCleanCategoryKey(source); const count=socialCategoryPostCount(clean,db); if(!count){ toast('Categoria vuota'); return; }
-  if(!loadSocialCategoryMeta(db.posts).some(c=>c.key!==clean)){ toast('Crea prima un’altra categoria'); return; }
-  socialMoveMode='category'; socialMovePostId=''; socialMoveSourceType=clean;
-  const title=document.getElementById('socialMoveTitle'); if(title) title.textContent='Sposta tutti i post';
-  const info=document.getElementById('socialMoveInfo'); if(info) info.textContent=`Sposta ${count} post da ${socialTypeName(clean)} a un’altra categoria.`;
-  populateSocialCategorySelect('socialMoveTarget','',clean); show('mSocialMove');
-}
-function closeSocialMove(){ hide('mSocialMove'); socialMoveMode=''; socialMovePostId=''; socialMoveSourceType=''; }
-function confirmSocialMove(){
-  const target=socialCleanCategoryKey(document.getElementById('socialMoveTarget')?.value||'');
-  if(!target||target===socialMoveSourceType){ toast('Scegli un’altra categoria'); return; }
-  const db=loadSocial(); let moved=0;
-  if(socialMoveMode==='post'){
-    const p=(db.posts||[]).find(x=>String(x.id)===socialMovePostId); if(p){ p.tipo=target; moved=1; }
-  }else if(socialMoveMode==='category'){
-    (db.posts||[]).forEach(p=>{ if((socialCleanCategoryKey(p?.tipo||'informativo')||'informativo')===socialMoveSourceType){ p.tipo=target; moved++; } });
-  }
-  saveSocial(db); closeSocialMove(); renderSocial();
-  if(document.getElementById('mSocialCategories')?.style.display==='flex') renderSocialCategoryManager();
-  toast(moved===1?'Post spostato ✅':`${moved} post spostati ✅`);
-}
-function piattaformaLabel(p){
-  if(p==='fb') return '<span class="platformBadge fb">📘 Facebook</span>';
-  if(p==='ig') return '<span class="platformBadge ig">📸 Instagram</span>';
-  return '<span class="platformBadge entrambi">✅ FB + IG</span>';
-}
-function socialDaysLabel(ciclo){
-  if(!ciclo||ciclo==0) return '📌 Una tantum';
-  if(ciclo==7) return '🔁 Ogni settimana';
-  if(ciclo==14) return '🔁 Ogni 2 settimane';
-  if(ciclo==21) return '🔁 Ogni 3 settimane';
-  if(ciclo==30) return '🔁 Ogni mese';
-  if(ciclo==60) return '🔁 Ogni 2 mesi';
-  if(ciclo==90) return '🔁 Ogni 3 mesi';
-  return '🔁 Ogni '+ciclo+' giorni';
-}
-function socialDateLabel(dateStr){
-  if(!dateStr) return '-';
-  const today=todaySocialStr();
-  if(dateStr===today) return '⚡ Oggi!';
-  if(dateStr<today) return '⛔ In ritardo ('+dateStr+')';
-  const d=new Date(dateStr+'T00:00:00'); const t=new Date(today+'T00:00:00');
-  const diff=Math.round((d-t)/(1000*60*60*24));
-  if(diff===1) return '⏰ Domani';
-  if(diff<=7) return '📅 Tra '+diff+' giorni';
-  return '📅 '+dateStr.split('-').reverse().join('/');
-}
-
-function renderSocialSuggestions(){
-  const grid=document.getElementById('socialSuggestGrid'); if(!grid) return;
-  grid.innerHTML=SOCIAL_SUGGESTIONS.map((s,i)=>`
-    <div class="socialSuggestItem" data-action="useSocialSuggest" data-idx="${i}">
-      <div class="socialSuggestEmoji">${s.emoji}</div>
-      <div class="socialSuggestTitle">${s.titolo}</div>
-      <div class="socialSuggestDesc">${s.desc}</div>
-    </div>`).join('');
-}
-
-function renderSocial(){
-  const db=loadSocial();
-  const today=todaySocialStr();
-  let posts=[...db.posts];
-  document.querySelectorAll('#socialFilterBtns [data-action="filterSocial"]').forEach(b=>{
-    const active=String(b.dataset.filter||'')===socialFilter;
-    b.style.background=active?'#e0ecff':'';
-    b.style.borderColor=active?'#93c5fd':'';
-  });
-  const list=document.getElementById('listSocial');
-  const empty=document.getElementById('socialEmpty');
-  if(!list) return;
-  if(socialFilter==='categorie'){
-    if(empty) empty.style.display='none';
-    list.innerHTML=renderSocialFolders(posts);
-    return;
-  }
-  posts.sort((a,b)=>{
-    const da=a.prossimaPub||'9999';
-    const db2=b.prossimaPub||'9999';
-    return da<db2?-1:da>db2?1:0;
-  });
-
-  // Filtri
-  let filtered=posts;
-  if(socialFilter==='oggi') filtered=posts.filter(p=>p.prossimaPub&&p.prossimaPub<=today);
-  else if(socialFilter==='fb') filtered=posts.filter(p=>p.piattaforma==='fb'||p.piattaforma==='entrambi');
-  else if(socialFilter==='ig') filtered=posts.filter(p=>p.piattaforma==='ig'||p.piattaforma==='entrambi');
-  else if(socialFilter!=='tutti') filtered=posts.filter(p=>String(p.tipo||'informativo')===socialFilter);
-
-  if(!filtered.length){
-    if(socialIsCategoryFilter(socialFilter)){
-      list.innerHTML=`<div class="socialCategoryHeader"><button type="button" class="btn smallish" data-action="backSocialCategories">← Categorie</button><div class="socialCategoryHeaderTitle">${esc(socialTypeName(socialFilter))}</div></div><div class="agendaEmpty">Nessun post in questa categoria.</div>`;
-      if(empty) empty.style.display='none';
-    }else{
-      list.innerHTML='';
-      if(empty){ empty.style.display='block'; const msg=empty.querySelector('.agendaEmpty'); if(msg) msg.textContent=socialFilter==='tutti'?'Nessun post salvato. Crea il tuo primo post! 🚀':'Nessun post in questo filtro.'; }
-    }
-    return;
-  }
-  if(empty) empty.style.display='none';
-
-  const categoryHead=socialIsCategoryFilter(socialFilter)?`<div class="socialCategoryHeader"><button type="button" class="btn smallish" data-action="backSocialCategories">← Categorie</button><div class="socialCategoryHeaderTitle">${esc(socialTypeName(socialFilter))}</div></div>`:'';
-  list.innerHTML=categoryHead+filtered.map(p=>{
-    const preview=p.testo?p.testo.replace(/\n/g,' ').slice(0,80)+(p.testo.length>80?'…':''):'';
-    const media=Array.isArray(p.media)?p.media:[];
-    const nFoto=media.filter(m=>m.type==='image').length;
-    const nVideo=media.filter(m=>m.type==='video').length;
-    
-    const sem=getSemaforo(p);
-    const isRosso=sem==='rosso';
-    const mediaPreview=media.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
-      ${media.slice(0,5).map((m,i)=>`<div id="smp_${p.id}_${i}" style="width:54px;height:54px;border-radius:10px;background:#f1f5f9;border:1px solid #e2e8f0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${m.type==='video'?'🎥':'⏳'}</div>`).join('')}
-      ${media.length>5?`<div style="width:54px;height:54px;border-radius:10px;background:#f1f5f9;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#64748b">+${media.length-5}</div>`:''}
-    </div>`:'';
-    return `
-    <div class="socialCard" data-action="editSocialPost" data-id="${p.id}" style="cursor:pointer">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
-        <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
-          <div class="t" style="font-size:14px;line-height:1.2">${esc(p.titolo||'Post senza titolo')}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">
-            <span class="socialTypePill ${socialTipoClass(p.tipo)}">${socialTypeName(p.tipo)}</span>
-            ${piattaformaLabel(p.piattaforma)}
-            ${nFoto?`<span style="font-size:11px;font-weight:900;color:#64748b">📸 ${nFoto}</span>`:''}
-            ${nVideo?`<span style="font-size:11px;font-weight:900;color:#7c3aed">🎥 ${nVideo}</span>`:''}
-          </div>
-        </div>
-        <div class="semaforo ${sem}" title="${sem==='verde'?'Ok':sem==='giallo'?'In scadenza':sem==='rosso'?'Da pubblicare':'Nessun ciclo'}"></div>
-      </div>
-      ${preview?`<div class="small" style="font-size:12px;line-height:1.35;color:#475569">${esc(preview)}</div>`:''}
-      ${mediaPreview}
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:4px">
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <div class="socialPubMeta">${socialDaysLabel(p.cicloGiorni)}</div>
-          <div class="socialPubMeta" style="${isRosso?'color:#b45309;font-weight:900':''}">${socialDateLabel(p.prossimaPub)}${p.pubCount?' · '+p.pubCount+' pub.':''}</div>
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-          <button class="btn smallish" style="min-height:36px" data-action="moveSocialPost" data-id="${p.id}">📁 Sposta</button>
-          <button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff;min-height:36px" data-action="shareSocialPost" data-id="${p.id}">🔗 Condividi</button>
-          ${isRosso
-            ? `<button class="btn smallish" style="background:#f59e0b;border-color:#f59e0b;color:#fff;min-height:36px" data-action="markSocialPublished" data-id="${p.id}">✓ Fatto</button>`
-            : `<button class="btn smallish" style="min-height:36px" data-action="copyPostSocial" data-id="${p.id}">📋 Copia</button>`
-          }
-          ${media.length?`<button class="btn smallish" style="min-height:36px" data-action="downloadSocialPost" data-id="${p.id}">📥</button>`:''}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-  // Carica anteprime immagini da Supabase in modo asincrono
-  loadSocialCardPreviews(filtered);
-}
-
-async function openSocialEdit(id=null){
-  editingSocialId=id;
-  socialPendingMedia.forEach(m=>{ if(m.previewUrl) URL.revokeObjectURL(m.previewUrl); });
-  socialPendingMedia=[];
-  socialExistingMedia=[];
-  const titleEl=document.getElementById('socialEditTitle');
-  const db=loadSocial();
-  const today=todaySocialStr();
-  if(id){
-    const p=db.posts.find(x=>x.id===id);
-    if(!p) return;
-    if(titleEl) titleEl.textContent='Modifica post';
-    document.getElementById('sp_titolo').value=p.titolo||'';
-    ensureSocialCategoryAvailable(p.tipo||'informativo');
-    populateSocialCategorySelect('sp_tipo',p.tipo||'informativo');
-    document.getElementById('sp_piattaforma').value=p.piattaforma||'entrambi';
-    document.getElementById('sp_testo').value=p.testo||'';
-    document.getElementById('sp_ciclo').value=String(p.cicloGiorni||0);
-    document.getElementById('sp_data').value=p.prossimaPub||today;
-    document.getElementById('sp_note').value=p.note||'';
-    // sp_video rimosso
-    // Carica media esistente da Supabase
-    if(Array.isArray(p.media)&&p.media.length){
-      for(const m of p.media){
-        let previewUrl=null;
-        if(m.type==='image'){
-          try{ previewUrl=await getSocialMediaSignedUrl(m.path); }catch(_e){}
-        }
-        socialExistingMedia.push({...m, previewUrl});
-      }
-    }
-    const delBtn=document.querySelector('[data-action="deleteSocialPost"]');
-    if(delBtn) delBtn.style.display='';
-  } else {
-    if(titleEl) titleEl.textContent='Nuovo post';
-    document.getElementById('sp_titolo').value='';
-    const initialCategory=socialIsCategoryFilter(socialFilter)?socialFilter:(loadSocialCategoryMeta(db.posts)[0]?.key||'informativo');
-    populateSocialCategorySelect('sp_tipo',initialCategory);
-    document.getElementById('sp_piattaforma').value='entrambi';
-    document.getElementById('sp_testo').value='';
-    document.getElementById('sp_ciclo').value='7';
-    document.getElementById('sp_data').value=today;
-    document.getElementById('sp_note').value='';
-    // sp_video rimosso
-    const delBtn=document.querySelector('[data-action="deleteSocialPost"]');
-    if(delBtn) delBtn.style.display='none';
-  }
-  renderSocialMediaPreview();
-  document.getElementById('mSocialEdit').style.display='flex';
-  activeModalId='mSocialEdit';
-}
-
-async function saveSocialPost(){
-  const titolo=(document.getElementById('sp_titolo')?.value||'').trim();
-  if(!titolo){ toast('Inserisci un titolo'); return; }
-  if(socialPendingMedia.length&&!cloudSession){ toast('⚠️ Accedi a Supabase per caricare foto e video'); return; }
-
-  const db=loadSocial();
-  const postId=editingSocialId||uid();
-  const existingPost=editingSocialId?db.posts.find(x=>x.id===editingSocialId):null;
-
-  // Upload nuovi media su Supabase
-  const uploadedMedia=[...socialExistingMedia.map(m=>({path:m.path,type:m.type,mime:m.mime||''}))];
-  if(socialPendingMedia.length){
-    toast('⏳ Carico '+socialPendingMedia.length+' file su cloud…');
-    let startIdx=uploadedMedia.length;
-    for(let i=0;i<socialPendingMedia.length;i++){
-      try{
-        const result=await uploadSocialMediaFile(postId, socialPendingMedia[i].file, startIdx+i);
-        uploadedMedia.push(result);
-      }catch(e){
-        console.warn('Upload media fallito:',e);
-        toast('⚠️ File '+(i+1)+' non caricato: '+e.message);
-      }
-    }
-  }
-
-  const post={
-    id:postId,
-    titolo,
-    tipo:ensureSocialCategoryAvailable(document.getElementById('sp_tipo')?.value||'informativo'),
-    piattaforma:document.getElementById('sp_piattaforma')?.value||'entrambi',
-    testo:(document.getElementById('sp_testo')?.value||'').trim(),
-    note:(document.getElementById('sp_note')?.value||'').trim(),
-    videoUrl:'',
-    media:uploadedMedia,
-    cicloGiorni:Number(document.getElementById('sp_ciclo')?.value||0),
-    prossimaPub:document.getElementById('sp_data')?.value||todaySocialStr(),
-    ultimaPub:existingPost?.ultimaPub||'',
-    pubCount:existingPost?.pubCount||0,
-    createdAt:existingPost?.createdAt||new Date().toISOString()
-  };
-
-  if(editingSocialId){ const idx=db.posts.findIndex(x=>x.id===editingSocialId); if(idx>=0) db.posts[idx]=post; else db.posts.push(post); }
-  else db.posts.push(post);
-  saveSocial(db);
-
-  socialPendingMedia.forEach(m=>{ if(m.previewUrl) URL.revokeObjectURL(m.previewUrl); });
-  socialPendingMedia=[];
-  socialExistingMedia=[];
-  document.getElementById('mSocialEdit').style.display='none';
-  activeModalId=null;
-  renderSocial();
-  toast(editingSocialId?'Post aggiornato ✅':'Post salvato! 🎉');
-  editingSocialId=null;
-}
-
-function deleteSocialPost(){
-  if(!editingSocialId) return;
-  const idToDelete=editingSocialId;
-  const db=loadSocial();
-  const post=db.posts.find(x=>x.id===idToDelete);
-  // Chiudo il modal prima così mConfirm non si nasconde dietro
-  document.getElementById('mSocialEdit').style.display='none';
-  activeModalId=null;
-  askConfirm('Eliminare questo post?',()=>{
-    const db2=loadSocial();
-    db2.posts=db2.posts.filter(x=>x.id!==idToDelete);
-    saveSocial(db2);
-    const paths=(post?.media||[]).map(m=>m.path).filter(Boolean);
-    if(paths.length) deleteSocialMediaFiles(paths).catch(()=>{});
-    editingSocialId=null;
-    renderSocial();
-    toast('Post eliminato');
-  },'Elimina post');
-}
-
-function markSocialPublished(id){
-  const db=loadSocial();
-  const p=db.posts.find(x=>x.id===id); if(!p) return;
-  const today=todaySocialStr();
-  p.ultimaPub=today;
-  p.pubCount=(p.pubCount||0)+1;
-  if(p.cicloGiorni&&p.cicloGiorni>0){
-    const base=new Date(today+'T00:00:00');
-    base.setDate(base.getDate()+Number(p.cicloGiorni));
-    p.prossimaPub=base.getFullYear()+'-'+String(base.getMonth()+1).padStart(2,'0')+'-'+String(base.getDate()).padStart(2,'0');
-    toast('✅ Pubblicato! Prossima: '+p.prossimaPub.split('-').reverse().join('/'));
-  } else {
-    p.prossimaPub='';
-    toast('✅ Pubblicato!');
-  }
-  saveSocial(db);
-  renderSocial();
-}
-
-function copyPostSocialById(id){
-  const db=loadSocial();
-  const p=db.posts.find(x=>x.id===id); if(!p||!p.testo){ toast('Nessun testo da copiare'); return; }
-  try{
-    if(navigator.clipboard){ navigator.clipboard.writeText(p.testo).then(()=>toast('Testo copiato! 📋')).catch(()=>fallbackCopyText(p.testo)); }
-    else fallbackCopyText(p.testo);
-  }catch(_e){ toast('Copia non riuscita'); }
-}
-
-async function downloadSocialPostMedia(id){
-  const db=loadSocial();
-  const p=db.posts.find(x=>x.id===id);
-  const media=Array.isArray(p?.media)?p.media.filter(m=>m.path):[];
-  if(!media.length){ toast('Nessun file da scaricare'); return; }
-  toast('⏳ Scarico '+media.length+' file…');
-  const files=[];
-  for(let i=0;i<media.length;i++){
-    const m=media[i];
-    try{
-      const blob=await downloadSocialMediaBlob(m.path);
-      if(!blob) continue;
-      const ext=(m.path||'').split('.').pop().replace(/[^a-z0-9]/gi,'')||(m.type==='video'?'mp4':'jpg');
-      const prefix=m.type==='video'?'video':'foto';
-      files.push(new File([blob],`${prefix}_${String(i+1).padStart(2,'0')}.${ext}`,{type:blob.type||( m.type==='video'?'video/mp4':'image/jpeg')}));
-    }catch(e){ console.warn('Download file fallito:',e); }
-  }
-  if(!files.length){ toast('⚠️ Nessun file scaricabile — verifica connessione'); return; }
-  try{
-    // Crea uno ZIP con tutti i file e scarica in un colpo solo
-    const safeName=(p.titolo||'post').replace(/[^a-z0-9]/gi,'_').slice(0,30);
-    const zip=await buildZipFromFiles(files, `${safeName}.zip`);
-    triggerBlobDownload(zip, `${safeName}.zip`);
-    toast(`✅ ZIP con ${files.length} file scaricato!`);
-  }catch(e){
-    console.warn('ZIP fallito, provo singolo:',e);
-    // Fallback: scarica solo il primo file
-    triggerBlobDownload(files[0], files[0].name);
-    toast(`✅ Scaricato 1 file (ZIP non disponibile)`);
-  }
-}
-
-async function loadSocialCardPreviews(posts){
-  for(const p of posts){
-    const media=Array.isArray(p.media)?p.media:[];
-    for(let i=0;i<Math.min(media.length,5);i++){
-      const m=media[i];
-      const el=document.getElementById(`smp_${p.id}_${i}`);
-      if(!el) continue;
-      if(m.type==='video') continue; // mantieni emoji 🎥
-      try{
-        const url=await getSocialMediaSignedUrl(m.path);
-        if(url) el.innerHTML=`<img src="${url}" style="width:100%;height:100%;object-fit:cover"/>`;
-      }catch(_e){}
-    }
-  }
-}
-
-async function shareSocialPost(id){
-  const db=loadSocial();
-  const p=db.posts.find(x=>x.id===id); if(!p) return;
-  toast('⏳ Preparo file…');
-  const files=[];
-  // Video prima, poi foto
-  const allMedia=[...(p.media||[]).filter(m=>m.type==='video'), ...(p.media||[]).filter(m=>m.type==='image')];
-  for(const m of allMedia){
-    try{
-      const blob=await downloadSocialMediaBlob(m.path);
-      if(blob){
-        const ext=(m.path||'').split('.').pop().replace(/[^a-z0-9]/gi,'')||(m.type==='video'?'mp4':'jpg');
-        files.push(new File([blob],`${m.type==='video'?'video':'foto'}_${files.length+1}.${ext}`,{type:m.mime||blob.type||( m.type==='video'?'video/mp4':'image/jpeg')}));
-      }
-    }catch(e){ console.warn('Media non preparato:',e); }
-  }
-  const text=p.testo||'';
-  const title=p.titolo||'Post';
-
-  // Copia testo negli appunti PRIMA del share — identico agli articoli
-  if(text){
-    try{ await navigator.clipboard.writeText(text); }
-    catch(_e){ try{ fallbackCopyText(text); }catch(__e){} }
-  }
-
-  try{
-    if(files.length&&canNativeShareFiles(files)){
-      await navigator.share({files});
-      toast(text?'✅ File condivisi! Testo copiato — incollalo come didascalia 📋':'✅ Condivisione aperta!');
-    } else if(typeof navigator.share==='function'){
-      await navigator.share({text,title});
-      toast('✅ Testo condiviso!');
-    } else {
-      fallbackCopyText(text);
-      toast('📋 Testo copiato');
-    }
-  }catch(err){
-    if(isShareAbortError(err)) return;
-    if(isShareActivationError(err)){ toast('⚠️ Tocca di nuovo Condividi'); return; }
-    fallbackCopyText(text); toast('⚠️ Condivisione non riuscita — testo copiato');
-  }
-}
-function fallbackCopyText(text){
-  const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
-  document.body.appendChild(ta); ta.focus(); ta.select();
-  try{ document.execCommand('copy'); toast('Testo copiato! 📋'); }catch(_e){ toast('Copia non riuscita'); }
-  document.body.removeChild(ta);
-}
-
-/* ---- Stato media social ---- */
-let socialPendingMedia=[];   // [{file, previewUrl, type:'image'|'video'}]
-let socialExistingMedia=[];  // [{path, type:'image'|'video', mime}]
-
-function renderSocialMediaPreview(){
-  const wrap=document.getElementById('sp_media_prev'); if(!wrap) return;
-  const allPrev=socialExistingMedia.map((m,i)=>({
-    src:m.previewUrl||'',
-    isVideo:m.type==='video',
-    idx:i, existing:true
-  }));
-  const allPend=socialPendingMedia.map((m,i)=>({
-    src:m.previewUrl,
-    isVideo:m.type==='video',
-    idx:i, existing:false
-  }));
-  const all=[...allPrev,...allPend];
-  wrap.innerHTML=all.map((m,absIdx)=>`
-    <div style="position:relative;display:inline-block">
-      ${m.isVideo
-        ? `<div style="width:72px;height:72px;border-radius:12px;border:1px solid #e2e8f0;background:#0f172a;display:flex;align-items:center;justify-content:center;font-size:26px">🎥</div>`
-        : `<img src="${m.src}" style="width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid #e2e8f0;display:block"/>`
-      }
-      <button type="button" onclick="removeSocialMedia(${m.existing?1:0},${m.idx})" style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;border:none;border-radius:999px;width:20px;height:20px;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">✕</button>
-    </div>`).join('');
-}
-
-function removeSocialMedia(isExisting, idx){
-  if(isExisting){ socialExistingMedia.splice(idx,1); }
-  else { const m=socialPendingMedia.splice(idx,1)[0]; if(m?.previewUrl) URL.revokeObjectURL(m.previewUrl); }
-  renderSocialMediaPreview();
-}
-window.removeSocialMedia=removeSocialMedia;
-
-function initSocialMediaInput(){
-  const input=document.getElementById('sp_media'); if(!input) return;
-  input.addEventListener('change',()=>{
-    const files=Array.from(input.files||[]);
-    const total=socialExistingMedia.length+socialPendingMedia.length;
-    const slots=5-total;
-    if(slots<=0){ toast('Massimo 5 file per post'); input.value=''; return; }
-    const toAdd=files.slice(0,slots);
-    for(const f of toAdd){
-      const isVideo=f.type.startsWith('video');
-      const previewUrl=URL.createObjectURL(f);
-      socialPendingMedia.push({file:f, previewUrl, type:isVideo?'video':'image'});
-    }
-    if(files.length>slots) toast('Massimo 5 file — alcuni ignorati');
-    renderSocialMediaPreview();
-    input.value='';
-  });
-}
-
-/* ---- Semaforo ---- */
-function getSemaforo(p){
-  const today=todaySocialStr();
-  const pub=p.prossimaPub;
-  if(!pub) return p.pubCount>0?'verde':'grigio';
-  if(pub<=today) return 'rosso';
-  const daysUntil=Math.round((new Date(pub+'T00:00:00')-new Date(today+'T00:00:00'))/(1000*60*60*24));
-  const cycle=p.cicloGiorni||30;
-  const soglia=Math.max(2,Math.round(cycle*0.25));
-  return daysUntil<=soglia?'giallo':'verde';
-}
-
-function useSocialSuggestion(idx){
-  const s=SOCIAL_SUGGESTIONS[idx]; if(!s) return;
-  const today=todaySocialStr();
-  editingSocialId=null;
-  socialPendingMedia.forEach(m=>{ if(m.previewUrl) URL.revokeObjectURL(m.previewUrl); });
-  socialPendingMedia=[];
-  socialExistingMedia=[];
-  const titleEl=document.getElementById('socialEditTitle');
-  if(titleEl) titleEl.textContent='Nuovo post';
-  document.getElementById('sp_titolo').value=s.titolo;
-  const suggestionCategory=ensureSocialCategoryAvailable(s.tipo);
-  populateSocialCategorySelect('sp_tipo',suggestionCategory);
-  document.getElementById('sp_piattaforma').value=s.piattaforma;
-  document.getElementById('sp_testo').value=s.testo;
-  document.getElementById('sp_ciclo').value=String(s.ciclo||0);
-  document.getElementById('sp_data').value=today;
-  document.getElementById('sp_note').value='';
-  // sp_video rimosso
-  renderSocialMediaPreview();
-  const delBtn=document.querySelector('[data-action="deleteSocialPost"]');
-  if(delBtn) delBtn.style.display='none';
-  document.getElementById('mSocialEdit').style.display='flex';
-  activeModalId='mSocialEdit';
-}
-
 /* ====== AUTH GATE ====== */
 let authenticatedAppInitialized=false;
 function setAuthenticatedUi(allowed){
@@ -16080,7 +15038,6 @@ async function startAuthenticatedApp(){
   if(!authenticatedAppInitialized){
     authenticatedAppInitialized=true;
     renderAll();
-    renderSocial();
     renderSocialSuggestions();
     initSocialMediaInput();
     initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship','c_alt_ship','vCliAltShip']);
@@ -16106,7 +15063,6 @@ async function startAuthenticatedApp(){
     requestPersistentStorage();
   }else{
     renderAll();
-    renderSocial();
     renderActivePage(currentHistoryPage());
   }
   try{ cloudUi(); }catch(_e){}
@@ -16447,7 +15403,6 @@ function seedSimplexDemoData(){
    foto:[],
    photoIds:[],
    videoIds:[],
-   pubblicazioniCanali:{fb:[],tg:[],wa:[],ig:[]},
    _ts:now-i
   }));
 
