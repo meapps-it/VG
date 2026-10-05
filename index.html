@@ -16158,7 +16158,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.119', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.120', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
@@ -16227,6 +16227,9 @@ async function activate(key){
   if(c.status!=='active'&&c.status!=='demo'){show('Questa licenza non è attiva.','Licenza non attiva',false);return}
   try{localStorage.setItem(STORE,key)}catch{}
   apply(c);hide();
+  if(c.status==='demo'){
+    await startAuthenticatedApp();
+  }
   if(c.status==='active'){
     try{
       if(typeof ensureCloud==='function'){
