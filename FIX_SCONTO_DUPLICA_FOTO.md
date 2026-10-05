@@ -1,1 +1,0 @@
-Build v6.5: fix persistenza foto cloud (sync da sorgenti vere, non preview), sconto ordine, duplica articoli, elimina foto attuali in modifica.
