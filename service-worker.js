@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.130-sort-fix';
+const VERSION = 'gestionale-vg-1.0.130-social-clean-final';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
