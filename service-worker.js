@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.124-demo-photo-admin';
+const VERSION = 'gestionale-vg-1.0.125-pricing-vat';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
