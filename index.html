@@ -15971,7 +15971,8 @@ function setAuthenticatedUi(allowed){
   }
 }
 async function startAuthenticatedApp(){
-  if(!cloudSession){ setAuthenticatedUi(false); return false; }
+  const simplexDemo=window.SimplexClientConfig?.status==='demo';
+  if(!cloudSession && !simplexDemo){ setAuthenticatedUi(false); return false; }
   setAuthenticatedUi(true);
   if(!authenticatedAppInitialized){
     authenticatedAppInitialized=true;
@@ -16020,6 +16021,7 @@ function setAuthGateMode(mode='login'){
   if(checking && err) err.style.display='none';
 }
 function showAuthGate(mode='login'){
+  if(window.SimplexClientConfig?.status==='demo'){ setAuthenticatedUi(true); return; }
   setAuthenticatedUi(false);
   setAuthGateMode(mode);
   const titleEl=document.getElementById('authAppTitle');
@@ -16151,7 +16153,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.117', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.118', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
