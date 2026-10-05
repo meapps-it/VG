@@ -12022,28 +12022,41 @@ async function saveArt(){
       if(selectedFiles.length>maxNew) photoUploadWarning=`Caricate ${maxNew} foto, limite massimo raggiunto`;
 
       if(filesToSave.length){
-        const localPhotoIds=[];
-        for(const file of filesToSave){
+        const isSimplexDemoArticle=window.SimplexClientConfig?.status==='demo' && /^demo-art-(00[1-9]|010)$/.test(String(obj.id||''));
+        if(isSimplexDemoArticle){
           try{
-            const blob=await compressImageBlob(file);
-            const pid='ph_'+uid();
-            await idbSet(pid, blob);
-            localPhotoIds.push(pid);
-          }catch(localErr){
-            console.warn('Salvataggio foto locale fallito', localErr);
+            const sharedUrl=await uploadSimplexDemoArticlePhoto(obj.id,filesToSave[0]);
+            obj.foto=[sharedUrl];
+            obj.photoIds=[];
+            if(filesToSave.length>1) photoUploadWarning='Nella demo viene salvata come immagine principale la prima foto selezionata';
+          }catch(demoPhotoErr){
+            console.warn('Upload foto demo condivisa fallito',demoPhotoErr);
+            photoUploadWarning=demoPhotoErr?.message||'Foto demo non salvata nel cloud';
+          }
+        }else{
+          const localPhotoIds=[];
+          for(const file of filesToSave){
             try{
-              const dataUrl=await compressImageFile(file);
+              const blob=await compressImageBlob(file);
               const pid='ph_'+uid();
-              await idbSet(pid, dataUrl);
+              await idbSet(pid, blob);
               localPhotoIds.push(pid);
-              photoUploadWarning='Una o più foto salvate in modalità compatibile';
-            }catch(fallbackErr){
-              console.warn('Fallback foto fallito', fallbackErr);
-              photoUploadWarning='Una o più foto non salvate';
+            }catch(localErr){
+              console.warn('Salvataggio foto locale fallito', localErr);
+              try{
+                const dataUrl=await compressImageFile(file);
+                const pid='ph_'+uid();
+                await idbSet(pid, dataUrl);
+                localPhotoIds.push(pid);
+                photoUploadWarning='Una o più foto salvate in modalità compatibile';
+              }catch(fallbackErr){
+                console.warn('Fallback foto fallito', fallbackErr);
+                photoUploadWarning='Una o più foto non salvate';
+              }
             }
           }
+          obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,MAX_ARTICLE_PHOTOS);
         }
-        obj.photoIds=[...new Set([...(obj.photoIds||[]), ...localPhotoIds])].slice(0,MAX_ARTICLE_PHOTOS);
       }
     }
     // Aggiorna videoIds con rimozioni dall'edit
@@ -16177,6 +16190,70 @@ function toggleModule(name,on){
  if(name==='ordini')document.querySelectorAll('[data-action="newOrd"],[data-action="openCurrentOrders"]').forEach(el=>el.classList.toggle('simplex-module-disabled',!on));
  if(name==='clienti')document.querySelectorAll('[data-action="newCli"]').forEach(el=>el.classList.toggle('simplex-module-disabled',!on));
 }
+const SIMPLEX_DEMO_PHOTO_BUCKET='simplex-demo';
+const SIMPLEX_DEMO_PHOTO_BASE='https://qfjwtawsqfwmsmrrgqfi.supabase.co/storage/v1/object/public/'+SIMPLEX_DEMO_PHOTO_BUCKET+'/products/';
+const SIMPLEX_DEMO_ADMIN_ENDPOINT='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/simplex-admin';
+const SIMPLEX_DEMO_APIKEY='sb_publishable_-EUVjwsk3txKk2Opqrc7Kw_xFNa9Hw1';
+
+function simplexDemoPhotoUrl(articleId, fresh=false){
+ const id=String(articleId||'').trim();
+ if(!/^demo-art-(00[1-9]|010)$/.test(id)) return '';
+ return SIMPLEX_DEMO_PHOTO_BASE+encodeURIComponent(id)+'/main'+(fresh?'?v='+Date.now():'');
+}
+function simplexDemoImageExists(url){
+ return new Promise(resolve=>{
+  if(!url){ resolve(false); return; }
+  const img=new Image();
+  let done=false;
+  const finish=v=>{ if(done)return; done=true; clearTimeout(timer); img.onload=null; img.onerror=null; resolve(v); };
+  const timer=setTimeout(()=>finish(false),4500);
+  img.onload=()=>finish(true);
+  img.onerror=()=>finish(false);
+  img.src=url+(url.includes('?')?'&':'?')+'check='+Date.now();
+ });
+}
+async function hydrateSimplexDemoPhotos(){
+ if(window.SimplexClientConfig?.status!=='demo') return;
+ const db=loadDB();
+ let changed=false;
+ const demo=(db.articoli||[]).filter(a=>/^demo-art-(00[1-9]|010)$/.test(String(a?.id||'')));
+ await Promise.all(demo.map(async art=>{
+  const base=simplexDemoPhotoUrl(art.id,false);
+  const exists=await simplexDemoImageExists(base);
+  const current=Array.isArray(art.foto)?art.foto:[];
+  if(exists){
+   const fresh=simplexDemoPhotoUrl(art.id,true);
+   if(current.length!==1 || !String(current[0]||'').includes('/simplex-demo/products/'+art.id+'/main')){
+    art.foto=[fresh]; art.photoIds=[]; art._ts=Date.now(); changed=true;
+   }else{
+    art.foto=[fresh];
+   }
+  }else if(current.some(x=>String(x||'').includes('/simplex-demo/products/'+art.id+'/main'))){
+   art.foto=[]; changed=true;
+  }
+ }));
+ if(changed) saveDBLocal(db); else { try{ renderArt(); }catch(_e){} }
+}
+async function getSimplexDemoAdminAccessToken(){
+ const sb=await window.VG_SUPABASE_READY;
+ if(!sb) throw new Error('Servizio Admin non disponibile');
+ const {data:{session}}=await sb.auth.getSession();
+ if(!session?.access_token) throw new Error('Accedi prima all’Admin SimplexApp nello stesso browser');
+ return session.access_token;
+}
+async function uploadSimplexDemoArticlePhoto(articleId,file){
+ if(window.SimplexClientConfig?.status!=='demo') throw new Error('Questa copia non è una demo');
+ if(!/^demo-art-(00[1-9]|010)$/.test(String(articleId||''))) throw new Error('Articolo demo non valido');
+ if(!file || !['image/jpeg','image/png','image/webp'].includes(String(file.type||'').toLowerCase())) throw new Error('Usa una foto JPG, PNG o WebP');
+ const token=await getSimplexDemoAdminAccessToken();
+ const license=window.SimplexLicense?.getKey?.()||'';
+ const url=SIMPLEX_DEMO_ADMIN_ENDPOINT+'?action=demo-photo-upload&article='+encodeURIComponent(articleId)+'&license='+encodeURIComponent(license);
+ const r=await fetch(url,{method:'POST',cache:'no-store',headers:{Authorization:'Bearer '+token,apikey:SIMPLEX_DEMO_APIKEY,'Content-Type':file.type},body:file});
+ let data={}; try{data=await r.json()}catch(_e){}
+ if(!r.ok) throw new Error(data?.error||'Caricamento foto demo non riuscito');
+ return String(data?.url||simplexDemoPhotoUrl(articleId,true));
+}
+
 function seedSimplexDemoData(){
  try{
   const db=loadDB();
@@ -16311,6 +16388,7 @@ async function activate(key){
   apply(c);hide();
   if(c.status==='demo'){
     seedSimplexDemoData();
+    await hydrateSimplexDemoPhotos();
     await startAuthenticatedApp();
   }
   if(c.status==='active'){
