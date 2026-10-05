@@ -9866,6 +9866,17 @@ function vgCloseVisualArticleSearch(){
   vgReleaseVisualResultObjectUrls();
 }
 
+function compareArticlesForPreview(a,b){
+  const aTs=Number(a?._ts||0);
+  const bTs=Number(b?._ts||0);
+  if(aTs!==bTs) return bTs-aTs;
+  return String(a?.modello||a?.codice||a?.id||'').localeCompare(
+    String(b?.modello||b?.codice||b?.id||''),
+    'it',
+    {sensitivity:'base'}
+  );
+}
+
 function renderArt(){
   const db=loadDB();
   const promoCount=(db.articoli||[]).filter(promoValid).length;
