@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <title>Gestionale V&G</title>
-<meta name="description" content="Gestionale V&G per articoli, clienti, ordini, finanze, promozioni e pubblicazioni social."/>
+<meta name="description" content="Gestionale V&G per articoli, clienti, ordini e finanze."/>
 <meta name="application-name" content="Gestionale V&G"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
@@ -786,14 +786,6 @@ window.addEventListener('error',e=>{
       <div class="h2">Opportunità sugli articoli</div>
       <div id="finArticleOpportunities" class="list"></div>
     </div>
-    <div class="card" style="margin-top:12px">
-      <div class="h2">Pubblicazioni e vendite</div>
-      <div class="small">Indicazioni operative basate sullo storico dei canali, senza attribuire automaticamente la vendita a un post.</div>
-      
-
-    <div class="card" style="margin-top:12px">
-      <div class="h2">Strategia canali e sicurezza account</div>
-      <div class="small">Facebook e Instagram: revisione prudenziale dei contenuti pubblici. Telegram: canale commerciale principale con dettagli e prezzo.</div></div>
     <div class="card">
       <div class="h2">Riepilogo per stato ordine</div>
       <div id="finByStatus" class="list"></div>
@@ -1011,7 +1003,7 @@ window.addEventListener('error',e=>{
     </div>
   </div>
   <div id="vArtOfficialWrap" style="display:none!important"><div id="vArtOfficialPrice"></div></div>
-  <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="vArtPostFb" placeholder="Descrizione dell’articolo"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia descrizione</button><input id="vArtSupplierLink"/></div>
+  <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="vArtPostFb" placeholder="Descrizione dell’articolo"></textarea><div class="actions compact" style="margin-top:8px"><input id="vArtSupplierLink"/></div>
   <div class="actions compact viewBottomSpace">
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
@@ -4630,161 +4622,6 @@ async function nativeShareArticleNow({title='', text='', files=[], channelLabel=
   return false;
 }
 
-async function shareArtAll(){
-  const db=loadDB();
-  const a=db.articoli.find(x=>x.id===currentArtId); if(!a) return;
-  const postText=normalizeFacebookPostForArticle((document.getElementById('vArtPostFb')?.value||getArticleFacebookPost(a)||'').trim(),a);
-  const title=(a.modello||a.codice||'Articolo');
-
-  try{
-    let ctx=getPreparedCurrentArticlePhotoContext();
-    if(!ctx) ctx=await prepareArticlePhotoShareContext(a);
-    if(!ctx){ toast('⚠️ Nessuna foto disponibile'); return; }
-
-    let files=getCachedArticlePhotoFilesForCtx(ctx)||[];
-    if(!areCachedArticlePhotoFilesComplete(ctx)){
-      toast(`Preparo ${ctx.pics.length} foto...`);
-      files=await warmCurrentArticlePhotoShare(ctx,{silent:true});
-    }
-
-    // Facebook/Android spesso ignora "text" quando nel payload ci sono file.
-    // Copiamo quindi esplicitamente il testo negli appunti e condividiamo le foto.
-    const copied=await copyShareTextToClipboard(postText);
-
-    const result=await nativeShareArticleNow({
-      title,
-      text:postText,
-      files,
-      channelLabel:'Condivisione Facebook'
-    });
-    if(result){
-      recordArticlePublication('fb');
-      toast(copied
-        ? `✅ ${result.count} foto pronte. Testo copiato negli appunti.`
-        : `✅ Pannello condivisione aperto con ${result.count} foto`);
-    }
-  }catch(err){
-    if(isShareAbortError(err)) return;
-    console.warn('shareArtAll fallito:',err);
-    if(isShareActivationError(err)) toast('⚠️ Foto pronte. Premi di nuovo Condividi su FB.');
-    else toast('⚠️ Condivisione Facebook con foto non riuscita');
-  }
-}
-
-async function shareArtTelegram(){
-  const db=loadDB();
-  const a=(db.articoli||[]).find(x=>x.id===currentArtId); if(!a) return;
-  const text=(document.getElementById('vArtPost')?.value || buildPostTelegram(a) || '').trim();
-  const title=(a.modello||a.codice||'Articolo');
-
-  // Stessa logica di Facebook: nessun await prima di navigator.share sul percorso di successo.
-  const ctx=getPreparedCurrentArticlePhotoContext();
-  if(!ctx){
-    prepareArticlePhotoShareContext(a)
-      .then(c=>{ if(c) return warmCurrentArticlePhotoShare(c,{silent:true}); })
-      .catch(err=>console.warn('Preparazione foto Telegram fallita',err));
-    toast('Sto preparando le foto. Premi di nuovo Telegram tra un attimo.');
-    return;
-  }
-
-  if(!areCachedArticlePhotoFilesComplete(ctx)){
-    warmCurrentArticlePhotoShare(ctx,{silent:true}).catch(()=>{});
-    const ready=(getCachedArticlePhotoFilesForCtx(ctx)||[]).length;
-    toast(ready>0
-      ? `Sto preparando: ${ready}/${ctx.pics.length} foto pronte. Premi di nuovo Telegram tra un attimo.`
-      : 'Sto preparando le foto. Premi di nuovo Telegram tra un attimo.');
-    return;
-  }
-
-  const files=normalizePreparedPhotoFiles(getCachedArticlePhotoFilesForCtx(ctx)||[]);
-  if(!files.length){
-    toast('⚠️ Le foto non sono disponibili per Telegram.');
-    return;
-  }
-
-  if(typeof navigator.share!=='function'){
-    toast('⚠️ Condivisione Telegram non supportata su questo browser');
-    return;
-  }
-
-  try{
-    const payload={title,files};
-    if(text) payload.text=text;
-
-    if(typeof navigator.canShare==='function' && !navigator.canShare({files})){
-      toast('⚠️ Il dispositivo non accetta queste foto insieme.');
-      return;
-    }
-
-    await navigator.share(payload);
-    recordArticlePublication('tg');
-    toast(`✅ Condivisione Telegram aperta con ${files.length} foto`);
-  }catch(err){
-    if(isShareAbortError(err)) return;
-    console.warn('shareArtTelegram fallito:',err);
-    toast('⚠️ Condivisione Telegram con foto non riuscita');
-  }
-}
-
-async function shareArticleFromListByChannel(artId, channel='fb'){
-  const id=String(artId||'').trim();
-  if(!id){ toast('Articolo non trovato'); return; }
-  const db=loadDB();
-  const a=(db.articoli||[]).find(x=>String(x.id)===id || String(x.codice||'')===id);
-  if(!a){ toast('Articolo non trovato'); return; }
-
-  currentArtId=a.id;
-  const cleanChannel=String(channel||'fb').toLowerCase();
-  const isTelegram=cleanChannel==='tg';
-  const isWhatsApp=cleanChannel==='wa';
-  const channelLabel=isTelegram?'Telegram':(isWhatsApp?'WhatsApp':'Facebook');
-  const postText=(isTelegram||isWhatsApp)
-    ? String(buildPostTelegram(a) || '').trim()
-    : normalizeFacebookPostForArticle(buildPostFacebook(a), a);
-  const title=(a.modello||a.codice||'Articolo');
-
-  try{
-    let ctx=getPreparedCurrentArticlePhotoContext();
-    if(!ctx || String(ctx?.art?.id||'')!==String(a.id)){
-      ctx=await prepareArticlePhotoShareContext(a);
-    }
-    if(!ctx){ toast(`⚠️ Nessuna foto disponibile per ${channelLabel}`); return; }
-
-    let files=getCachedArticlePhotoFilesForCtx(ctx)||[];
-    if(!areCachedArticlePhotoFilesComplete(ctx)){
-      toast(`Preparo ${ctx.pics.length} foto...`);
-      files=await warmCurrentArticlePhotoShare(ctx,{silent:true});
-    }
-
-    // Per Facebook e WhatsApp copiamo anche il testo perché alcune app ignorano
-    // il campo text quando ricevono foto tramite Web Share API.
-    const shouldCopyText = !isTelegram;
-    const copied = shouldCopyText ? await copyShareTextToClipboard(postText) : false;
-
-    const result=await nativeShareArticleNow({
-      title,
-      text:postText,
-      files,
-      channelLabel:`Condivisione ${channelLabel}`
-    });
-    if(result){
-      recordArticlePublication(isTelegram?'tg':(isWhatsApp?'wa':'fb'));
-      if(copied){
-        toast(`✅ ${channelLabel}: ${result.count} foto. Testo copiato negli appunti.`);
-      }else{
-        toast(`✅ ${channelLabel}: aperto pannello con ${result.count} foto`);
-      }
-    }
-  }catch(err){
-    if(isShareAbortError(err)) return;
-    console.warn(`Condivisione ${channelLabel} fallita`,err);
-    if(isShareActivationError(err)) toast(`⚠️ Foto pronte. Premi di nuovo ${channelLabel}.`);
-    else toast(`⚠️ Condivisione ${channelLabel} con foto non riuscita`);
-  }
-}
-async function shareArticleFromList(artId){ return shareArticleFromListByChannel(artId,'fb'); }
-async function shareArticleTelegramFromList(artId){ return shareArticleFromListByChannel(artId,'tg'); }
-async function shareArticleWhatsAppFromList(artId){ return shareArticleFromListByChannel(artId,'wa'); }
 async function syncArticlePhotosToCloud(artId, codice, pics){
   const sb=await ensureCloud();
   if(!sb||!cloudSession||!artId) return [];
@@ -8068,6 +7905,7 @@ function currentHistoryPage(){
   return (history.state&&history.state.page) || location.hash.replace('#','') || 'home';
 }
 function renderActivePage(name){
+  if(name==='social') name='home';
   try{
     if(name==='home') renderHome();
     else if(name==='articoli') renderArt();
@@ -8078,6 +7916,7 @@ function renderActivePage(name){
   }catch(err){ console.warn('Render pagina fallito', name, err); }
 }
 function go(name, push=true){
+  if(name==='social') name='home';
   setTopMenuOpen(false);
   renderPageState(name);
   renderActivePage(name);
@@ -10495,22 +10334,22 @@ function renderFinanze(){
 
   const soldIds=new Set(), soldCodes=new Set();
   (allOrders||[]).forEach(o=>(Array.isArray(o?.righe)?o.righe:[]).forEach(r=>{
-    const x=commercialRowData(r,db); if(x.art?.id)soldIds.add(String(x.art.id)); if(x.code)soldCodes.add(String(x.code).toLowerCase());
+    const x=commercialRowData(r,db);
+    if(x.art?.id) soldIds.add(String(x.art.id));
+    if(x.code) soldCodes.add(String(x.code).toLowerCase());
   }));
   const articles=(db.articoli||[]).map(a=>{
-    const pub=commercialPublicationInfo(a); const sold=soldIds.has(String(a.id))||soldCodes.has(String(a.codice||'').toLowerCase());
+    const sold=soldIds.has(String(a.id))||soldCodes.has(String(a.codice||'').toLowerCase());
     const incomplete=!(Number(a.prezzoVendita)>0)||!((Number(a.costoEur)>0)||(Number(a.costoUsd)>0))||!String(a.modello||'').trim();
-    return {a,pub,sold,incomplete};
+    return {a,sold,incomplete};
   });
-  const neverSold=articles.filter(x=>!x.sold).length;
-  const publishedNeverSold=articles.filter(x=>!x.sold&&x.pub.count>=2).sort((a,b)=>b.pub.count-a.pub.count).slice(0,8);
-  const stale=articles.filter(x=>!x.a.nonDisponibile&&x.pub.days!==null&&x.pub.days>=45).sort((a,b)=>b.pub.days-a.pub.days).slice(0,8);
-  const incompleteArts=articles.filter(x=>x.incomplete).slice(0,8);
+  const neverSold=articles.filter(x=>!x.sold);
+  const incompleteArts=articles.filter(x=>x.incomplete);
   const oppEl=document.getElementById('finArticleOpportunities');
   const oppBlocks=[];
-  oppBlocks.push(`<div class="mutedBox"><b>${neverSold}</b> articoli mai venduti • <b>${publishedNeverSold.length}</b> pubblicati più volte senza vendite • <b>${incompleteArts.length}</b> con dati economici essenziali incompleti</div>`);
-  if(publishedNeverSold.length) oppBlocks.push(`<div class="small" style="margin-top:10px"><b>Pubblicati più volte, mai venduti</b></div>`+publishedNeverSold.map(x=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(x.a.modello||'Senza nome')}</div><div class="s">${x.pub.count} pubblicazioni${x.a.codice?' • cod. '+esc(x.a.codice):''}</div></div>${commercialSafeOpenButton('article',x.a.id,'Apri')}</div>`).join(''));
-  if(stale.length) oppBlocks.push(`<div class="small" style="margin-top:10px"><b>Da riproporre: nessuna pubblicazione recente</b></div>`+stale.map(x=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(x.a.modello||'Senza nome')}</div><div class="s">Ultima pubblicazione ${esc(x.pub.last)} • ${x.pub.days} giorni fa</div></div>${commercialSafeOpenButton('article',x.a.id,'Apri')}</div>`).join(''));
+  oppBlocks.push(`<div class="mutedBox"><b>${neverSold.length}</b> articoli mai venduti • <b>${incompleteArts.length}</b> con dati economici essenziali incompleti</div>`);
+  if(neverSold.length) oppBlocks.push(`<div class="small" style="margin-top:10px"><b>Articoli mai venduti</b></div>`+neverSold.slice(0,8).map(x=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(x.a.modello||'Senza nome')}</div><div class="s">${x.a.codice?'Cod. '+esc(x.a.codice):'Codice non disponibile'}</div></div>${commercialSafeOpenButton('article',x.a.id,'Apri')}</div>`).join(''));
+  if(incompleteArts.length) oppBlocks.push(`<div class="small" style="margin-top:10px"><b>Dati articolo da completare</b></div>`+incompleteArts.slice(0,8).map(x=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(x.a.modello||'Senza nome')}</div><div class="s">Controlla costo, prezzo e descrizione</div></div>${commercialSafeOpenButton('article',x.a.id,'Apri')}</div>`).join(''));
   oppEl.innerHTML=oppBlocks.join('');
 
   const bySt={};
@@ -13853,59 +13692,13 @@ document.addEventListener('click',(ev)=>{
     if(!art){ toast('Articolo non trovato'); return; }
     return copyText(buildPostTelegram(art), 'Post copiato', ()=>recordArticlePublication('tg'));
   }
-  if(a==='copyPostFb'){
-    flushViewFbPostSave();
-    const db=loadDB();
-    const art=db.articoli.find(x=>x.id===currentArtId);
-    if(!art){ toast('Articolo non trovato'); return; }
-    const fbEl=document.getElementById('vArtPostFb');
-    const txt=normalizeFacebookPostForArticle(String(fbEl?.value || getArticleFacebookPost(art)).trim(), art);
-    if(fbEl) fbEl.value=txt;
-    if(!txt){ toast('Post Facebook vuoto'); return; }
-    return copyText(txt, 'Post copiato', ()=>recordArticlePublication('fb'));
-  }
-  if(a==='copyPostFbWithPrice'){
-    const db=loadDB();
-    const art=db.articoli.find(x=>x.id===currentArtId);
-    if(!art){ toast('Articolo non trovato'); return; }
-    const txt=getArticleFacebookPost(art);
-    if(!txt){ toast('Post Facebook vuoto'); return; }
-    return copyText(txt, 'Post copiato', ()=>recordArticlePublication('fb'));
-  }
-  if(a==='copyPostIg'){
-    const db=loadDB();
-    const art=db.articoli.find(x=>x.id===currentArtId);
-    if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostInstagram(art), 'Post copiato', ()=>recordArticlePublication('ig'));
-  }
-  if(a==='copyPostTelegramEdit'){
-    const art=readArticleForm?.() || null;
-    if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostTelegram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('tg'); });
-  }
-  if(a==='copyPostFbEdit'){
-    const art=readArticleForm?.() || null;
-    const fbEl=document.getElementById('a_post_fb');
-    const txt=normalizeFacebookPostForArticle(String(fbEl?.value||'').trim(), art);
-    if(fbEl) fbEl.value=txt;
-    if(!txt){ toast('Post Facebook vuoto'); return; }
-    return copyText(txt, 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
-  }
-  if(a==='copyPostFbWithPriceEdit'){
-    const art=readArticleForm?.() || null;
-    if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(getArticleFacebookPost(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('fb'); });
-  }
-  if(a==='copyPostIgEdit'){
-    const art=readArticleForm?.() || null;
-    if(!art || !art.codice){ toast('Articolo non pronto'); return; }
-    return copyText(buildPostInstagram(art), 'Post copiato', ()=>{ if(currentArtId) recordArticlePublication('ig'); });
-  }
-  if(a==='shareArtPhotosFb' || a==='shareArtPhotos') return shareArtAll();
-  if(a==='shareArtPhotosTg' || a==='shareArtTelegram') return shareArtTelegram();
-  if(a==='downloadArtPhotosTg') return downloadCurrentArticlePhotos('tg');
-  if(a==='downloadArtPhotosIg') return downloadCurrentArticlePhotos('ig');
-  if(a==='downloadArtPhotos') return downloadCurrentArticlePhotos('tg');
+  
+  
+  
+  
+  
+  
+  
   if(a==='openSupplierLink'){ const link=String(document.getElementById('vArtSupplierLink')?.value||'').trim(); if(!link){ toast('Nessun link fornitore'); return; } const safe=/^https?:\/\//i.test(link)?link:'https://'+link; window.open(safe,'_blank'); return; }
   if(a==='copyCliShip') return copyTextFrom(document.getElementById('c_ship'));
   if(a==='copyCliAltShip') return copyTextFrom(document.getElementById('c_alt_ship'));
