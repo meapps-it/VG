@@ -1107,7 +1107,7 @@ window.addEventListener('error',e=>{
   </div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Marca</div><div id="vArtBrand" class="t">-</div></div>
-    <div><div class="k">Qualità</div><div id="vArtQual" class="t">-</div></div>
+    <div id="vArtQual" style="display:none"></div>
   </div>
   <div style="margin-top:10px"><div class="k" id="vArtColorsLabel">Colori disponibili</div><div id="vArtColors" class="t">-</div></div>
   <div class="grid2" style="margin-top:10px">
@@ -1125,15 +1125,9 @@ window.addEventListener('error',e=>{
       <div id="vArtMarginBox" class="marginBox" style="margin-top:8px"></div>
     </div>
   </div>
-  <div id="vArtOfficialWrap" style="margin-top:14px;display:none;padding:12px 14px;border:1px solid #cbd5e1;border-radius:16px;background:#f8fafc">
-    <div class="k" style="margin-bottom:4px">Riferimento ufficiale</div>
-    <div><div class="k">Prezzo listino ufficiale</div><div id="vArtOfficialPrice" class="t">-</div></div>
-    <div class="helper" style="margin-top:5px">Dato informativo. Non incide sui calcoli.</div>
-  </div>
-  <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="vArtPostFb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia FB</button><button class="btn smallish" style="background:#16a34a;border-color:#16a34a;color:#fff" type="button" data-action="shareArtAll">🔗 Condividi</button><span id="vArtFbSaveMeta" class="pubMeta" style="display:none"></span><span id="vArtPubMetaFb" class="pubMeta">0 · mai</span></div></div>
-  <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="vArtPost" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPost">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPrice">Copia Telegram senza prezzo</button><button class="btn smallish" style="background:#229ED9;border-color:#229ED9;color:#fff" type="button" data-action="shareArtTelegram">✈️ Condividi su Telegram</button><span id="vArtPubMetaTg" class="pubMeta">0 · mai</span></div></div>
-  <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="vArtPostIg" readonly></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIg">Copia IG</button><button class="btn smallish" type="button" data-action="downloadArtPhotosIg">Scarica foto</button><span id="vArtPubMetaIg" class="pubMeta">0 · mai</span></div></div>
-  <div style="margin-top:10px"><div class="k">Pagina fornitore</div><div class="linkRow"><input id="vArtSupplierLink" readonly placeholder="Nessun link fornitore"/><button class="btn smallish" type="button" data-action="openSupplierLink">Apri link</button></div></div>
+  <div id="vArtOfficialWrap" style="display:none!important"><div id="vArtOfficialPrice"></div></div>
+  <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="vArtPostFb" placeholder="Descrizione dell’articolo"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFb">Copia descrizione</button><span id="vArtFbSaveMeta" class="pubMeta" style="display:none"></span><span id="vArtPubMetaFb" class="pubMeta" style="display:none">0 · mai</span></div></div>
+  <div style="display:none!important"><textarea id="vArtPost"></textarea><textarea id="vArtPostIg"></textarea><span id="vArtPubMetaTg"></span><span id="vArtPubMetaIg"></span><input id="vArtSupplierLink"/></div>
   <div class="actions compact viewBottomSpace">
     <button class="btn smallish" type="button" data-action="duplicateArt">Duplica</button>
     <button class="btn smallish" type="button" data-action="editFromView">Modifica</button>
@@ -1148,7 +1142,7 @@ window.addEventListener('error',e=>{
 
   <div class="formBlock dati inputSoft">
     <div class="blockTitle">Dati articolo</div>
-    <button type="button" class="btn bulkPasteLaunch" data-action="openBulkPasteArticle">📋 Incolla tutti i dati articolo</button>
+    
     <div class="grid2">
       <div><div class="k">Codice articolo</div><input id="a_cod" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_cod_hint" class="date" style="margin-top:6px"></div></div>
       <div>
@@ -1211,25 +1205,17 @@ window.addEventListener('error',e=>{
 
   <div class="formBlock prezzi inputSoft">
     <div class="blockTitle">Prezzo fornitore</div>
-    <div class="grid2">
-      <div><div class="k">Qualità</div><input id="a_qual" list="a_quality_presets" autocomplete="off" autocapitalize="off" spellcheck="false"/><datalist id="a_quality_presets"><option value="Top Quality 🥈"></option><option value="Original Quality 🥇"></option></datalist><div class="helper" style="margin-top:5px">Suggerita dal fornitore e sempre modificabile.</div></div>
-      <div class="inputSupplierStd"><div class="k">Prezzo fornitore standard USD</div><input id="a_usd" inputmode="decimal" autocomplete="off"/></div>
+    <div><div class="k">Prezzo fornitore USD</div><input id="a_usd" inputmode="decimal" autocomplete="off"/></div>
+    <div style="display:none!important">
+      <input id="a_qual"/><datalist id="a_quality_presets"></datalist>
+      <input id="a_usd_promo" inputmode="decimal"/>
+      <input id="a_supplier_promo_on" type="checkbox"/>
+      <input id="a_std_cost_unknown" type="checkbox"/>
+      <div id="a_cost_estimate_box"><input id="a_cost_estimate_value" inputmode="decimal" readonly/></div>
+      <input id="a_supplier_promo_end" type="date"/>
+      <input id="a_supplier_date_unknown" type="checkbox"/>
+      <div id="a_supplier_expiry_warning"></div>
     </div>
-    <div class="grid2" style="margin-top:10px">
-      <div class="inputSupplierPromo"><div class="k">Prezzo fornitore promo USD</div><input id="a_usd_promo" inputmode="decimal" autocomplete="off"/></div>
-      <div style="display:flex;align-items:end"><label class="pill" style="justify-content:flex-start;cursor:pointer;width:100%"><input id="a_supplier_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Promo fornitore attiva</label></div>
-    </div>
-    <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_std_cost_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Costo normale fornitore non conosciuto</label></div>
-    <div id="a_cost_estimate_box" style="display:none;margin-top:10px">
-      <div class="k">Costo stimato EUR</div>
-      <input id="a_cost_estimate_value" inputmode="decimal" readonly/>
-      <div class="helper" style="margin-top:5px">Costo stimato, guadagno non verificato</div>
-    </div>
-    <div style="margin-top:10px">
-      <div class="k">Fine promo fornitore</div><input id="a_supplier_promo_end" type="date" autocomplete="off"/>
-    </div>
-    <div style="margin-top:8px"><label class="pill" style="justify-content:flex-start;cursor:pointer"><input id="a_supplier_date_unknown" type="checkbox" style="width:auto;margin-right:8px"/>Scadenza fornitore non comunicata</label></div>
-    <div id="a_supplier_expiry_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-weight:900">⚠️ Indica la data di scadenza oppure spunta “Scadenza fornitore non comunicata”.</div>
   </div>
 
   <div class="formBlock prezzi inputSoft">
@@ -1256,34 +1242,15 @@ window.addEventListener('error',e=>{
     <div id="a_margin_pct" style="display:none"></div>
   </div>
 
-  <div class="formBlock prezzi inputSoft">
-    <div class="blockTitle">Riferimento ufficiale</div>
-    <div>
-      <div class="k">Prezzo listino ufficiale</div>
-      <input id="a_official_price" inputmode="decimal" autocomplete="off" placeholder="Es. 2500"/>
-      <div class="helper">Dato informativo verificato sul sito ufficiale. Non incide sui calcoli di costo, margine o prezzo consigliato.</div>
-    </div>
-  </div>
+  <input id="a_official_price" type="hidden"/>
 
-  <div class="formBlock prezzi inputSoft">
-    <div class="blockTitle">Promo personale</div>
-    <div class="grid2">
-      <div><div class="k">Promo personale attiva</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_promo_on" type="checkbox" style="width:auto;margin-right:8px"/>Attiva</label></div>
-      <div class="inputPromoPersonal"><div class="k">Prezzo promo mio personale</div><input id="a_promo_price" inputmode="decimal" autocomplete="off"/></div>
-    </div>
-    <div style="margin-top:10px">
-      <div class="k">Fine promo personale</div><input id="a_promo_date" type="date" autocomplete="off"/>
-    </div>
-    <div id="a_promo_summary" class="helper" style="margin-top:8px"></div>
-  </div>
+  <div style="display:none!important"><input id="a_promo_on" type="checkbox"/><input id="a_promo_price"/><input id="a_promo_date" type="date"/><div id="a_promo_summary"></div></div>
 
   <div class="formBlock postblk inputSoft">
-    <div class="blockTitle">Post e contenuti</div>
-    <div style="margin-top:10px"><div class="k">Post Facebook (FB)</div><textarea id="a_post_fb" placeholder="Scrivi qui il post Facebook"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia FB</button></div></div>
-    <div style="margin-top:10px"><div class="k">Post Telegram</div><textarea id="a_post" placeholder="Qui il post Telegram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostTelegramEdit">Copia Telegram</button><button class="btn smallish" type="button" data-action="copyPostTelegramNoPriceEdit">Copia Telegram senza prezzo</button></div></div>
-    <div style="margin-top:10px"><div class="k">Post Instagram (IG)</div><textarea id="a_post_ig" readonly placeholder="Qui il post Instagram (auto)"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostIgEdit">Copia IG</button></div></div>
+    <div class="blockTitle">Descrizione e contenuti</div>
+    <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="a_post_fb" placeholder="Descrizione dell’articolo"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia descrizione</button></div></div>
+    <div style="display:none!important"><textarea id="a_post"></textarea><textarea id="a_post_ig"></textarea><input id="a_forn_link" type="url"/></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
-    <div style="margin-top:10px"><div class="k">Link per aprire pagina fornitore</div><input id="a_forn_link" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 20 foto totali per articolo.</div></div>
     <div id="a_photo_prev" class="thumbs"></div>
     <div style="margin-top:10px"><div class="k">Video articolo</div><input id="a_video" type="file" accept="video/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickArtVideos">Aggiungi video</button><button class="btn danger smallish" type="button" data-action="clearArtVideos">Rimuovi tutti i video</button></div><div id="a_video_status" class="small" style="margin-top:6px">I video vengono caricati su Supabase. Max 3 video per articolo.</div></div>
@@ -1297,7 +1264,7 @@ window.addEventListener('error',e=>{
   </div>
 </div></div>
 
-<div id="mArtBulkPaste" class="modalwrap"><div class="modal">
+<div id="mArtBulkPaste" class="modalwrap" style="display:none!important"><div class="modal">
   <div class="h2">Incolla dati articolo</div>
   <div class="bulkPasteHint">Incolla il blocco preparato da ChatGPT. Descrizione e note vengono ignorate. Se il costo reale manca, puoi importare una stima: resterà sempre indicata come ipotetica.</div>
   <textarea id="a_bulk_paste" class="bulkPasteBox" style="margin-top:10px" placeholder="CODICE: 202357&#10;BRAND:&#10;MODELLO:&#10;CATEGORIA:&#10;FORNITORE:&#10;MATERIALE:&#10;VARIANTE:&#10;TIPO COLORE:&#10;COLORE:&#10;DISPONIBILE IN COLORI:&#10;ABBINAMENTO NUMERO / COLORE:&#10;MISURE:&#10;ALTEZZA CINTURA:&#10;PREZZO FORNITORE USD:&#10;PREZZO FORNITORE PROMO USD:&#10;SCADENZA PROMO FORNITORE:&#10;LINK: https://...&#10;PREZZO UFFICIALE EUR:&#10;COSTO FORNITORE STIMATO USD:&#10;COSTO FORNITORE STIMATO EUR:&#10;STIMA MINIMA EUR:&#10;STIMA MASSIMA EUR:&#10;AFFIDABILITÀ STIMA:&#10;METODO STIMA:&#10;CAMPIONI STIMA:"></textarea>
@@ -16158,7 +16125,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.120', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.121', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
