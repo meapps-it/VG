@@ -12202,7 +12202,8 @@ async function saveArt(){
     hide('mArtEdit');
     if(photoUploadWarning) toast('Articolo salvato. '+photoUploadWarning);
     else toast('Articolo salvato');
-    if(cloudEnabled()){
+    const isSimplexDemoSavedArticle=window.SimplexClientConfig?.status==='demo' && /^demo-art-(00[1-9]|010)$/.test(String(obj.id||''));
+    if(cloudEnabled() && !isSimplexDemoSavedArticle){
       try{
         const saved=await cloudSaveOne('art', obj, db);
         const idx=db.articoli.findIndex(x=>x.id===obj.id || x.codice===obj.codice);
@@ -12212,6 +12213,9 @@ async function saveArt(){
         console.error('Sync cloud articolo fallita', cloudErr);
         toast('Articolo salvato, ma cloud non aggiornato');
       }
+    }else if(isSimplexDemoSavedArticle){
+      saveDBLocal(db);
+      renderArt();
     }
   }catch(err){
     toast('Errore salvataggio articolo'); console.error(err);
