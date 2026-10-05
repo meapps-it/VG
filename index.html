@@ -1121,8 +1121,8 @@ window.addEventListener('error',e=>{
 
   <div class="formBlock postblk inputSoft">
     <div class="blockTitle">Descrizione e contenuti</div>
-    <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="a_post_fb" placeholder="Descrizione dell’articolo"></textarea><div class="actions compact" style="margin-top:8px"><button class="btn primary smallish" type="button" data-action="copyPostFbEdit">Copia descrizione</button></div></div>
-    <div style="display:none!important"><textarea id="a_post"></textarea><textarea id="a_post_ig"></textarea><input id="a_forn_link" type="url"/></div>
+    <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="a_post_fb" placeholder="Descrizione dell’articolo"></textarea><div class="actions compact" style="margin-top:8px"></div></div>
+    <div style="display:none!important"><input id="a_forn_link" type="url"/></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 20 foto totali per articolo.</div></div>
     <div id="a_photo_prev" class="thumbs"></div>
@@ -4203,7 +4203,7 @@ async function shareCurrentArticlePhotos(channel='fb'){
   try{
     const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
     if(shared){
-      recordArticlePublication(channel);
+      
       toast(isTelegramChannel ? 'Condivisione aperta. Se Telegram è installato, scegli Telegram dalla condivisione.' : (files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`));
       return;
     }
@@ -4212,7 +4212,7 @@ async function shareCurrentArticlePhotos(channel='fb'){
       const sheetFile=getCachedArticlePhotoSheetForCtx(ctx) || await ensureCurrentArticlePhotoSheet(ctx, files);
       const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
       if(sheetShared){
-        recordArticlePublication(channel);
+        
         toast(isTelegramChannel ? `Ho aperto la condivisione. Se Telegram è installato, sceglilo dall'elenco app.` : `La condivisione multipla è stata rifiutata dal browser. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
         return;
       }
@@ -4231,7 +4231,7 @@ async function shareCurrentArticlePhotos(channel='fb'){
         const sheetFile=getCachedArticlePhotoSheetForCtx(ctx) || await ensureCurrentArticlePhotoSheet(ctx, files);
         const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
         if(sheetShared){
-          recordArticlePublication(channel);
+          
           toast(isTelegramChannel ? `Ho aperto la condivisione. Se Telegram è installato, sceglilo dall'elenco app.` : `La condivisione multipla non è passata. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
           return;
         }
@@ -4356,7 +4356,6 @@ async function downloadCurrentArticlePhotos(channel='tg'){
     const base=String(ctx.baseName||'articolo').replace(/[^a-z0-9_\-]+/gi,'_').replace(/^_+|_+$/g,'') || 'articolo';
     if(files.length===1){
       triggerBlobDownload(files[0], files[0].name || `${base}.jpg`);
-      if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
       toast('Foto scaricata.');
       return;
     }
@@ -4367,7 +4366,6 @@ async function downloadCurrentArticlePhotos(channel='tg'){
       return;
     }
     triggerBlobDownload(zipFile, zipFile.name || `${base}_foto.zip`);
-    if(typeof recordArticlePublication==='function') recordArticlePublication(channel);
     toast(`ZIP scaricato con ${files.length} foto.`);
   }catch(err){
     console.warn('Download ZIP foto articolo fallito', err);
@@ -13686,12 +13684,6 @@ document.addEventListener('click',(ev)=>{
     toast('Prezzo consigliato ripristinato');
     return;
   }
-  if(a==='copyPost'){
-    const db=loadDB();
-    const art=db.articoli.find(x=>x.id===currentArtId);
-    if(!art){ toast('Articolo non trovato'); return; }
-    return copyText(buildPostTelegram(art), 'Post copiato', ()=>recordArticlePublication('tg'));
-  }
   
   
   
@@ -13738,7 +13730,6 @@ document.addEventListener('click',(ev)=>{
   if(a==='clearPendingArtPhotos'){ resetPendingArtPhotoFiles(); renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Nuove foto annullate'); return; }
   if(a==='pickArtVideos'){ document.getElementById('a_video')?.click(); return; }
   if(a==='clearArtVideos'){ currentArtExistingVideoIds=[]; currentArtPendingVideos=[]; renderArtVideoPreview(); toast('Video rimossi'); return; }
-  if(a==='shareArtAll'){ shareArtAll(); return; }
   if(a==='openBulkPasteArticle') return openBulkPasteArticle();
   if(a==='readBulkPasteClipboard') return readBulkPasteClipboard();
   if(a==='applyBulkPasteArticle') return applyBulkPasteArticle();
