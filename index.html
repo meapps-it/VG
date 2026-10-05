@@ -16177,6 +16177,122 @@ function toggleModule(name,on){
  if(name==='ordini')document.querySelectorAll('[data-action="newOrd"],[data-action="openCurrentOrders"]').forEach(el=>el.classList.toggle('simplex-module-disabled',!on));
  if(name==='clienti')document.querySelectorAll('[data-action="newCli"]').forEach(el=>el.classList.toggle('simplex-module-disabled',!on));
 }
+function seedSimplexDemoData(){
+ try{
+  const db=loadDB();
+  if(!db || typeof db!=='object') return;
+
+  const now=Date.now();
+  const demoArticles=[
+   {id:'demo-art-001',codice:'ALI-001',brand:'Barilla',modello:'Spaghetti n.5 500 g',categoria:'Pasta e riso',descrizione:'Pasta di semola di grano duro, confezione da 500 g.',prezzoVendita:1.49,costoEur:0.92},
+   {id:'demo-art-002',codice:'ALI-002',brand:'Mutti',modello:'Passata di pomodoro 700 g',categoria:'Conserve e sughi',descrizione:'Passata di pomodoro in bottiglia da 700 g.',prezzoVendita:1.89,costoEur:1.12},
+   {id:'demo-art-003',codice:'ALI-003',brand:'Lavazza',modello:'Qualità Rossa 250 g',categoria:'Caffè e colazione',descrizione:'Caffè macinato confezione da 250 g.',prezzoVendita:4.59,costoEur:3.15},
+   {id:'demo-art-004',codice:'ALI-004',brand:'Mulino Bianco',modello:'Biscotti Tarallucci 350 g',categoria:'Caffè e colazione',descrizione:'Biscotti frollini da colazione, confezione da 350 g.',prezzoVendita:2.79,costoEur:1.74},
+   {id:'demo-art-005',codice:'ALI-005',brand:'Parmalat',modello:'Latte UHT intero 1 L',categoria:'Latte e derivati',descrizione:'Latte intero UHT a lunga conservazione, bottiglia da 1 litro.',prezzoVendita:1.69,costoEur:1.08},
+   {id:'demo-art-006',codice:'ALI-006',brand:'Rio Mare',modello:'Tonno all’olio di oliva 3x80 g',categoria:'Conserve e sughi',descrizione:'Tonno all’olio di oliva in confezione multipla 3 x 80 g.',prezzoVendita:5.49,costoEur:3.72},
+   {id:'demo-art-007',codice:'ALI-007',brand:'Coca-Cola',modello:'Coca-Cola 1,5 L',categoria:'Bevande',descrizione:'Bibita gassata in bottiglia da 1,5 litri.',prezzoVendita:2.19,costoEur:1.38},
+   {id:'demo-art-008',codice:'ALI-008',brand:'San Benedetto',modello:'Acqua naturale 6x1,5 L',categoria:'Bevande',descrizione:'Confezione da 6 bottiglie di acqua minerale naturale da 1,5 litri.',prezzoVendita:2.49,costoEur:1.31},
+   {id:'demo-art-009',codice:'ALI-009',brand:'Scottex',modello:'Carta casa 2 rotoli',categoria:'Casa e pulizia',descrizione:'Carta assorbente da cucina, confezione da 2 rotoli.',prezzoVendita:3.29,costoEur:2.02},
+   {id:'demo-art-010',codice:'ALI-010',brand:'Dixan',modello:'Detersivo lavatrice 21 lavaggi',categoria:'Casa e pulizia',descrizione:'Detersivo liquido per lavatrice, formato da 21 lavaggi.',prezzoVendita:6.99,costoEur:4.38}
+  ].map((a,i)=>({
+   ...a,
+   createdAt:new Date(Date.now()-(i+1)*86400000).toISOString(),
+   qualita:'',
+   fornitore:'Fornitore Demo',
+   fornitoreManuale:true,
+   qualitaManuale:false,
+   materiale:'',
+   variante:'',
+   colore:'',
+   nonDisponibile:false,
+   disponibile:true,
+   colorMode:'single',
+   colorType:'single',
+   colorCount:0,
+   colorLabels:[],
+   colorData:null,
+   misura:'',
+   altezzaCintura:'',
+   hCintura:'',
+   costoUsd:0,
+   costoUsdPromo:0,
+   costoEurPromo:0,
+   costoStimatoAttivo:false,
+   costoIpotetico:false,
+   costoEurStimato:0,
+   prezzoVenditaStimato:0,
+   prezzoVenditaStimatoOriginale:0,
+   prezzoListinoUfficiale:0,
+   promoAttiva:false,
+   prezzoPromo:0,
+   scadenzaPromo:'',
+   scadenzaPromoPersonale:'',
+   dataInizioPromoPersonale:'',
+   costoNormaleSconosciuto:false,
+   promoFornitoreAttiva:false,
+   dataInizioPromoFornitore:'',
+   scadenzaPromoFornitore:'',
+   promoFornitoreDataSconosciuta:false,
+   dataInizioPromo:'',
+   postFb:'',
+   postIg:'',
+   post:'',
+   note:'Articolo dimostrativo',
+   foto:[],
+   photoIds:[],
+   videoIds:[],
+   pubblicazioniCanali:{fb:[],tg:[],wa:[],ig:[]},
+   _ts:now-i
+  }));
+
+  const demoClients=[
+   {id:'demo-cli-001',nome:'Mario Rossi',telefono:'333 100 2001',indirizzo:'Via Roma 12',cap:'10121',citta:'Torino',provincia:'TO'},
+   {id:'demo-cli-002',nome:'Laura Bianchi',telefono:'333 100 2002',indirizzo:'Corso Nizza 45',cap:'12100',citta:'Cuneo',provincia:'CN'},
+   {id:'demo-cli-003',nome:'Giuseppe Romano',telefono:'333 100 2003',indirizzo:'Via Dante 8',cap:'20121',citta:'Milano',provincia:'MI'},
+   {id:'demo-cli-004',nome:'Elena Gallo',telefono:'333 100 2004',indirizzo:'Via Garibaldi 31',cap:'16124',citta:'Genova',provincia:'GE'},
+   {id:'demo-cli-005',nome:'Paolo Ferrero',telefono:'333 100 2005',indirizzo:'Via Po 19',cap:'10124',citta:'Torino',provincia:'TO'},
+   {id:'demo-cli-006',nome:'Sara Conti',telefono:'333 100 2006',indirizzo:'Via Mazzini 27',cap:'40121',citta:'Bologna',provincia:'BO'},
+   {id:'demo-cli-007',nome:'Andrea Rinaldi',telefono:'333 100 2007',indirizzo:'Corso Italia 14',cap:'50123',citta:'Firenze',provincia:'FI'},
+   {id:'demo-cli-008',nome:'Francesca Marino',telefono:'333 100 2008',indirizzo:'Via Libertà 52',cap:'90144',citta:'Palermo',provincia:'PA'},
+   {id:'demo-cli-009',nome:'Luca Moretti',telefono:'333 100 2009',indirizzo:'Via Toledo 90',cap:'80134',citta:'Napoli',provincia:'NA'},
+   {id:'demo-cli-010',nome:'Chiara Costa',telefono:'333 100 2010',indirizzo:'Via XX Settembre 6',cap:'00187',citta:'Roma',provincia:'RM'}
+  ].map((x,i)=>({
+   ...x,
+   cognome:'',
+   email:'',
+   facebookUrl:'',
+   paese:'Italia',
+   indirizzoAlternativoAttivo:false,
+   nomeAlternativo:'',
+   cognomeAlternativo:'',
+   indirizzoAlternativo:'',
+   capAlternativo:'',
+   cittaAlternativa:'',
+   provinciaAlternativa:'',
+   paeseAlternativo:'Italia',
+   note:'Cliente dimostrativo',
+   _ts:now-i
+  }));
+
+  const existingArticleCodes=new Set((db.articoli||[]).map(a=>String(a?.codice||'').trim().toLowerCase()));
+  const existingArticleIds=new Set((db.articoli||[]).map(a=>String(a?.id||'')));
+  const existingClientIds=new Set((db.clienti||[]).map(x=>String(x?.id||'')));
+
+  for(const art of demoArticles){
+   if(!existingArticleIds.has(art.id) && !existingArticleCodes.has(String(art.codice).toLowerCase())) db.articoli.push(art);
+  }
+  for(const cli of demoClients){
+   if(!existingClientIds.has(cli.id)) db.clienti.push(cli);
+  }
+
+  db.categorie=[...new Set([...(db.categorie||[]),...demoArticles.map(a=>a.categoria)])].sort((a,b)=>String(a).localeCompare(String(b),'it',{sensitivity:'base'}));
+  db.brands=[...new Set([...(db.brands||[]),...demoArticles.map(a=>a.brand)])].sort((a,b)=>String(a).localeCompare(String(b),'it',{sensitivity:'base'}));
+  saveDB(db);
+ }catch(err){
+  console.warn('Caricamento dati demo non riuscito',err);
+ }
+}
+
 function apply(c){
  const modules=c.modules||{};
  for(const name of Object.keys(MAP))if(Object.prototype.hasOwnProperty.call(modules,name))toggleModule(name,modules[name]===true);
@@ -16194,6 +16310,7 @@ async function activate(key){
   try{localStorage.setItem(STORE,key)}catch{}
   apply(c);hide();
   if(c.status==='demo'){
+    seedSimplexDemoData();
     await startAuthenticatedApp();
   }
   if(c.status==='active'){
