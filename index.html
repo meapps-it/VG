@@ -793,9 +793,7 @@ window.addEventListener('error',e=>{
 
     <div class="card" style="margin-top:12px">
       <div class="h2">Strategia canali e sicurezza account</div>
-      <div class="small">Facebook e Instagram: revisione prudenziale dei contenuti pubblici. Telegram: canale commerciale principale con dettagli e prezzo.</div>
-      <div id="finChannelStrategy" class="list" style="margin-top:10px"></div>
-    </div>
+      <div class="small">Facebook e Instagram: revisione prudenziale dei contenuti pubblici. Telegram: canale commerciale principale con dettagli e prezzo.</div></div>
     <div class="card">
       <div class="h2">Riepilogo per stato ordine</div>
       <div id="finByStatus" class="list"></div>
@@ -10379,56 +10377,6 @@ function commercialPublicChannelAudit(article, channel){
   const medium=flags.filter(x=>x.level==='medium').length;
   return {text,flags,status:high?'high':(medium?'review':'ready')};
 }
-function commercialTelegramReadiness(article){
-  const missing=[];
-  if(!String(article?.codice||'').trim()) missing.push('codice');
-  if(!(Number(currentPrice(article))>0)) missing.push('prezzo');
-  if(!String(article?.modello||'').trim()) missing.push('modello');
-  const photoCount=(Array.isArray(article?.photoIds)?article.photoIds.length:0)+(Array.isArray(article?.foto)?article.foto.length:0);
-  if(!photoCount) missing.push('foto');
-  const post=String(buildPostTelegram(article,true)||'').trim();
-  if(!post) missing.push('testo Telegram');
-  return {ready:missing.length===0,missing,post,photoCount};
-}
-function commercialChannelDates(article, channel){
-  const log=normalizeArticlePublishLog(article?.pubblicazioniCanali||article?.publishStats||article?.socialPub||{});
-  return Array.isArray(log?.[channel])?log[channel]:[];
-}
-function commercialCountRecentDates(dates,days){
-  const today=parseIsoDay(todayStr());
-  if(!today) return 0;
-  return (dates||[]).filter(v=>{const d=parseIsoDay(v); if(!d)return false; const diff=Math.floor((today-d)/86400000); return diff>=0&&diff<days;}).length;
-}
-function renderCommercialChannelStrategy(db, articles){
-  const el=document.getElementById('finChannelStrategy');
-  if(!el) return;
-  const available=(articles||[]).filter(a=>!a?.nonDisponibile && a?.disponibile!==false);
-  const publicAudits=[];
-  available.forEach(a=>['fb','ig'].forEach(ch=>publicAudits.push({a,ch,audit:commercialPublicChannelAudit(a,ch)})));
-  const high=publicAudits.filter(x=>x.audit.status==='high');
-  const review=publicAudits.filter(x=>x.audit.status==='review');
-  const ready=publicAudits.filter(x=>x.audit.status==='ready');
-  const tgQueue=available.map(a=>{
-    const readiness=commercialTelegramReadiness(a);
-    const dates=commercialChannelDates(a,'tg');
-    const last=dates.length?dates[dates.length-1]:'';
-    const days=last?commercialDaysSince(last):null;
-    return {a,readiness,last,days,priority:!last?3:(days>=30?2:(days>=14?1:0))};
-  }).filter(x=>x.priority>0).sort((a,b)=>b.priority-a.priority||(b.days||999)-(a.days||999)).slice(0,12);
-  const publicProblems=high.concat(review).sort((a,b)=>(a.audit.status==='high'?-1:1)-(b.audit.status==='high'?-1:1)).slice(0,12);
-  const channelCounts={fb:{d7:0,d30:0,total:0},ig:{d7:0,d30:0,total:0},tg:{d7:0,d30:0,total:0}};
-  available.forEach(a=>Object.keys(channelCounts).forEach(ch=>{
-    const dates=commercialChannelDates(a,ch); channelCounts[ch].total+=dates.length;
-    channelCounts[ch].d7+=commercialCountRecentDates(dates,7); channelCounts[ch].d30+=commercialCountRecentDates(dates,30);
-  }));
-  const summary=`<div class="mutedBox"><b>Impostazione consigliata:</b> Telegram per contenuti commerciali completi. Facebook e Instagram solo dopo revisione del testo e nel rispetto delle regole delle piattaforme. Nessun controllo può garantire l'assenza di sospensioni.</div>`+
-    `<div class="smallGrid" style="margin-top:10px"><div class="mutedBox"><div class="k">Revisione pubblica urgente</div><div class="v">${high.length}</div><div class="small">Testi FB/IG con elementi delicati</div></div><div class="mutedBox"><div class="k">Da controllare</div><div class="v">${review.length}</div><div class="small">Testi incompleti o commerciali</div></div><div class="mutedBox"><div class="k">Senza rilievi automatici</div><div class="v">${ready.length}</div><div class="small">Non equivale ad approvazione piattaforma</div></div></div>`;
-  const cadence=`<div class="small" style="margin-top:12px"><b>Attività recente per canale</b></div>`+Object.entries(channelCounts).map(([ch,v])=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${ch==='fb'?'Facebook':ch==='ig'?'Instagram':'Telegram'}</div><div class="s">${v.d7} negli ultimi 7 giorni • ${v.d30} negli ultimi 30 • ${v.total} totali</div></div><div class="priceHot">${ch==='tg'?'Principale':'Prudenza'}</div></div>`).join('');
-  const tg=`<div class="small" style="margin-top:12px"><b>Coda Telegram prioritaria</b></div>`+(tgQueue.length?tgQueue.map(x=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${esc(x.a.modello||'Senza nome')}</div><div class="s">${x.last?'Ultima pubblicazione '+esc(x.last)+' • '+x.days+' giorni fa':'Mai pubblicato'}${x.readiness.ready?' • pronto':' • manca: '+esc(x.readiness.missing.join(', '))}</div></div>${commercialSafeOpenButton('article',x.a.id,'Apri')}</div>`).join(''):`<div class="small">Nessun articolo da riproporre su Telegram.</div>`);
-  const pub=`<div class="small" style="margin-top:12px"><b>Contenuti Facebook/Instagram da rivedere</b></div>`+(publicProblems.length?publicProblems.map(x=>`<div class="row" style="grid-template-columns:1fr auto"><div><div class="t">${x.ch==='fb'?'Facebook':'Instagram'} • ${esc(x.a.modello||'Senza nome')}</div><div class="s">${esc(x.audit.flags.map(f=>f.label).join(' • '))}</div></div>${commercialSafeOpenButton('article',x.a.id,'Controlla')}</div>`).join(''):`<div class="small">Nessun rilievo automatico nei testi pubblici.</div>`);
-  el.innerHTML=summary+cadence+tg+pub;
-}
-
 function renderFinanze(){
   const db=loadDB();
   const period=document.getElementById('finPeriod')?.value||'all';
@@ -10543,7 +10491,6 @@ function renderFinanze(){
     const incomplete=!(Number(a.prezzoVendita)>0)||!((Number(a.costoEur)>0)||(Number(a.costoUsd)>0))||!String(a.modello||'').trim();
     return {a,pub,sold,incomplete};
   });
-  renderCommercialChannelStrategy(db, db.articoli||[]);
   const neverSold=articles.filter(x=>!x.sold).length;
   const publishedNeverSold=articles.filter(x=>!x.sold&&x.pub.count>=2).sort((a,b)=>b.pub.count-a.pub.count).slice(0,8);
   const stale=articles.filter(x=>!x.a.nonDisponibile&&x.pub.days!==null&&x.pub.days>=45).sort((a,b)=>b.pub.days-a.pub.days).slice(0,8);
