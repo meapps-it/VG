@@ -690,7 +690,7 @@ window.addEventListener('error',e=>{
     <div class="card artToolbarCard">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
       <div style="margin-top:10px">
-        <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, marca, modello, categoria, qualità, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
+        <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, marca, modello, categoria, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
         <div style="display:none!important">
           <input id="visualSearchFile" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif"/>
           <div id="visualSearchStatus"></div>
@@ -699,7 +699,7 @@ window.addEventListener('error',e=>{
       <div class="grid2 artFilterGrid" style="margin-top:10px">
         <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
         <div><select id="qArtBrand"><option value="">Tutte le marche</option></select></div>
-        <div><select id="qArtQuality"><option value="">Tutte le qualità</option></select></div>
+        
       </div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn" type="button" data-action="clearArtFilters">Mostra prodotti</button>
@@ -914,6 +914,25 @@ window.addEventListener('error',e=>{
       </div>
 
       <div class="card" style="margin-top:12px">
+        <div class="h2">Prezzi, ricarico e IVA</div>
+        <div class="small">Scegli una sola regola di ricarico. Le vecchie regole automatiche per qualità e margine non vengono più usate.</div>
+        <div class="grid2" style="margin-top:10px">
+          <div><div class="k">Tipo ricarico</div><select id="pricingMarkupMode">
+            <option value="percent">Percentuale sul costo</option>
+            <option value="fixed">Maggiorazione fissa €</option>
+            <option value="manual">Prezzo manuale</option>
+          </select></div>
+          <div><div class="k">Valore ricarico</div><input id="pricingMarkupValue" inputmode="decimal" placeholder="Es. 30"/></div>
+        </div>
+        <div class="grid2" style="margin-top:10px">
+          <div><div class="k">IVA predefinita %</div><input id="pricingVatDefault" inputmode="decimal" placeholder="22"/></div>
+          <div><div class="k">IVA per categoria</div><textarea id="pricingVatCategories" rows="4" placeholder="Alimentari = 10&#10;Bevande = 22&#10;Libri = 4"></textarea></div>
+        </div>
+        <div class="small" style="margin-top:8px">Nella scheda articolo puoi scrivere una percentuale IVA manuale. Se la lasci vuota viene usata prima la regola della categoria, poi l'IVA predefinita.</div>
+        <div class="actions" style="margin-top:10px"><button class="btn primary" type="button" data-action="savePricingSettings">Salva regole prezzi</button></div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
         <div class="h2">Categorie articoli</div>
         <div class="small">Le inserisci una volta qui e poi le scegli dal menu negli articoli.</div>
         <div class="grid2" style="margin-top:10px">
@@ -1114,14 +1133,14 @@ window.addEventListener('error',e=>{
     <div><div class="k">Data inserimento</div><div id="vArtCreatedAt" class="t">-</div></div>
   </div>
   <div class="hr"></div>
-  <div class="h3">Prezzi e margine</div>
+  <div class="h3">Prezzi</div>
   <div class="grid2" style="margin-top:10px">
     <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
     <div>
       <div class="k">Prezzo in uso</div>
       <div id="vArtPrezzoUse" class="priceHot">-</div>
       <div id="vArtPromoPill"></div>
-      <div id="vArtMarginBox" class="marginBox" style="margin-top:8px"></div>
+      <div id="vArtMarginBox" style="display:none!important"></div>
     </div>
   </div>
   <div id="vArtOfficialWrap" style="display:none!important"><div id="vArtOfficialPrice"></div></div>
@@ -1218,27 +1237,24 @@ window.addEventListener('error',e=>{
   </div>
 
   <div class="formBlock prezzi inputSoft">
-    <div class="blockTitle">Prezzo di vendita e margine</div>
+    <div class="blockTitle">Prezzo di vendita</div>
     <div class="grid2">
       <div><div class="k">Costo reale</div><input id="a_eur" readonly/></div>
-      <div><div class="k">Guadagno minimo consigliato</div><input id="a_profit_min" readonly/></div>
+      <div><div class="k">IVA %</div><input id="a_iva" inputmode="decimal" autocomplete="off" placeholder="Da categoria"/></div>
     </div>
     <div class="grid2" style="margin-top:10px">
-      <div><div class="k">Prezzo consigliato</div><input id="a_recommended" readonly/></div>
-      <div><div id="a_sell_label" class="k">Prezzo scelto da te</div><input id="a_sell" inputmode="decimal" autocomplete="off"/><div id="a_sell_hint" class="helper" style="display:none;margin-top:5px"></div></div>
+      <div><div class="k">Prezzo calcolato</div><input id="a_recommended" readonly/></div>
+      <div><div id="a_sell_label" class="k">Prezzo di vendita</div><input id="a_sell" inputmode="decimal" autocomplete="off"/><div id="a_sell_hint" class="helper" style="margin-top:5px"></div></div>
     </div>
-    <div style="margin-top:10px">
-      <div class="k">Guadagno effettivo</div><input id="a_margin" readonly/>
-    </div>
-    <div id="a_min_price_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #f59e0b;border-radius:12px;background:#fffbeb;color:#92400e;font-weight:900"></div>
-    <div id="a_high_cost_warning" class="helper" style="display:none;margin-top:8px;padding:10px 12px;border:1px solid #dc2626;border-radius:12px;background:#fef2f2;color:#991b1b;font-weight:900"></div>
-
-    <!-- Resta solo come valore tecnico per il calcolo interno. -->
+    <input id="a_profit_min" type="hidden"/>
+    <input id="a_margin" type="hidden"/>
     <input id="a_theoretical" type="hidden"/>
     <input id="a_high_cost_rule" type="hidden"/>
     <input id="a_final" type="hidden"/>
     <input id="a_promo_type" type="hidden"/>
     <div id="a_margin_pct" style="display:none"></div>
+    <div id="a_min_price_warning" style="display:none!important"></div>
+    <div id="a_high_cost_warning" style="display:none!important"></div>
   </div>
 
   <input id="a_official_price" type="hidden"/>
@@ -1770,6 +1786,7 @@ function normalizeDBShape(o){
     costoEur:firstFiniteNumber(x?.costoEur, x?.costoEUR, x?.prezzo_acquisto, x?.costo, x?.costo_eur, 0),
     costoEurPromo:firstFiniteNumber(x?.costoEurPromo, x?.costoEURPromo, x?.promoCostoEur, 0),
     prezzoVendita:firstFiniteNumber(x?.prezzoVendita, x?.prezzo_vendita, x?.prezzo, x?.prezzo_vendita_iva, 0),
+    ivaPercent:(x?.ivaPercent===null||x?.ivaPercent===undefined||x?.ivaPercent==='') ? '' : Math.max(0,Math.min(100,Number(x.ivaPercent)||0)),
     prezzoListinoUfficiale:firstFiniteNumber(x?.prezzoListinoUfficiale, x?.prezzoUfficiale, x?.prezzo_listino_ufficiale, 0),
     linkUfficiale:normalizeSpaceText(x?.linkUfficiale||x?.linkOfficiale||x?.link_ufficiale||''),
     promoAttiva:(typeof x?.promoAttiva==='boolean') ? x.promoAttiva : !!x?.promo_on,
@@ -9837,8 +9854,6 @@ function articleSearchHay(a){
     a?.colore,
     a?.materiale||a?.taglia||'',
     a?.variante,
-    quality,
-    quality ? `qualità ${quality}` : ''
   ].filter(Boolean).join(' ').toLowerCase();
 }
 function renderCategoryOverview(items,{promoOnly=false,brandFilter='',qualityFilter=''}={}){
@@ -10142,7 +10157,7 @@ function renderArt(){
   const q=document.getElementById('qArt').value.trim().toLowerCase();
   const catFilter=String(document.getElementById('qArtCat')?.value||'').trim();
   const brandFilter=String(document.getElementById('qArtBrand')?.value||'').trim();
-  const qualityFilter=String(document.getElementById('qArtQuality')?.value||'').trim();
+  const qualityFilter='';
   const promoOnly=artBrowseState.level==='promo';
   const noPhotoOnly=artBrowseState.level==='noPhoto';
   const archivedItems=(db.articoli||[]).filter(a=>isArticleUnavailable(a)).sort((a,b)=>Number(b?._ts||0)-Number(a?._ts||0));
@@ -10160,7 +10175,7 @@ function renderArt(){
   const el=document.getElementById('listArt');
   renderArtBreadcrumbs();
   renderArtStats(items);
-  const showOverview=artBrowseState.level==='categorie' && !promoOnly && !noPhotoOnly && !q && !catFilter && !brandFilter && !qualityFilter;
+  const showOverview=false;
   if(showOverview){
     renderCategoryOverview(items,{promoOnly,brandFilter,qualityFilter});
     const overviewList=document.getElementById('listArt');
@@ -10171,9 +10186,7 @@ function renderArt(){
     const unavailable=articleAvailabilityBadge(a);
     const blocked=isArticleUnavailable(a);
     const photoLine=articlePhotoCountText(a);
-    const qualityRaw=articleQualityLabel(a);
-    const qualityLine=isOriginalQualityArticle(a) ? 'QUALITÀ ORIGINALE' : qualityRaw;
-    const metaLine=[qualityLine, photoLine].filter(Boolean).join(' • ');
+    const metaLine=[photoLine].filter(Boolean).join(' • ');
     const notePreview=normalizeSpaceText(a.note||'');
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
     const promoActive=promoValid(a);
@@ -10856,7 +10869,97 @@ function renderFinanze(){
   renderStorageInfo();
 }
 
-function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); renderFinanze(); renderCategorySettings(); renderBrandSettings(); refreshArticleCategorySelects(); refreshArticleBrandSelects(); }
+const PRICING_SETTINGS_KEY='vg_pricing_settings_v2';
+function defaultPricingSettings(){ return {mode:'percent',value:30,vatDefault:22,vatByCategory:{}}; }
+function loadPricingSettings(){
+ try{
+  const raw=JSON.parse(localStorage.getItem(PRICING_SETTINGS_KEY)||'{}');
+  const d=defaultPricingSettings();
+  const mode=['percent','fixed','manual'].includes(raw?.mode)?raw.mode:d.mode;
+  const value=Math.max(0,Number(raw?.value??d.value)||0);
+  const vatDefault=Math.max(0,Math.min(100,Number(raw?.vatDefault??d.vatDefault)||0));
+  const vatByCategory=(raw?.vatByCategory&&typeof raw.vatByCategory==='object')?raw.vatByCategory:{};
+  return {mode,value,vatDefault,vatByCategory};
+ }catch(_e){ return defaultPricingSettings(); }
+}
+function parseVatCategoryRules(text=''){
+ const out={};
+ String(text||'').split(/\r?\n/).forEach(line=>{
+  const m=line.match(/^\s*(.+?)\s*=\s*([0-9]+(?:[.,][0-9]+)?)\s*%?\s*$/);
+  if(!m)return;
+  const key=normalizeTextKey(m[1]);
+  const value=Math.max(0,Math.min(100,Number(m[2].replace(',','.'))||0));
+  if(key) out[key]=value;
+ });
+ return out;
+}
+function vatRulesToText(map={}){
+ return Object.entries(map||{}).map(([k,v])=>k+' = '+String(v).replace('.',',')).join('\n');
+}
+function fillPricingSettings(){
+ const p=loadPricingSettings();
+ const mode=document.getElementById('pricingMarkupMode');
+ const value=document.getElementById('pricingMarkupValue');
+ const vat=document.getElementById('pricingVatDefault');
+ const cats=document.getElementById('pricingVatCategories');
+ if(mode) mode.value=p.mode;
+ if(value){ value.value=p.value; value.disabled=p.mode==='manual'; }
+ if(vat) vat.value=p.vatDefault;
+ if(cats) cats.value=vatRulesToText(p.vatByCategory);
+}
+function savePricingSettings(){
+ const mode=document.getElementById('pricingMarkupMode')?.value||'percent';
+ const value=Math.max(0,Number(String(document.getElementById('pricingMarkupValue')?.value||'0').replace(',','.'))||0);
+ const vatDefault=Math.max(0,Math.min(100,Number(String(document.getElementById('pricingVatDefault')?.value||'22').replace(',','.'))||0));
+ const vatByCategory=parseVatCategoryRules(document.getElementById('pricingVatCategories')?.value||'');
+ localStorage.setItem(PRICING_SETTINGS_KEY,JSON.stringify({mode,value,vatDefault,vatByCategory}));
+ fillPricingSettings();
+ try{ renderArtAutoFields(); }catch(_e){}
+ toast('Regole prezzi salvate');
+}
+function resolveArticleVatPercent(article={}, formMode=false){
+ const direct=formMode ? String(article?.ivaPercent??'').trim() : article?.ivaPercent;
+ if(direct!=='' && direct!==null && direct!==undefined && Number.isFinite(Number(String(direct).replace(',','.')))){
+  return Math.max(0,Math.min(100,Number(String(direct).replace(',','.'))));
+ }
+ const p=loadPricingSettings();
+ const key=normalizeTextKey(article?.categoria||'');
+ if(key && Object.prototype.hasOwnProperty.call(p.vatByCategory,key)) return Number(p.vatByCategory[key])||0;
+ return Number(p.vatDefault)||0;
+}
+function recommendedProfitByQuality(costo,_qual){
+ const p=loadPricingSettings(), cost=Math.max(0,Number(costo)||0);
+ if(!(cost>0)) return 0;
+ if(p.mode==='percent') return cost*(p.value/100);
+ if(p.mode==='fixed') return p.value;
+ return 0;
+}
+function calcSellFromEurCost(cost,_qual,articleOrCategory=null){
+ const costo=Math.max(0,Number(cost||0));
+ if(!(costo>0)) return {costo:0,sell:0,marg:0,theoretical:0,minPrice:0,buffer:0,highCost:false};
+ const p=loadPricingSettings();
+ if(p.mode==='manual') return {costo,sell:0,marg:0,theoretical:0,minPrice:0,buffer:0,highCost:false};
+ const ricarico=p.mode==='percent' ? costo*(p.value/100) : p.value;
+ const netto=costo+ricarico;
+ const vat=resolveArticleVatPercent(typeof articleOrCategory==='object'&&articleOrCategory?articleOrCategory:{categoria:String(articleOrCategory||'')});
+ const sell=Math.round(netto*(1+vat/100)*100)/100;
+ return {costo,sell,marg:ricarico,theoretical:sell,minPrice:0,buffer:0,highCost:false,iva:vat};
+}
+function calcFromUsd(usd,_qual,articleOrCategory=null){
+ const costo=(Number(usd||0)*0.90)+5;
+ if(!isFinite(costo)||!(costo>0)) return {costo:0,sell:0,marg:0,theoretical:0,highCost:false};
+ return calcSellFromEurCost(costo,'',articleOrCategory);
+}
+function articleQualityLabel(){ return ''; }
+function getEffectiveArticleQuality(){ return ''; }
+function currentArticleFormQuality(){ return ''; }
+function qualityPricingKey(){ return ''; }
+function articleMarginInfo(){ return null; }
+function articleMarginInfoHtml(a){ return articleCostInfoHtml(a); }
+function articleMinimumPriceWarningHtml(){ return ''; }
+function articleUnderMarginListBadgeHtml(){ return ''; }
+
+function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); renderFinanze(); renderCategorySettings(); renderBrandSettings(); refreshArticleCategorySelects(); refreshArticleBrandSelects(); fillPricingSettings(); }
 
 /* ====== ART view/edit ====== */
 let currentArtId=null;
@@ -11271,7 +11374,7 @@ async function openArtEdit(id){
   const set=(k,v)=>document.getElementById(k).value=(v===0?0:(v||''));
 
   if(!a){
-    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_official_price','a_high_cost_rule','a_profit_min','a_theoretical','a_recommended','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_promo_end','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_sell','a_final','a_margin','a_margin_pct']
+    ['a_cod','a_mod','a_desc','a_forn','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_mis','a_belt_h','a_usd','a_usd_promo','a_official_price','a_high_cost_rule','a_profit_min','a_theoretical','a_recommended','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_promo_end','a_note','a_post','a_post_fb','a_post_ig','a_qual','a_eur','a_iva','a_sell','a_final','a_margin','a_margin_pct']
     .forEach(fid => document.getElementById(fid).value='');
     document.getElementById('a_color_mode').value='single';
     document.getElementById('a_color_count').value='';
@@ -11309,7 +11412,7 @@ async function openArtEdit(id){
   }
   set('a_official_price', a?.prezzoListinoUfficiale||'');
   set('a_taglia', a?.materiale||a?.taglia); set('a_variante', a?.variante); set('a_colore', a?.colore); set('a_color_mode', getArticleColorMode(a)); set('a_color_count', getArticleColorCount(a)||''); set('a_color_labels', formatColorLabelsInput(getArticleColorLabels(a), getArticleColorCount(a))); document.getElementById('a_unavailable').checked=isArticleUnavailable(a); updateArticleColorModeUI();
-  set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||'');
+  set('a_mis', a?.misura); set('a_belt_h', a?.altezzaCintura||a?.hCintura||''); set('a_usd', a?.costoUsd||''); set('a_usd_promo', a?.costoUsdPromo||''); set('a_iva', Number.isFinite(Number(a?.ivaPercent)) ? a.ivaPercent : '');
   currentArticleCostEstimate=storedArticleCostEstimate(a);
   currentArtChosenPrice=Number(a?.prezzoVendita||0);
   currentArtPriceManuallySet=currentArtChosenPrice>0;
@@ -11601,8 +11704,8 @@ function renderArtAutoFields(){
   const sellInput=document.getElementById('a_sell');
   const sellLabel=document.getElementById('a_sell_label');
   const sellHint=document.getElementById('a_sell_hint');
-  if(sellInput) sellInput.readOnly=false;
-  if(sellLabel) sellLabel.textContent='Prezzo scelto da te';
+  if(sellInput) sellInput.readOnly=loadPricingSettings().mode!=='manual';
+  if(sellLabel) sellLabel.textContent=loadPricingSettings().mode==='manual'?'Prezzo manuale':'Prezzo di vendita';
   if(sellHint){ sellHint.style.display=hasAcceptedEstimate?'block':'none'; sellHint.textContent=hasAcceptedEstimate?'Costo stimato: il guadagno non è verificato.':''; }
 
   if(!hasCode && !hasUsd && !hasAcceptedEstimate){
@@ -11659,17 +11762,17 @@ function renderArtAutoFields(){
   }
 
   const usd=hasUsd ? Number(usdRaw) : 0;
-  const r=usd>0 ? calcFromUsd(usd, qual) : (hasAcceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,qual) : {costo:0,sell:0,marg:0});
+  const pricingCtx={categoria:document.getElementById('a_cat')?.value||'',ivaPercent:document.getElementById('a_iva')?.value||''}; const r=usd>0 ? calcFromUsd(usd, '', pricingCtx) : (hasAcceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,'',pricingCtx) : {costo:0,sell:0,marg:0});
   const promoUsd=hasPromoUsd ? Number(usdPromoRaw) : 0;
-  const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0};
+  const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, '', pricingCtx) : {costo:0, sell:0, marg:0};
   const baseCalc=Number(r.costo)>0?r:rPromo;
   const recommendedSell=Number(baseCalc.sell||0);
   const theoreticalSell=Number(baseCalc.theoretical||((Number(baseCalc.costo)||0)+(Number(baseCalc.marg)||0))||0);
-  const profitMinimum=Number(baseCalc.marg||0);
+  const profitMinimum=0;
   if(!currentArtPriceManuallySet || !(currentArtChosenPrice>0)) currentArtChosenPrice=recommendedSell;
   const chosenSale=Number(currentArtChosenPrice||recommendedSell||0);
   document.getElementById('a_eur').value = Number(baseCalc.costo)>0 ? (hasAcceptedEstimate ? money(baseCalc.costo)+' (stimato)' : money(baseCalc.costo)) : '';
-  document.getElementById('a_profit_min').value = profitMinimum>0 ? money(profitMinimum) : '';
+  document.getElementById('a_profit_min').value='';
   document.getElementById('a_theoretical').value = theoreticalSell>0 ? money(theoreticalSell) : '';
   document.getElementById('a_recommended').value = recommendedSell>0 ? money(recommendedSell) : '';
   if(sellInput && document.activeElement!==sellInput) sellInput.value = chosenSale>0 ? String(chosenSale) : '';
@@ -11975,6 +12078,7 @@ async function saveArt(){
       costoStimaSogliaMinima: acceptedEstimate ? Number(acceptedEstimate.minimumPrice||0) : 0,
       costoStimaSignature: acceptedEstimate ? String(acceptedEstimate.signature||'') : '',
       prezzoVendita: chosenSale,
+      ivaPercent: resolveArticleVatPercent({categoria:categoriaValue,ivaPercent:document.getElementById('a_iva')?.value}, true),
       promoAttiva: document.getElementById('a_promo_on').checked,
       prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
@@ -14003,6 +14107,7 @@ document.addEventListener('click',(ev)=>{
   if(a==='artBackToBrands'){ setArtBrowse('tutti'); return renderArt(); }
   if(a==='newCli') return openCliEdit(null);
   if(a==='newOrd') return openOrdEdit(null);
+  if(a==='savePricingSettings') return savePricingSettings();
   if(a==='exportFull') return exportDB('full');
   if(a==='exportLite') return exportDB('lite');
   if(a==='refreshDiag'){ renderDiagnostics(); toast('Diagnostica aggiornata'); return; }
@@ -14316,9 +14421,11 @@ document.addEventListener('keydown',(ev)=>{
 });
 
 document.getElementById('visualAiResults')?.addEventListener('click',e=>{ if(e.target.closest('[data-open="art"]')) vgCloseVisualArticleSearch(); });
-document.getElementById('qArtCat')?.addEventListener('change', renderArt);
+document.getElementById('qArtCat')?.addEventListener('change', ()=>{ setArtBrowse('mixed','','',false); renderArt(); });
 document.getElementById('qArtBrand')?.addEventListener('change', renderArt);
-document.getElementById('qArtQuality')?.addEventListener('change', renderArt);
+document.getElementById('pricingMarkupMode')?.addEventListener('change',fillPricingSettings);
+document.getElementById('a_iva')?.addEventListener('input',()=>{ renderArtAutoFields(); saveArticleDraft(); });
+
 bindSearchSuggest('qCli','qCliSuggest','cli', ()=>renderCli());
 ['c_nome','c_tel','c_facebook','c_ind','c_cap','c_citta','c_prov','c_prov_text','c_paese','c_note','c_alt_nome','c_alt_cognome','c_alt_ind','c_alt_cap','c_alt_citta','c_alt_prov','c_alt_paese'].forEach(id=>{
   const el=document.getElementById(id);
