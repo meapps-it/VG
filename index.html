@@ -1511,8 +1511,8 @@ window.addEventListener('error',e=>{
 
 
 <div id="mCloudLogin" class="modalwrap"><div class="modal">
-  <div class="h2">Login cloud</div>
-  <div><div class="k">Email</div><input id="cloudEmail" type="email" autocomplete="username" autocapitalize="off" spellcheck="false"/></div>
+  <div class="h2" id="cloudLoginTitle">Login cloud</div>
+  <div id="cloudLoginDemoHint" class="small" style="display:none;margin-bottom:10px">Accesso amministratore necessario per salvare le foto permanenti della demo.</div><div><div class="k">Email</div><input id="cloudEmail" type="email" autocomplete="username" autocapitalize="off" spellcheck="false"/></div>
   <div style="margin-top:10px"><div class="k">Password</div><input id="cloudPassword" type="password" autocomplete="current-password"/></div>
   <div class="actions bottomMini" style="margin-top:12px">
     <button class="btn primary" type="button" data-action="doCloudLogin">Accedi</button>
@@ -12135,6 +12135,13 @@ async function saveArt(){
             if(filesToSave.length>1) photoUploadWarning='Nella demo viene salvata come immagine principale la prima foto selezionata';
           }catch(demoPhotoErr){
             console.warn('Upload foto demo condivisa fallito',demoPhotoErr);
+            if(demoPhotoErr?.code==='DEMO_ADMIN_LOGIN_REQUIRED'){
+              const hint=document.getElementById('cloudLoginDemoHint'); if(hint) hint.style.display='block';
+              const title=document.getElementById('cloudLoginTitle'); if(title) title.textContent='Accesso amministratore demo';
+              show('mCloudLogin');
+              toast('Accedi al Cloud come amministratore, poi premi di nuovo Salva. La foto selezionata resta pronta.');
+              return;
+            }
             photoUploadWarning=demoPhotoErr?.message||'Foto demo non salvata nel cloud';
           }
         }else{
@@ -14577,7 +14584,11 @@ document.getElementById('a_video')?.addEventListener('change',()=>{
   renderArtVideoPreview();
   document.getElementById('a_video').value='';
 });
-document.getElementById('btnCloudLogin')?.addEventListener('click', ()=>show('mCloudLogin'));
+document.getElementById('btnCloudLogin')?.addEventListener('click', ()=>{
+  const hint=document.getElementById('cloudLoginDemoHint'); if(hint) hint.style.display='none';
+  const title=document.getElementById('cloudLoginTitle'); if(title) title.textContent='Login cloud';
+  show('mCloudLogin');
+});
 document.getElementById('btnCloudLogout')?.addEventListener('click', cloudLogout);
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flushVisibleDrafts(); });
 window.addEventListener('pagehide', flushVisibleDrafts);
@@ -16346,10 +16357,15 @@ async function hydrateSimplexDemoPhotos(){
  if(changed) saveDBLocal(db); else { try{ renderArt(); }catch(_e){} }
 }
 async function getSimplexDemoAdminAccessToken(){
- const sb=await window.VG_SUPABASE_READY;
- if(!sb) throw new Error('Servizio Admin non disponibile');
- const {data:{session}}=await sb.auth.getSession();
- if(!session?.access_token) throw new Error('Accedi prima all’Admin SimplexApp nello stesso browser');
+ const sb=await ensureCloud();
+ if(!sb) throw new Error('Servizio cloud non disponibile');
+ const session=cloudSession || (await sb.auth.getSession())?.data?.session || null;
+ if(!session?.access_token){
+   const err=new Error('Per modificare le foto demo devi accedere al Cloud con l’account amministratore.');
+   err.code='DEMO_ADMIN_LOGIN_REQUIRED';
+   throw err;
+ }
+ cloudSession=session;
  return session.access_token;
 }
 async function uploadSimplexDemoArticlePhoto(articleId,file){
