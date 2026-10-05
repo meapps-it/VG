@@ -551,10 +551,12 @@ window.addEventListener('error',e=>{
 #simplexDemoWatermark.show{display:block}
 #simplexDemoWatermark::before{content:"DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO";position:absolute;left:-35%;top:-25%;width:170%;height:170%;display:flex;align-items:center;justify-content:center;white-space:pre-wrap;word-spacing:70px;line-height:4.1;transform:rotate(-28deg);font:900 clamp(44px,9vw,94px)/1.1 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:rgba(180,0,0,.10);letter-spacing:8px;text-align:center}
 .simplex-module-disabled{display:none!important}
+#simplexLicenseLoading{position:fixed;inset:0;z-index:2147483500;background:var(--bg,#f5f7fb);display:none}
+#simplexLicenseLoading.show{display:block}
 </style>
 </head>
 <body class="auth-locked">
-<div id="simplexLicenseGate">
+<div id="simplexLicenseGate" class="hidden">
   <div class="box">
     <h2 id="simplexLicenseTitle">Attivazione Gestionale</h2>
     <p id="simplexLicenseText">Inserisci la chiave licenza associata a questa copia.</p>
@@ -562,11 +564,11 @@ window.addEventListener('error',e=>{
     <button id="simplexLicenseButton" type="button">Attiva</button>
   </div>
 </div>
-<div id="simplexDemoWatermark" aria-hidden="true"></div>
+<div id="simplexDemoWatermark" aria-hidden="true"></div><div id="simplexLicenseLoading" aria-hidden="true"></div>
 
 
 <!-- AUTH GATE — blocca tutto finché non sei loggato -->
-<div id="authGate" style="display:flex">
+<div id="authGate" style="display:none">
   <div class="authBox">
     <div class="authLogo">🔐</div>
     <div class="authTitle" id="authAppTitle">Gestionale</div>
@@ -16067,6 +16069,9 @@ function initAuthGate(){
 /* init */
 async function bootApp(){
   initAuthGate();
+  const cfg=window.SimplexClientConfig;
+  if(!cfg){ return; }
+  if(cfg.status==='demo'){ setAuthenticatedUi(true); return; }
   showAuthGate('checking');
   try{
     await ensureCloud();
@@ -16153,7 +16158,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.118', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.119', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
@@ -16181,16 +16186,17 @@ const ENDPOINT='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/simplex-ad
 const APIKEY='sb_publishable_-EUVjwsk3txKk2Opqrc7Kw_xFNa9Hw1';
 const STORE='simplex_gestionale_license_v1';
 const MAP={clienti:['clienti'],ordini:['ordini'],magazzino:['articoli'],statistiche:['finanze']};
-const gate=document.getElementById('simplexLicenseGate'),title=document.getElementById('simplexLicenseTitle'),text=document.getElementById('simplexLicenseText'),input=document.getElementById('simplexLicenseInput'),button=document.getElementById('simplexLicenseButton'),wm=document.getElementById('simplexDemoWatermark');
+const gate=document.getElementById('simplexLicenseGate'),title=document.getElementById('simplexLicenseTitle'),text=document.getElementById('simplexLicenseText'),input=document.getElementById('simplexLicenseInput'),button=document.getElementById('simplexLicenseButton'),wm=document.getElementById('simplexDemoWatermark'),loading=document.getElementById('simplexLicenseLoading');
 function incoming(){
  const u=new URL(location.href),q=(u.searchParams.get('license')||'').trim().toLowerCase();
  if(/^[a-f0-9]{48}$/.test(q)){try{localStorage.setItem(STORE,q)}catch{}u.searchParams.delete('license');history.replaceState(history.state,'',u.pathname+(u.search||'')+u.hash);return q}
  try{const s=(localStorage.getItem(STORE)||'').trim().toLowerCase();return /^[a-f0-9]{48}$/.test(s)?s:''}catch{return ''}
 }
 function show(msg='Inserisci la chiave licenza associata a questa copia.',heading='Attivazione Gestionale',allow=true){
- title.textContent=heading;text.textContent=msg;input.style.display=allow?'block':'none';button.style.display=allow?'inline-block':'none';gate.classList.remove('hidden');wm.classList.remove('show')
+ if(loading)loading.classList.remove('show');title.textContent=heading;text.textContent=msg;input.style.display=allow?'block':'none';button.style.display=allow?'inline-block':'none';gate.classList.remove('hidden');wm.classList.remove('show')
 }
-function hide(){gate.classList.add('hidden')}
+function hide(){gate.classList.add('hidden');if(loading)loading.classList.remove('show')}
+function wait(){gate.classList.add('hidden');if(loading)loading.classList.add('show')}
 async function config(key){
  const r=await fetch(ENDPOINT,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',apikey:APIKEY},body:JSON.stringify({licenseKey:key})});
  let d={};try{d=await r.json()}catch{}
@@ -16213,14 +16219,22 @@ function apply(c){
 }
 async function activate(key){
  if(!/^[a-f0-9]{48}$/.test(key)){show('La chiave inserita non è valida. Controllala e riprova.');return}
- button.disabled=true;button.textContent='Controllo…';
+ wait();button.disabled=true;button.textContent='Controllo…';
  try{
   const c=await config(key);
   if(c.status==='suspended'){show('Questa licenza è stata sospesa.','Licenza sospesa',false);return}
   if(c.status==='expired'){show('Questa licenza è scaduta.','Licenza scaduta',false);return}
   if(c.status!=='active'&&c.status!=='demo'){show('Questa licenza non è attiva.','Licenza non attiva',false);return}
   try{localStorage.setItem(STORE,key)}catch{}
-  apply(c);hide()
+  apply(c);hide();
+  if(c.status==='active'){
+    try{
+      if(typeof ensureCloud==='function'){
+        await ensureCloud();
+        if(cloudSession) await startAuthenticatedApp(); else showAuthGate('login');
+      }
+    }catch(_e){ try{showAuthGate('login')}catch(__e){} }
+  }
  }catch(e){show(e?.message||'Impossibile verificare la licenza.')}
  finally{button.disabled=false;button.textContent='Attiva'}
 }
