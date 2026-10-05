@@ -12129,7 +12129,7 @@ async function saveArt(){
         const isSimplexDemoArticle=window.SimplexClientConfig?.status==='demo' && /^demo-art-(00[1-9]|010)$/.test(String(obj.id||''));
         if(isSimplexDemoArticle){
           try{
-            const sharedUrl=await uploadSimplexDemoArticlePhoto(obj.id,filesToSave[0]);
+            const sharedUrl=await window.uploadSimplexDemoArticlePhoto(obj.id,filesToSave[0]);
             obj.foto=[sharedUrl];
             obj.photoIds=[];
             if(filesToSave.length>1) photoUploadWarning='Nella demo viene salvata come immagine principale la prima foto selezionata';
@@ -16380,6 +16380,8 @@ async function uploadSimplexDemoArticlePhoto(articleId,file){
  if(!r.ok) throw new Error(data?.error||'Caricamento foto demo non riuscito');
  return String(data?.url||simplexDemoPhotoUrl(articleId,true));
 }
+
+window.uploadSimplexDemoArticlePhoto=uploadSimplexDemoArticlePhoto;
 
 function seedSimplexDemoData(){
  try{
