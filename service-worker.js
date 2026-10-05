@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.128-demo-upload-scope-fix';
+const VERSION = 'gestionale-vg-1.0.129-no-social';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
