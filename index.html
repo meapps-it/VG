@@ -538,8 +538,32 @@ window.addEventListener('error',e=>{
 </script>
 <script src="supabaseClient.js"></script>
   <meta name="vg-version" content="v151-auth-locked">
+
+<style id="simplex-license-gate-style">
+#simplexLicenseGate{position:fixed;inset:0;z-index:2147483600;display:grid;place-items:center;padding:22px;background:rgba(15,23,42,.96);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+#simplexLicenseGate.hidden{display:none}
+#simplexLicenseGate .box{width:min(430px,100%);box-sizing:border-box;background:#fff;border-radius:22px;padding:24px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+#simplexLicenseGate h2{margin:0 0 8px;font-size:24px;color:#0f172a}
+#simplexLicenseGate p{margin:0 0 14px;color:#5f6b7a;line-height:1.45}
+#simplexLicenseGate input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #d7dfeb;border-radius:12px;font-size:16px;margin:7px 0 12px}
+#simplexLicenseGate button{border:0;border-radius:12px;padding:12px 16px;font-weight:800;background:#1978f2;color:#fff}
+#simplexDemoWatermark{position:fixed;inset:0;z-index:2147483000;display:none;pointer-events:none;overflow:hidden}
+#simplexDemoWatermark.show{display:block}
+#simplexDemoWatermark::before{content:"DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO   DEMO";position:absolute;left:-35%;top:-25%;width:170%;height:170%;display:flex;align-items:center;justify-content:center;white-space:pre-wrap;word-spacing:70px;line-height:4.1;transform:rotate(-28deg);font:900 clamp(44px,9vw,94px)/1.1 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:rgba(180,0,0,.10);letter-spacing:8px;text-align:center}
+.simplex-module-disabled{display:none!important}
+</style>
 </head>
 <body class="auth-locked">
+<div id="simplexLicenseGate">
+  <div class="box">
+    <h2 id="simplexLicenseTitle">Attivazione Gestionale</h2>
+    <p id="simplexLicenseText">Inserisci la chiave licenza associata a questa copia.</p>
+    <input id="simplexLicenseInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Chiave licenza">
+    <button id="simplexLicenseButton" type="button">Attiva</button>
+  </div>
+</div>
+<div id="simplexDemoWatermark" aria-hidden="true"></div>
+
 
 <!-- AUTH GATE — blocca tutto finché non sei loggato -->
 <div id="authGate" style="display:flex">
@@ -16127,7 +16151,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.116', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.117', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
@@ -16145,6 +16169,63 @@ if('serviceWorker' in navigator){
     });
   };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind,{once:true}); else bind();
+})();
+</script>
+
+<script id="simplex-license-gate-script">
+(() => {
+'use strict';
+const ENDPOINT='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/simplex-admin?action=client-config';
+const APIKEY='sb_publishable_-EUVjwsk3txKk2Opqrc7Kw_xFNa9Hw1';
+const STORE='simplex_gestionale_license_v1';
+const MAP={clienti:['clienti'],ordini:['ordini'],magazzino:['articoli'],statistiche:['finanze']};
+const gate=document.getElementById('simplexLicenseGate'),title=document.getElementById('simplexLicenseTitle'),text=document.getElementById('simplexLicenseText'),input=document.getElementById('simplexLicenseInput'),button=document.getElementById('simplexLicenseButton'),wm=document.getElementById('simplexDemoWatermark');
+function incoming(){
+ const u=new URL(location.href),q=(u.searchParams.get('license')||'').trim().toLowerCase();
+ if(/^[a-f0-9]{48}$/.test(q)){try{localStorage.setItem(STORE,q)}catch{}u.searchParams.delete('license');history.replaceState(history.state,'',u.pathname+(u.search||'')+u.hash);return q}
+ try{const s=(localStorage.getItem(STORE)||'').trim().toLowerCase();return /^[a-f0-9]{48}$/.test(s)?s:''}catch{return ''}
+}
+function show(msg='Inserisci la chiave licenza associata a questa copia.',heading='Attivazione Gestionale',allow=true){
+ title.textContent=heading;text.textContent=msg;input.style.display=allow?'block':'none';button.style.display=allow?'inline-block':'none';gate.classList.remove('hidden');wm.classList.remove('show')
+}
+function hide(){gate.classList.add('hidden')}
+async function config(key){
+ const r=await fetch(ENDPOINT,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',apikey:APIKEY},body:JSON.stringify({licenseKey:key})});
+ let d={};try{d=await r.json()}catch{}
+ if(!r.ok)throw Error(d.error||'Licenza non valida');return d.client
+}
+function toggleModule(name,on){
+ const sections=MAP[name]||[];
+ for(const sec of sections){
+  document.querySelectorAll('[data-go="'+sec+'"],[data-tab="'+sec+'"],#sec_'+sec).forEach(el=>el.classList.toggle('simplex-module-disabled',!on));
+ }
+ if(name==='magazzino')document.querySelectorAll('[data-action="newArt"]').forEach(el=>el.classList.toggle('simplex-module-disabled',!on));
+ if(name==='ordini')document.querySelectorAll('[data-action="newOrd"],[data-action="openCurrentOrders"]').forEach(el=>el.classList.toggle('simplex-module-disabled',!on));
+ if(name==='clienti')document.querySelectorAll('[data-action="newCli"]').forEach(el=>el.classList.toggle('simplex-module-disabled',!on));
+}
+function apply(c){
+ const modules=c.modules||{};
+ for(const name of Object.keys(MAP))if(Object.prototype.hasOwnProperty.call(modules,name))toggleModule(name,modules[name]===true);
+ wm.classList.toggle('show',c.status==='demo');
+ window.SimplexClientConfig=c;
+}
+async function activate(key){
+ if(!/^[a-f0-9]{48}$/.test(key)){show('La chiave inserita non è valida. Controllala e riprova.');return}
+ button.disabled=true;button.textContent='Controllo…';
+ try{
+  const c=await config(key);
+  if(c.status==='suspended'){show('Questa licenza è stata sospesa.','Licenza sospesa',false);return}
+  if(c.status==='expired'){show('Questa licenza è scaduta.','Licenza scaduta',false);return}
+  if(c.status!=='active'&&c.status!=='demo'){show('Questa licenza non è attiva.','Licenza non attiva',false);return}
+  try{localStorage.setItem(STORE,key)}catch{}
+  apply(c);hide()
+ }catch(e){show(e?.message||'Impossibile verificare la licenza.')}
+ finally{button.disabled=false;button.textContent='Attiva'}
+}
+button.addEventListener('click',()=>activate(input.value.trim().toLowerCase()));
+input.addEventListener('keydown',e=>{if(e.key==='Enter')button.click()});
+window.SimplexLicense={refresh:()=>{const k=incoming();if(k)activate(k);else show()},clear:()=>{try{localStorage.removeItem(STORE)}catch{}location.reload()},getKey:()=>{try{return localStorage.getItem(STORE)||''}catch{return ''}}};
+const key=incoming();if(key)activate(key);else show();
 })();
 </script>
 </body>
