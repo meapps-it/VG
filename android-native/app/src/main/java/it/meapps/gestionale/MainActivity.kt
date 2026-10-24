@@ -437,7 +437,20 @@ private fun MainScaffold(vm: AppViewModel, snackbar: SnackbarHostState) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(stringResource(R.string.app_name), color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "Shop", color = Color(0xFFBFE9FF), fontSize = 23.sp,
+                                fontWeight = FontWeight.Black, letterSpacing = (-0.8).sp, maxLines = 1
+                            )
+                            Text(
+                                " & ", color = Color.White, fontSize = 23.sp,
+                                fontWeight = FontWeight.Black, maxLines = 1
+                            )
+                            Text(
+                                "Parallelo", color = Color(0xFFFFD457), fontSize = 23.sp,
+                                fontWeight = FontWeight.Black, letterSpacing = (-0.8).sp, maxLines = 1
+                            )
+                        }
                         Text(nowText, color = Color(0xFFD6D9E2), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     }
                     Box {
