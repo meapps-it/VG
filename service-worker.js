@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.130-social-clean-final';
+const VERSION = 'gestionale-vg-1.0.132-owner-login-fix';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
