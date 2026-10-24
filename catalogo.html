@@ -28,6 +28,20 @@
 .checkout-actions .primary{background:#176fea;color:white}
 .checkout-review{background:#f3f7fc;border:1px solid #dce6f1;border-radius:15px;padding:14px;white-space:pre-line;line-height:1.75}
 .checkout-hide{display:none!important}
+
+/* Fix mobile: la fotografia non deve occupare l'intera finestra prodotto. */
+#productView .product-dialog{max-height:min(92dvh,820px);overflow-y:auto;overscroll-behavior:contain}
+#productView .product-hero{height:270px;max-height:36dvh;aspect-ratio:auto;min-height:0}
+#productView .product-hero img{width:100%;height:100%;max-height:100%;object-fit:contain;object-position:center}
+@media(max-width:600px){
+ #productView{align-items:center;padding:10px}
+ #productView .product-dialog{width:100%;max-height:calc(100dvh - 40px);padding:13px;border-radius:19px}
+ #productView .product-layout{display:flex;flex-direction:column;gap:12px}
+ #productView .product-hero{height:clamp(150px,29dvh,250px);max-height:250px;flex:0 0 auto}
+ #productView .product-dialog h2{margin:4px 0 8px;font-size:21px}
+ #productView .product-dialog p{margin:9px 0;line-height:1.35}
+ #productView .product-dialog .topline{position:sticky;top:-13px;background:white;z-index:2;padding:5px 0 10px}
+}
 </style></head>
 <body><header class="top"><div class="top-inner"><img class="logo" src="./shop-parallelo-logo.svg" alt="Shop &amp; Parallelo"><span class="grow"></span><button class="cart-action" id="openCart">🛒 Carrello <span id="cartCount">0</span></button></div></header>
 <main class="container"><section class="intro"><h1>Il nostro catalogo</h1><p>Borse, pelletteria e accessori. Scegli i tuoi articoli e inviaci una richiesta, senza pagamento online.</p></section>
