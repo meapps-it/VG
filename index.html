@@ -14096,7 +14096,7 @@ async function ensureCloud(){
   const {data:{session}}=await cloudClient.auth.getSession();
   cloudSession=session||null;
   if(cloudSession) prepareLocalDataForCloudUser(cloudSession.user?.id);
-  if(cloudSession)  cloudClient.auth.onAuthStateChange((_e,session)=>{
+  cloudClient.auth.onAuthStateChange((_e,session)=>{
     cloudSession=session||null;
     if(cloudSession) prepareLocalDataForCloudUser(cloudSession.user?.id);
     cloudUi();
@@ -14739,15 +14739,33 @@ function initAuthGate(){
       if(!sb){ throw new Error('Supabase non disponibile'); }
       const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
       if(error) throw error;
-      cloudSession=data.session||null;
+      if(!data?.session?.access_token) throw new Error('Sessione non ricevuta da Supabase');
+      cloudSession=data.session;
+      prepareLocalDataForCloudUser(cloudSession.user?.id);
       if(passEl) passEl.value='';
-      await startAuthenticatedApp();
-      cloudUi();
-      try{ await pullCloudToLocal({silent:false, background:false}); }catch(err){ console.warn('Ripristino catalogo cloud fallito:',err); toast('Articoli non caricati dal Cloud: '+String(err?.message||err)); }
-      toast('Benvenuto! 👋');
+      // L'accesso e' gia' riuscito: un errore della UI non deve apparire come password errata.
+      try{ await startAuthenticatedApp(); }
+      catch(appErr){
+        console.error('Login riuscito, avvio interfaccia non completo:',appErr);
+        setAuthenticatedUi(true);
+        toast('Accesso riuscito. Errore di avvio: '+String(appErr?.message||appErr));
+      }
+      try{ cloudUi(); }catch(_e){}
+      try{ await pullCloudToLocal({silent:false, background:false}); }
+      catch(err){ console.warn('Caricamento catalogo cloud fallito:',err); toast('Accesso riuscito, catalogo non caricato: '+String(err?.message||err)); }
+      toast('Accesso effettuato');
     }catch(err){
-      if(errEl){ errEl.textContent='Email o password non corretti'; errEl.style.display='block'; }
-      console.warn('Auth gate login fallito:',err);
+      const msg=String(err?.message||err||'');
+      const badCredentials=/invalid login credentials|invalid_credentials|email not confirmed/i.test(msg);
+      const connectivity=/failed to fetch|network|connection|timeout|non disponibile/i.test(msg);
+      if(cloudSession){
+        setAuthenticatedUi(true);
+        toast('Accesso effettuato. Errore di apertura: '+msg);
+      }else if(errEl){
+        errEl.textContent=badCredentials ? 'Email o password non corretti' : connectivity ? 'Connessione a Supabase non riuscita. Verifica Internet e riprova.' : 'Accesso non riuscito: '+msg;
+        errEl.style.display='block';
+      }
+      console.error('Accesso al gestionale:',err);
     }finally{
       btn.textContent='Accedi'; btn.disabled=false;
     }
@@ -14774,9 +14792,14 @@ async function bootApp(){
     }
   }catch(err){
     console.warn('Avvio autenticazione fallito:',err);
-    showAuthGate('login');
-    const errEl=document.getElementById('authErr');
-    if(errEl){ errEl.textContent='Connessione al servizio di accesso non disponibile'; errEl.style.display='block'; }
+    if(cloudSession){
+      setAuthenticatedUi(true);
+      toast('Accesso presente, problema di avvio: '+String(err?.message||err));
+    }else{
+      showAuthGate('login');
+      const errEl=document.getElementById('authErr');
+      if(errEl){ errEl.textContent='Servizio di accesso non disponibile: '+String(err?.message||err); errEl.style.display='block'; }
+    }
   }
 }
 bootApp();
