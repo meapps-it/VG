@@ -528,6 +528,39 @@ input,select,textarea{font-size:17px;line-height:1.25}
 /* Font di sistema anche per pulsanti e campi */
 button,input,select,textarea{font-family:inherit}
 
+
+/* Intestazione Shop & Parallelo: modifica grafica, nessuna modifica alla logica VG. */
+.top .vgBrand{
+  display:flex;align-items:baseline;gap:.15em;position:relative;
+  width:max-content;max-width:100%;margin:0 0 6px;
+  font-size:clamp(21px,5.8vw,30px);line-height:1.16;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  font-weight:950;font-style:italic;letter-spacing:-.055em;white-space:nowrap;
+  filter:drop-shadow(0 2px 1px rgba(0,0,0,.32));
+}
+.top .vgBrandShop{
+  color:#bfe9ff;
+  text-shadow:1px 1px 0 #0754a5,2px 2px 0 #06377a,0 -1px 0 #fff;
+}
+.top .vgBrandAmp{color:#fff;text-shadow:1px 1px 0 #0c3981;}
+.top .vgBrandParallelo{
+  color:#ffd457;
+  text-shadow:1px 1px 0 #bd5511,2px 2px 0 #713217,0 -1px 0 #fff2b5;
+}
+.top .vgBrand::after{
+  content:"";position:absolute;bottom:-4px;left:5px;right:6px;
+  height:3px;border-radius:50%;background:linear-gradient(90deg,#ef4444,#fb7185 70%,transparent);
+  transform:skewX(-25deg);
+}
+.vgOriginalTitle{
+  position:absolute!important;width:1px!important;height:1px!important;
+  padding:0!important;margin:-1px!important;overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;
+}
+@media(max-width:350px){
+  .top .vgBrand{font-size:20px;gap:.10em;}
+}
+
 </style>
 <script>
 window.addEventListener('error',e=>{
@@ -593,7 +626,8 @@ window.addEventListener('error',e=>{
 <div class="top">
   <div class="topRow">
     <div class="topMain">
-      <h1 id="appTitle">Gestionale</h1>
+      <h1 class="vgBrand" aria-label="Shop &amp; Parallelo"><span class="vgBrandShop">Shop</span><span class="vgBrandAmp">&amp;</span><span class="vgBrandParallelo">Parallelo</span></h1>
+      <span id="appTitle" class="vgOriginalTitle">Gestionale</span>
       <div id="dateLine" class="date">--/--/----</div>
     </div>
     <button id="topMenuBtn" class="topMenuBtn" type="button" aria-label="Apri menu" aria-expanded="false" data-action="toggleTopMenu">
