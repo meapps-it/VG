@@ -14424,11 +14424,11 @@ async function pullCloudToLocal(opts={}){
   try{
     const [{data:cats,error:catsErr},{data:prod,error:prodErr},{data:cli,error:cliErr},{data:ord,error:ordErr},{data:righe,error:righeErr},{data:fotos,error:fotosErr}] = await Promise.all([
       sb.from('categorie').select('id,nome'),
-      sb.from('prodotti').select('*').order('created_at',{ascending:false}),
+      sb.from('prodotti').select('*').eq('is_demo',false).order('created_at',{ascending:false}).limit(3000),
       sb.from('clienti').select('*').order('created_at',{ascending:false}),
       sb.from('ordini').select('*').order('data_ordine',{ascending:false}),
       sb.from('righe_ordine').select('ordine_id,prodotto_id,prezzo_unitario,sconto,prodotti(id,sku,nome)'),
-      sb.from('prodotti_foto').select('prodotto_id,path,ordine').order('ordine',{ascending:true})
+      sb.from('prodotti_foto').select('prodotto_id,path,ordine').order('ordine',{ascending:true}).limit(3000)
     ]);
     if(catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr) throw (catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr);
     // Elimina dal cloud solo le copie omonime realmente vuote quando esiste una sola scheda completa sicura.
@@ -14456,8 +14456,8 @@ async function pullCloudToLocal(opts={}){
         fotoByProd.set(p.id, metaPaths);
         continue;
       }
-      const fallbackPaths = normalizeCloudPhotoPathList(await listCloudFotoPathsByCode(p.sku||''));
-      if (fallbackPaths.length) fotoByProd.set(p.id, fallbackPaths);
+      // Le foto storiche sono recuperate dai collegamenti prodotti_foto in una sola richiesta.
+      // Evita una richiesta Storage per ogni SKU privo di foto: il catalogo resta immediato.
     }
     const righeByOrd=new Map();
     (righe||[]).forEach(r=>{
@@ -14740,7 +14740,7 @@ function initAuthGate(){
       if(passEl) passEl.value='';
       await startAuthenticatedApp();
       cloudUi();
-      try{ await autoCloudPullNow('login'); }catch(_e){}
+      try{ await pullCloudToLocal({silent:false, background:false}); }catch(err){ console.warn('Ripristino catalogo cloud fallito:',err); toast('Articoli non caricati dal Cloud: '+String(err?.message||err)); }
       toast('Benvenuto! 👋');
     }catch(err){
       if(errEl){ errEl.textContent='Email o password non corretti'; errEl.style.display='block'; }
@@ -14765,7 +14765,7 @@ async function bootApp(){
     await ensureCloud();
     if(cloudSession){
       await startAuthenticatedApp();
-      try{ await autoCloudPullNow('startup'); }catch(_e){}
+      try{ await pullCloudToLocal({silent:true, background:false}); }catch(err){ console.warn('Caricamento iniziale catalogo fallito:',err); toast('Cloud non sincronizzato: '+String(err?.message||err)); }
     }else{
       showAuthGate('login');
     }
