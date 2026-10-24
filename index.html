@@ -561,6 +561,12 @@ button,input,select,textarea{font-family:inherit}
   .top .vgBrand{font-size:20px;gap:.10em;}
 }
 
+
+/* Logo illustrato pelletteria, proporzioni adatte alla PWA mobile. */
+.top .vgBrand{width:min(100%,365px);max-width:calc(100vw - 98px);height:auto;min-height:52px;margin:0 0 2px;display:block;filter:none}
+.top .vgBrand::after{display:none}
+.top .vgBrandIllustration{display:block;width:100%;height:auto;max-height:108px;object-fit:contain;object-position:left center}
+@media(max-width:390px){.top .vgBrand{max-width:calc(100vw - 82px);min-height:40px}}
 </style>
 <script>
 window.addEventListener('error',e=>{
@@ -626,7 +632,7 @@ window.addEventListener('error',e=>{
 <div class="top">
   <div class="topRow">
     <div class="topMain">
-      <h1 class="vgBrand" aria-label="Shop &amp; Parallelo"><span class="vgBrandShop">Shop</span><span class="vgBrandAmp">&amp;</span><span class="vgBrandParallelo">Parallelo</span></h1>
+      <h1 class="vgBrand" aria-label="Shop &amp; Parallelo"><img src="./shop-parallelo-logo.svg" alt="Shop &amp; Parallelo · borse e pelletteria" class="vgBrandIllustration" width="540" height="160"></h1>
       <span id="appTitle" class="vgOriginalTitle">Gestionale</span>
       <div id="dateLine" class="date">--/--/----</div>
     </div>
