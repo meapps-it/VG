@@ -10484,7 +10484,8 @@ function articleCreatedAtValue(article){
 async function openArtView(id){
   const db=loadDB(); const a=db.articoli.find(x=>x.id===id); if(!a) return;
   currentArtId=id;
-  const pics=await getArticlePics(a);
+  // Non attendere le foto per aprire la scheda articolo: possono arrivare dopo.
+  const pics=[];
   const hero=document.getElementById('vArtHero');
   const heroVideo=document.getElementById('vArtHeroVideo');
   const thumbs=document.getElementById('vArtThumbs');
@@ -10579,12 +10580,13 @@ async function openArtView(id){
     artNoteEl.textContent=artNote||'-';
     artNoteWrap.style.display=artNote?'block':'none';
   }
-  document.getElementById('vArtPost').value=buildPostTelegram(a);
-  fitTextarea(document.getElementById('vArtPost'));
-  document.getElementById('vArtPostFb').value=getArticleFacebookPost(a);
-  fitTextarea(document.getElementById('vArtPostFb'));
-  document.getElementById('vArtPostIg').value=buildPostInstagram(a);
-  fitTextarea(document.getElementById('vArtPostIg'));
+  // Alcune installazioni legacy non hanno piu' tutti i campi social nel DOM.
+  const telegramPost=document.getElementById('vArtPost');
+  if(telegramPost){ telegramPost.value=buildPostTelegram(a); fitTextarea(telegramPost); }
+  const facebookPost=document.getElementById('vArtPostFb');
+  if(facebookPost){ facebookPost.value=getArticleFacebookPost(a); fitTextarea(facebookPost); }
+  const instagramPost=document.getElementById('vArtPostIg');
+  if(instagramPost){ instagramPost.value=buildPostInstagram(a); fitTextarea(instagramPost); }
   const vArtSupplierLink=document.getElementById('vArtSupplierLink');
   if(vArtSupplierLink) vArtSupplierLink.value=(a.fornitoreLink||'').trim();
   
@@ -10593,6 +10595,21 @@ async function openArtView(id){
   }).catch(()=>{});
   show('mArtView');
   scheduleModalTextareaFit('mArtView');
+  // Le immagini vengono caricate in modo indipendente, dopo l'apertura della scheda.
+  getArticlePics(a).then(loadedPics=>{
+    if(String(currentArtId)!==String(id)) return;
+    if(hero){ hero.src=loadedPics[0]||''; hero.style.display=loadedPics.length?'block':'none'; }
+    if(thumbs){
+      const existingVideoThumbs=Array.from(thumbs.children).filter(el=>el.id?.startsWith('vthumb_') || el.tagName==='VIDEO');
+      const photoNodes=loadedPics.map(src=>{
+        const img=document.createElement('img');
+        img.src=src; img.style.cssText='width:70px;height:70px;border-radius:12px;object-fit:cover;border:1px solid var(--line);cursor:pointer';
+        img.addEventListener('click',()=>artHeroImg(src));
+        return img;
+      });
+      thumbs.replaceChildren(...photoNodes,...existingVideoThumbs);
+    }
+  }).catch(err=>console.warn('Foto articolo non caricate:',err));
 }
 
 function normalizeBulkArticleLabel(raw){
@@ -14434,9 +14451,7 @@ async function pullCloudToLocal(opts={}){
     const fotos=[...(fotosFirst||[]),...(fotosNext||[])];
     const fotosErr=fotosErrFirst||fotosErrNext;
     if(catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr) throw (catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr);
-    // Elimina dal cloud solo le copie omonime realmente vuote quando esiste una sola scheda completa sicura.
-    // Prima rimappa eventuali ordini, poi cancella il duplicato vuoto.
-    await cleanupSparseDuplicateCloudClients(sb, cli||[], ord||[]);
+    // La sincronizzazione e' in sola lettura: mai cancellare o accorpare clienti automaticamente.
     const catMap=new Map((cats||[]).map(c=>[c.id,c.nome]));
     const prodMap=new Map((prod||[]).map(p=>[p.id,p]));
     const fotoByProd=new Map();
