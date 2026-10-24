@@ -13850,6 +13850,10 @@ document.addEventListener('click',(ev)=>{
   if(a==='toggleAgendaDone') return agendaToggleById(el.dataset.id||'');
   if(a==='deleteAgenda') return agendaDeleteById(el.dataset.id||'');
   if(a==='addArtToOrder'){ const id=el.dataset.id; if(id){ const db=loadDB(); const art=(db.articoli||[]).find(x=>String(x.id)===String(id)); if(art && isArticleUnavailable(art)){ toast('Articolo non disponibile'); return; } return openOrdEdit(currentOrdId||null, id); } return; }
+  // Azioni della scheda articolo: handler nel file realmente eseguito dalla PWA.
+  if(a==='duplicateArt'){ ev.preventDefault(); return duplicateCurrentArticle(el.dataset.id || currentArtId || null); }
+  if(a==='editFromView'){ ev.preventDefault(); if(!currentArtId){toast('Articolo non selezionato');return;} hide('mArtView', true); return openArtEdit(currentArtId); }
+  if(a==='closeView'){ ev.preventDefault(); return hide('mArtView'); }
   if(a==='addArtToOrderFromView'){
     const targetId=currentArtId || String(document.getElementById('vCod')?.textContent||'').trim();
     const db=loadDB();
