@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.133-catalog-clients-orders';
+const VERSION = 'gestionale-vg-1.0.134-article-links';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
