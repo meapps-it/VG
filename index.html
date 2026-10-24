@@ -14422,14 +14422,17 @@ async function pullCloudToLocal(opts={}){
     cloudBusy=true; cloudUi();
   }
   try{
-    const [{data:cats,error:catsErr},{data:prod,error:prodErr},{data:cli,error:cliErr},{data:ord,error:ordErr},{data:righe,error:righeErr},{data:fotos,error:fotosErr}] = await Promise.all([
+    const [{data:cats,error:catsErr},{data:prod,error:prodErr},{data:cli,error:cliErr},{data:ord,error:ordErr},{data:righe,error:righeErr},{data:fotosFirst,error:fotosErrFirst},{data:fotosNext,error:fotosErrNext}] = await Promise.all([
       sb.from('categorie').select('id,nome'),
       sb.from('prodotti').select('*').eq('is_demo',false).order('created_at',{ascending:false}).limit(3000),
       sb.from('clienti').select('*').order('created_at',{ascending:false}),
       sb.from('ordini').select('*').order('data_ordine',{ascending:false}),
       sb.from('righe_ordine').select('ordine_id,prodotto_id,prezzo_unitario,sconto,prodotti(id,sku,nome)'),
-      sb.from('prodotti_foto').select('prodotto_id,path,ordine').order('ordine',{ascending:true}).limit(3000)
+      sb.from('prodotti_foto').select('prodotto_id,path,ordine').order('prodotto_id',{ascending:true}).order('ordine',{ascending:true}).order('path',{ascending:true}).range(0,999),
+      sb.from('prodotti_foto').select('prodotto_id,path,ordine').order('prodotto_id',{ascending:true}).order('ordine',{ascending:true}).order('path',{ascending:true}).range(1000,1999)
     ]);
+    const fotos=[...(fotosFirst||[]),...(fotosNext||[])];
+    const fotosErr=fotosErrFirst||fotosErrNext;
     if(catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr) throw (catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr);
     // Elimina dal cloud solo le copie omonime realmente vuote quando esiste una sola scheda completa sicura.
     // Prima rimappa eventuali ordini, poi cancella il duplicato vuoto.
