@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.132-owner-login-fix';
+const VERSION = 'gestionale-vg-1.0.133-catalog-clients-orders';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
