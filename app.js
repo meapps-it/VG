@@ -7339,6 +7339,29 @@ function readArticleForm(){
   };
 }
 
+/* Pulsanti scheda articolo: gestione locale dei tocchi, indipendente dalla delega globale. */
+document.getElementById('mArtView')?.addEventListener('click', (event)=>{
+  const button=event.target.closest('button[data-action]');
+  if(!button || !event.currentTarget.contains(button)) return;
+  const action=button.dataset.action;
+  if(!['duplicateArt','editFromView','deleteArt','addArtToOrderFromView','closeView'].includes(action)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  if(button.disabled) return;
+  if(action==='closeView') { hide('mArtView'); return; }
+  if(action==='duplicateArt') { duplicateCurrentArticle(currentArtId || null); return; }
+  if(action==='editFromView') { hide('mArtView',true); openArtEdit(currentArtId); return; }
+  if(action==='deleteArt') { deleteArt(); return; }
+  if(action==='addArtToOrderFromView'){
+    const id=currentArtId;
+    const article=(loadDB().articoli||[]).find(item=>String(item.id)===String(id));
+    if(!article){toast('Articolo non trovato');return;}
+    if(isArticleUnavailable(article)){toast('Articolo non disponibile');return;}
+    hide('mArtView',true);
+    openOrdEdit(currentOrdId||null,article.id);
+  }
+});
+
 document.addEventListener('click',(ev)=>{
   const el=ev.target.closest('[data-action],[data-go],[data-open]');
   if(!el) return;
