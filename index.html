@@ -14442,9 +14442,9 @@ async function pullCloudToLocal(opts={}){
     const [{data:cats,error:catsErr},{data:prod,error:prodErr},{data:cli,error:cliErr},{data:ord,error:ordErr},{data:righe,error:righeErr},{data:fotosFirst,error:fotosErrFirst},{data:fotosNext,error:fotosErrNext}] = await Promise.all([
       sb.from('categorie').select('id,nome'),
       sb.from('prodotti').select('*').eq('is_demo',false).order('created_at',{ascending:false}).limit(3000),
-      sb.from('clienti').select('*').order('created_at',{ascending:false}),
-      sb.from('ordini').select('*').order('data_ordine',{ascending:false}),
-      sb.from('righe_ordine').select('ordine_id,prodotto_id,prezzo_unitario,sconto,prodotti(id,sku,nome)'),
+      sb.from('clienti').select('*').eq('is_demo',false).order('created_at',{ascending:false}),
+      sb.from('ordini').select('*').eq('is_demo',false).order('data_ordine',{ascending:false}),
+      sb.from('righe_ordine').select('ordine_id,prodotto_id,quantita,prezzo_unitario,sconto,prodotti(id,sku,nome)').eq('is_demo',false),
       sb.from('prodotti_foto').select('prodotto_id,path,ordine').order('prodotto_id',{ascending:true}).order('ordine',{ascending:true}).order('path',{ascending:true}).range(0,999),
       sb.from('prodotti_foto').select('prodotto_id,path,ordine').order('prodotto_id',{ascending:true}).order('ordine',{ascending:true}).order('path',{ascending:true}).range(1000,1999)
     ]);
@@ -14480,7 +14480,7 @@ async function pullCloudToLocal(opts={}){
     const righeByOrd=new Map();
     (righe||[]).forEach(r=>{
       const arr=righeByOrd.get(r.ordine_id)||[];
-      arr.push({articoloId:r.prodotto_id,codice:r.prodotti?.sku||prodMap.get(r.prodotto_id)?.sku||'',modello:r.prodotti?.nome||prodMap.get(r.prodotto_id)?.nome||'',prezzo:Number(r.prezzo_unitario||0),sconto:Number(r.sconto||0)});
+      arr.push({articoloId:r.prodotto_id,codice:r.prodotti?.sku||prodMap.get(r.prodotto_id)?.sku||'',modello:r.prodotti?.nome||prodMap.get(r.prodotto_id)?.nome||'',quantita:Number(r.quantita||1),prezzo:Number(r.prezzo_unitario||0),sconto:Number(r.sconto||0)});
       righeByOrd.set(r.ordine_id,arr);
     });
     const localDb=loadDB();
@@ -14887,7 +14887,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.132', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.133', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
