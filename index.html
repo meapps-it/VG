@@ -842,7 +842,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.135</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.136</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -974,6 +974,7 @@ window.addEventListener('error',e=>{
 <!-- MODALS -->
 <div id="mArtView" class="modalwrap"><div class="modal">
   <div class="h2">Dettaglio articolo</div>
+  <div style="display:none!important" aria-hidden="true"><textarea id="vArtPost"></textarea><textarea id="vArtPostIg"></textarea></div>
   <div id="vArtNoteWrap" class="viewAlertNote" style="display:none"><div class="viewAlertNoteLabel">Note articolo</div><div id="vArtNote" class="viewAlertNoteBody">-</div></div>
   <img id="vArtHero" class="hero" alt=""/>
   <video id="vArtHeroVideo" class="hero" controls style="display:none;width:100%"></video>
@@ -1026,6 +1027,7 @@ window.addEventListener('error',e=>{
 
 <div id="mArtEdit" class="modalwrap"><div class="modal artModal">
   <div class="h2" id="artEditTitle">Nuovo articolo</div>
+  <div style="display:none!important" aria-hidden="true"><textarea id="a_post"></textarea><textarea id="a_post_ig"></textarea></div>
 
   <div class="formBlock dati inputSoft">
     <div class="blockTitle">Dati articolo</div>
@@ -14060,7 +14062,7 @@ let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
 
-const VG_BUILD='1.0.135-2026-10-24';
+const VG_BUILD='1.0.136-2026-10-24';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14751,8 +14753,7 @@ async function startAuthenticatedApp(){
   if(!authenticatedAppInitialized){
     authenticatedAppInitialized=true;
     renderAll();
-    renderSocialSuggestions();
-    initSocialMediaInput();
+    // La sezione Social legacy non è più presente: evita chiamate a funzioni eliminate.
     initTextareaAutosize(['a_post','a_post_fb','a_post_ig','vArtPost','vArtPostFb','vArtPostIg','c_ship','c_alt_ship','vCliAltShip']);
     updateArticleColorModeUI();
     document.getElementById('a_color_suggest_btn')?.addEventListener('click', async ()=>{ try{ await suggestArticleColorLabelsFromImage(); }catch(err){ console.warn('Suggerimento colori fallito', err); toast('Non sono riuscita a leggere bene la foto'); } });
@@ -14951,7 +14952,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.135', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.136', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
