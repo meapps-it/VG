@@ -12,6 +12,8 @@ import android.os.Bundle
 import android.text.InputType
 import android.webkit.*
 import android.widget.*
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.SystemBarStyle
@@ -32,6 +34,10 @@ import org.json.JSONTokener
 
 class VgPwaActivity : ComponentActivity() {
  private lateinit var web:WebView
+ private val appearance by lazy { VgAppearance(this) }
+ private val appearanceScript by lazy { assets.open("vg-android-appearance.js").bufferedReader().use { it.readText() } }
+ private var fontState:JSONObject?=null
+ private var fontRevision=0
  private val io=CoroutineScope(kotlinx.coroutines.SupervisorJob()+Dispatchers.IO)
  private var fileCallback:ValueCallback<Array<Uri>>?=null
  private val filePicker=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){result->fileCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result.resultCode,result.data));fileCallback=null}
@@ -51,27 +57,11 @@ class VgPwaActivity : ComponentActivity() {
    if(statusInset.layoutParams.height!=bars.top){statusInset.layoutParams=statusInset.layoutParams.apply{height=bars.top}}
    insets
   }
-  val settingsBar=LinearLayout(this).apply {
-   orientation=LinearLayout.HORIZONTAL
-   gravity=android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL
-   setPadding(8,2,12,2)
-   setBackgroundColor(Color.rgb(247,248,252))
-  }
-  val fontButton=Button(this).apply {
-   text="Aa · Testo"
-   textSize=13f
-   isAllCaps=false
-   contentDescription="Impostazioni dimensione font"
-   setOnClickListener{showFontSettings()}
-  }
-  settingsBar.addView(fontButton,LinearLayout.LayoutParams(-2,-2))
-  layout.addView(settingsBar,LinearLayout.LayoutParams(-1,-2))
   web=WebView(this);layout.addView(web,LinearLayout.LayoutParams(-1,0,1f));setContentView(layout)
   web.settings.javaScriptEnabled=true;web.settings.domStorageEnabled=true;web.settings.allowFileAccess=false;web.settings.allowContentAccess=true;web.settings.mixedContentMode=WebSettings.MIXED_CONTENT_NEVER_ALLOW
   web.settings.userAgentString=web.settings.userAgentString+" VgHybrid/"+BuildConfig.VERSION_NAME
-  web.settings.standardFontFamily="sans-serif"
-  web.settings.sansSerifFontFamily="sans-serif"
-  web.settings.textZoom=getFontPercentage()
+  web.settings.textZoom=appearance.zoom()
+  configureAppearance()
   web.settings.useWideViewPort=true
   web.settings.loadWithOverviewMode=true
   CookieManager.getInstance().setAcceptCookie(true)
@@ -91,7 +81,13 @@ class VgPwaActivity : ComponentActivity() {
     if(request.isForMainFrame&&request.hasGesture())runCatching{startActivity(Intent(Intent.ACTION_VIEW,uri))}
     return true
    }
-   override fun onPageFinished(view:WebView,url:String){if(trusted(url))captureSession(silent=true){jwt->io.launch{runCatching{val token=getSharedPreferences("vg_push",MODE_PRIVATE).getString("token",null);if(token!=null)VgPush.request(jwt,"register",JSONObject().put("token",token))}}}}
+   override fun shouldInterceptRequest(view:WebView,request:WebResourceRequest):WebResourceResponse? {
+    if(trusted(request.url.toString())&&request.url.lastPathSegment=="vg-font-settings.js")
+     return WebResourceResponse("application/javascript","UTF-8",java.io.ByteArrayInputStream(ByteArray(0)))
+    return null
+   }
+   override fun onPageCommitVisible(view:WebView,url:String){if(trusted(url))applyAppearance()}
+   override fun onPageFinished(view:WebView,url:String){if(trusted(url)){applyAppearance();captureSession(silent=true){jwt->io.launch{runCatching{val token=getSharedPreferences("vg_push",MODE_PRIVATE).getString("token",null);if(token!=null)VgPush.request(jwt,"register",JSONObject().put("token",token))}}}}}
   }
   web.webChromeClient=object:WebChromeClient(){override fun onShowFileChooser(view:WebView,callback:ValueCallback<Array<Uri>>,params:FileChooserParams):Boolean {fileCallback?.onReceiveValue(null);fileCallback=callback;return runCatching{filePicker.launch(params.createIntent());true}.getOrElse{fileCallback=null;false}}}
   web.setDownloadListener{url,_,_,_,_->runCatching{startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))}}
@@ -100,28 +96,44 @@ class VgPwaActivity : ComponentActivity() {
  }
  override fun onSaveInstanceState(outState:Bundle){super.onSaveInstanceState(outState);web.saveState(outState)}
  override fun onDestroy(){fileCallback?.onReceiveValue(null);io.coroutineContext[kotlinx.coroutines.Job]?.cancel();web.destroy();super.onDestroy()}
- private fun getFontPercentage():Int = getSharedPreferences("vg_android_settings",MODE_PRIVATE).getInt("font_percent",100).coerceIn(75,150)
- private fun showFontSettings(){
-  val holder=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(48,24,48,8)}
-  val value=TextView(this).apply{text="Dimensione del testo: ${getFontPercentage()}%";textSize=17f}
-  val slider=SeekBar(this).apply{max=15;progress=(getFontPercentage()-75)/5}
-  holder.addView(value)
-  holder.addView(slider)
-  slider.setOnSeekBarChangeListener(object:SeekBar.OnSeekBarChangeListener{
-   override fun onProgressChanged(seekBar:SeekBar?,progress:Int,fromUser:Boolean){
-    val percent=75+progress*5
-    value.text="Dimensione del testo: ${percent}%"
-    web.settings.textZoom=percent
-    getSharedPreferences("vg_android_settings",MODE_PRIVATE).edit().putInt("font_percent",percent).apply()
-   }
-   override fun onStartTrackingTouch(seekBar:SeekBar?){}
-   override fun onStopTrackingTouch(seekBar:SeekBar?){}
-  })
-  AlertDialog.Builder(this).setTitle("Impostazioni carattere").setView(holder)
-   .setNeutralButton("Ripristina 100%"){_,_->web.settings.textZoom=100;getSharedPreferences("vg_android_settings",MODE_PRIVATE).edit().putInt("font_percent",100).apply()}
-   .setPositiveButton("Chiudi",null).show()
+ override fun onResume(){
+  super.onResume()
+  if(::web.isInitialized){
+   web.settings.textZoom=appearance.zoom()
+   fontState=null
+   fontRevision++
+   applyAppearance()
+  }
  }
- private fun message(title:String,text:String){runOnUiThread{if(!isFinishing)AlertDialog.Builder(this).setTitle(title).setMessage(text).setPositiveButton("OK",null).show()}}
+ private fun configureAppearance(){
+  val origins=setOf("https://meapps-it.github.io")
+  if(WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+   WebViewCompat.addWebMessageListener(web,"VgAppearanceBridge",origins){view,msg,origin,mainFrame,_->
+    if(mainFrame&&origin.toString()=="https://meapps-it.github.io"&&trusted(view.url)) {
+     runCatching {
+      val data=JSONObject(msg.data.orEmpty())
+      when(data.optString("action")) {
+       "set"->{appearance.percent=data.getInt("percent");web.settings.textZoom=appearance.zoom();applyAppearance(false)}
+       "get"->applyAppearance()
+      }
+     }
+    }
+   }
+  }
+  if(WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT))
+   WebViewCompat.addDocumentStartJavaScript(web,appearanceScript,origins)
+ }
+ private fun applyAppearance(includeFont:Boolean=true){
+  if(!trusted(web.url))return
+  web.settings.textZoom=appearance.zoom()
+  val state=appearance.state()
+  if(includeFont){
+   val fonts=fontState?:appearance.fontState().also{fontState=it}
+   state.put("fontRevision",fontRevision).put("faces",fonts.getJSONArray("faces")).put("fontStatus",fonts.getString("fontStatus"))
+  }
+  web.evaluateJavascript(appearanceScript+";window.__vgApplyAppearance&&window.__vgApplyAppearance("+state.toString()+");",null)
+ }
+ private fun message(title:String,text:String){runOnUiThread{if(!isFinishing)AlertDialog.Builder(appearance.dialogContext()).setTitle(title).setMessage(text).setPositiveButton("OK",null).show()}}
  private fun captureSession(silent:Boolean=false,action:(String)->Unit){
   if(!trusted(web.url)){if(!silent)message("Accesso richiesto","Apri il gestionale e accedi con il tuo account amministratore.");return}
   web.evaluateJavascript("(function(){try{return localStorage.getItem('sb-qfjwtawsqfwmsmrrgqfi-auth-token')||''}catch(e){return ''}})()") {value->
@@ -134,7 +146,7 @@ class VgPwaActivity : ComponentActivity() {
   return client.newCall(req.build()).execute().use{response->val result=JSONObject(response.body?.string().orEmpty().ifBlank{"{}"});if(!response.isSuccessful)error(result.optString("error","Servizio non disponibile"));result}
  }
  private fun openAdminPreview(){captureSession{jwt->io.launch{runCatching{catalog(jwt,"admin-session",JSONObject()).getString("token")}.onSuccess{token->withContext(Dispatchers.Main){startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://simplexapp.it/shop/#admin_token="+token)))}}.onFailure{message("Anteprima non disponibile",it.message?:"Riprova")}}}}
- private fun passwordDialog(){val input=EditText(this).apply{inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD;hint="Almeno 6 caratteri"};AlertDialog.Builder(this).setTitle("Password del catalogo clienti").setMessage("Imposta una password unica. Dopo la modifica i clienti dovranno reinserirla.").setView(input).setNegativeButton("Annulla",null).setPositiveButton("Imposta"){_,_->val password=input.text.toString();if(password.length<6)message("Password troppo breve","Usa almeno 6 caratteri.")else captureSession{jwt->io.launch{runCatching{catalog(jwt,"set-password",JSONObject().put("password",password))}.onSuccess{message("Password aggiornata","La nuova password è attiva per il catalogo clienti.")}.onFailure{message("Errore",it.message?:"Riprova")}}}}.show()}
+ private fun passwordDialog(){val input=EditText(appearance.dialogContext()).apply{inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD;hint="Almeno 6 caratteri"};AlertDialog.Builder(appearance.dialogContext()).setTitle("Password del catalogo clienti").setMessage("Imposta una password unica. Dopo la modifica i clienti dovranno reinserirla.").setView(input).setNegativeButton("Annulla",null).setPositiveButton("Imposta"){_,_->val password=input.text.toString();if(password.length<6)message("Password troppo breve","Usa almeno 6 caratteri.")else captureSession{jwt->io.launch{runCatching{catalog(jwt,"set-password",JSONObject().put("password",password))}.onSuccess{message("Password aggiornata","La nuova password è attiva per il catalogo clienti.")}.onFailure{message("Errore",it.message?:"Riprova")}}}}.show()}
  private fun configurePush(){captureSession{jwt->io.launch{runCatching{VgPush.request(jwt,"config")}.onSuccess{result->withContext(Dispatchers.Main){val config=result.optJSONObject("client");if(config==null||!result.optBoolean("configured")){message("Notifiche non ancora configurate","Manca il collegamento Firebase del progetto. Le notifiche a app chiusa non sono ancora attive.");return@withContext};if(!VgPush.initialize(this@VgPwaActivity,config)){message("Configurazione non valida","Verifica il progetto Firebase.");return@withContext};if(Build.VERSION.SDK_INT>=33&&ContextCompat.checkSelfPermission(this@VgPwaActivity,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)else registerPush()}}.onFailure{message("Notifiche non disponibili",it.message?:"Riprova")}}}}
  private fun registerPush(){if(!VgPush.initialize(this)){message("Configurazione mancante","Collega prima il progetto Firebase.");return};FirebaseMessaging.getInstance().token.addOnSuccessListener{token->getSharedPreferences("vg_push",MODE_PRIVATE).edit().putString("token",token).apply();captureSession{jwt->io.launch{runCatching{VgPush.request(jwt,"register",JSONObject().put("token",token))}.onSuccess{message("Dispositivo registrato","Le notifiche dei nuovi ordini sono abilitate su questo telefono.")}.onFailure{message("Registrazione non riuscita",it.message?:"Riprova")}}}}.addOnFailureListener{message("Notifiche non disponibili",it.message?:"Riprova")}}
 }

@@ -18,7 +18,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: android-native
@@ -61,9 +61,46 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs app/build/outputs/apk/vg/debug/app-vg-debug.apk > "$RUNNER_TEMP/vg-signature.txt"
           cat "$RUNNER_TEMP/vg-signature.txt"
           python3 ci/verify-test-signature.py "$RUNNER_TEMP/vg-signature.txt"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install isolated browser test tools
+        run: npm install --prefix "$RUNNER_TEMP/vg-tests" --no-audit --no-fund playwright@1.58.2
+      - name: Install test browser
+        run: node "$RUNNER_TEMP/vg-tests/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Appearance and existing management regression checks
+        working-directory: .
+        env:
+          NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
+        run: |
+          node tests/android-appearance.test.cjs
+          node tests/management-ui.test.cjs
+          node tests/management-actions.test.cjs
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Android 35 real WebView, native font, slider, persistence and install smoke test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          working-directory: android-native
+          script: ./gradlew :app:connectedVgDebugAndroidTest
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VG-0.8.4-test-reports
+          path: |
+            android-native/app/build/reports/
+            android-native/app/build/outputs/androidTest-results/
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: VG-CI-0.8.3-test-signed
+          name: VG-CI-0.8.4-test-signed
           path: android-native/app/build/outputs/apk/vg/debug/app-vg-debug.apk
           if-no-files-found: error
