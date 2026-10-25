@@ -211,7 +211,7 @@ function setCheckout(step){
      const p=products.find(x=>x.id===id);return q+' × '+p.name+' · '+qualityLabel(p.quality)+' · '+euro(q*p.price)
    });
    const total=Object.entries(cart).reduce((v,[id,q])=>v+(products.find(p=>p.id===id)?.price||0)*q,0);
-   el('checkoutReview').textContent='ARTICOLI RICHIESTI\n'+lines.join('\n')+'\n\nTotale indicativo: '+euro(total)+'\n\nDATI CLIENTE\n'+['name','phone','email','address','city','cap','notes'].map(k=>String(f.get(k)||'').trim()).filter(Boolean).join(' · ')+'\n\nLa richiesta non comporta pagamento. Sarai ricontattato per la conferma.';
+   el('checkoutReview').textContent='ARTICOLI RICHIESTI\n'+lines.join('\n')+'\n\nTotale indicativo: '+euro(total)+'\n\nDATI CLIENTE\n'+['name','phone','address','city','cap','notes'].map(k=>String(k==='city'&&f.get('province')==='manual'?el('shippingCityManual').value:(f.get(k)||'')).trim()).filter(Boolean).join(' · ')+'\n\nLa richiesta non comporta pagamento. Sarai ricontattato per la conferma.';
  }
 }
 el('checkoutNext').onclick=()=>{if(!el('orderForm').reportValidity())return;setCheckout(3)};
