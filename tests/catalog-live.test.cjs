@@ -8,7 +8,7 @@ const assert=require('node:assert/strict');
   const context=await browser.newContext({viewport:{width,height:800},hasTouch:true,isMobile:width<650});
   const page=await context.newPage();page.setDefaultTimeout(45000);
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.route('**/functions/v1/vg-shop-catalog**',r=>r.request().method()==='GET'?r.continue():r.abort());
+  await page.route('**/functions/v1/vg-shop-catalog**',r=>(r.request().method()==='GET'||(process.env.VG_SHOP_PASSWORD&&new URL(r.request().url()).searchParams.get('action')==='login'))?r.continue():r.abort());
   // GitHub Pages can take a few minutes to deploy the main branch.
   for(let attempt=0;attempt<18;attempt++){
    await page.goto((process.env.CATALOG_LIVE_URL||'https://meapps-it.github.io/VG/catalogo-nuovo.html')+'?gallery-check='+Date.now());
