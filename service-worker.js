@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.137-hybrid-layout';
+const VERSION = 'gestionale-vg-1.0.138-hybrid-layout';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
@@ -47,6 +47,8 @@ self.addEventListener('fetch', event => {
   if(url.origin===self.location.origin &&
      (url.pathname.endsWith('manifest.json') ||
       url.pathname.endsWith('supabaseClient.js') ||
+      url.pathname.endsWith('vg-catalog-stats.js') ||
+      url.pathname.endsWith('vg-catalog-stats.css') ||
       /icon-|apple-touch|favicon/.test(url.pathname))){
     event.respondWith((async()=>{
       try{
