@@ -11,6 +11,9 @@ new web assets or waiting for a service worker update. It mounts the single
 The slider covers 75–150 in steps of 5, defaults to 100, updates immediately and
 resets to 100 without closing settings. `vg_android_settings/font_percent` is the
 single source of truth, retaining the preference from the previous APK.
+The controls remain disabled until Android acknowledges the saved value; a
+bounded read handshake handles navigation/restoration timing without writing
+the UI's temporary default back to preferences.
 Android SharedPreferences persists across process restarts and package updates.
 
 WebSettings.textZoom is set to round(system fontScale × chosen percentage).

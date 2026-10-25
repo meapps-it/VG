@@ -6,6 +6,7 @@
   window.__vgAppearanceInstalled = true;
   let state = {percent:100, systemPercent:100}, fontStatus = 'Carattere Android in verifica…';
   let loadedFonts = [], fontRevision = null, loadGeneration = 0;
+  let nativeReady = false, handshakeTimer = null, handshakeAttempts = 0;
   const style = document.createElement('style');
   style.id = 'vg-android-appearance-style';
   style.textContent = `
@@ -56,11 +57,12 @@
     document.getElementById('vg-font-value').textContent = state.percent + '%';
     document.getElementById('vg-font-system').textContent = 'Dimensione Android: ' + state.systemPercent + '%. La percentuale scelta si applica una sola volta alla dimensione del telefono.';
     document.getElementById('vg-font-status').textContent = fontStatus;
-    slider.disabled = !window.VgAppearanceBridge;
-    document.getElementById('vg-font-reset').disabled = !window.VgAppearanceBridge;
+    slider.disabled = !window.VgAppearanceBridge || !nativeReady;
+    document.getElementById('vg-font-reset').disabled = !window.VgAppearanceBridge || !nativeReady;
     if (!window.VgAppearanceBridge) document.getElementById('vg-font-status').textContent = 'Aggiorna Android System WebView per usare questo controllo.';
   }
   window.__vgApplyAppearance = async data => {
+    nativeReady = true; clearInterval(handshakeTimer);
     state = {percent:data.percent ?? state.percent, systemPercent:data.systemPercent ?? state.systemPercent};
     if (data.fontStatus && data.fontRevision !== fontRevision) fontStatus = data.fontStatus;
     render();
@@ -109,7 +111,20 @@
     new MutationObserver(records => {
       if (records.some(record => !record.target.closest?.('#vg-font-control'))) maintain();
     }).observe(document.documentElement, {childList:true, subtree:true});
-    post({action:'get'});
+    // During Activity restoration the bridge can exist before WebView.url settles.
+    // Retry the read handshake; never write the temporary 100% placeholder to Android.
+    if (window.VgAppearanceBridge) {
+      const request = () => {
+        if (nativeReady) return;
+        post({action:'get'});
+        if (++handshakeAttempts >= 40 && !nativeReady) {
+          clearInterval(handshakeTimer);
+          fontStatus = 'Impostazioni Android non ancora disponibili. Riapri l’app.'; sync();
+        }
+      };
+      handshakeTimer = setInterval(request,500); request();
+      window.addEventListener('pagehide',()=>clearInterval(handshakeTimer),{once:true});
+    }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once:true}); else start();
 })();
