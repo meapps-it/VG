@@ -32,7 +32,8 @@ object VgPush {
  }
  fun initialize(context:Context,config:JSONObject?=null):Boolean = runCatching {
   val prefs=context.getSharedPreferences("vg_push",Context.MODE_PRIVATE)
-  val data=config?:JSONObject(prefs.getString("config",null)?:return@runCatching false)
+  val bundled=JSONObject().put("applicationId","1:488302575194:android:07458f63e7a743c0a5e263").put("apiKey","AIzaSyDfL7ok1StnoNGbmQKJMrY6ALQRRy0gZCA").put("projectId","vg-notifiche").put("senderId","488302575194")
+  val data=config?:prefs.getString("config",null)?.let{JSONObject(it)}?:bundled
   if(FirebaseApp.getApps(context).isEmpty())FirebaseApp.initializeApp(context,FirebaseOptions.Builder().setApplicationId(data.getString("applicationId")).setApiKey(data.getString("apiKey")).setProjectId(data.getString("projectId")).setGcmSenderId(data.getString("senderId")).build())
   if(config!=null)prefs.edit().putString("config",config.toString()).apply()
   true
