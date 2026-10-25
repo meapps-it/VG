@@ -13939,7 +13939,10 @@ document.addEventListener('keydown',(ev)=>{
 document.getElementById('visualAiResults')?.addEventListener('click',e=>{ if(e.target.closest('[data-open="art"]')) vgCloseVisualArticleSearch(); });
 document.getElementById('qArtCat')?.addEventListener('change', ()=>{ setArtBrowse('mixed','','',false); renderArt(); });
 document.getElementById('qArtBrand')?.addEventListener('change', renderArt);
-document.getElementById('pricingMarkupMode')?.addEventListener('change',fillPricingSettings);
+document.getElementById('pricingMarkupMode')?.addEventListener('change',()=>{
+  const value=document.getElementById('pricingMarkupValue');
+  if(value) value.disabled=document.getElementById('pricingMarkupMode').value==='manual';
+});
 document.getElementById('a_iva')?.addEventListener('input',()=>{ renderArtAutoFields(); saveArticleDraft(); });
 
 bindSearchSuggest('qCli','qCliSuggest','cli', ()=>renderCli());

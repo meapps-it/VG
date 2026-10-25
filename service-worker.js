@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.143-font-settings';
+const VERSION = 'gestionale-vg-1.0.144-pricing-mode';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
