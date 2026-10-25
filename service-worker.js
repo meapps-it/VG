@@ -1,7 +1,7 @@
-const VERSION = 'gestionale-vg-1.0.144-pricing-mode';
+const VERSION = 'gestionale-vg-1.0.145-quality-autofill';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
-  './', './index.html', './manifest.json',
+  './', './index.html', './manifest.json', './vg-quality-pricing.js',
   './icon-v1-192.png', './icon-v1-512.png', './icon-v1-maskable-512.png',
   './apple-touch-icon-v1.png', './favicon-v1-32.png',
 ];
@@ -64,6 +64,7 @@ self.addEventListener('fetch', event => {
       url.pathname.endsWith('vg-catalog-stats.js') ||
       url.pathname.endsWith('vg-catalog-stats.css') ||
       url.pathname.endsWith('vg-font-settings.js') ||
+      url.pathname.endsWith('vg-quality-pricing.js') ||
       /icon-|apple-touch|favicon/.test(url.pathname))){
     event.respondWith((async()=>{
       try{

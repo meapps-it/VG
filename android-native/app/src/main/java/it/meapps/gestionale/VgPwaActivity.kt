@@ -59,7 +59,7 @@ class VgPwaActivity : ComponentActivity() {
   }
   web=WebView(this);layout.addView(web,LinearLayout.LayoutParams(-1,0,1f));setContentView(layout)
   web.settings.javaScriptEnabled=true;web.settings.domStorageEnabled=true;web.settings.allowFileAccess=false;web.settings.allowContentAccess=true;web.settings.mixedContentMode=WebSettings.MIXED_CONTENT_NEVER_ALLOW
-  web.settings.userAgentString=web.settings.userAgentString+" VgHybrid/"+BuildConfig.VERSION_NAME
+  web.settings.userAgentString=web.settings.userAgentString+" VgHybrid/"+BuildConfig.VERSION_NAME+" VgClipboard/1"
   web.settings.textZoom=appearance.zoom()
   configureAppearance()
   web.settings.useWideViewPort=true
@@ -74,6 +74,7 @@ class VgPwaActivity : ComponentActivity() {
       "password"->passwordDialog()
       "notifications"->configurePush()
       "refresh"->web.reload()
+      "clipboard"->pasteArticleClipboard()
      }
      return true
     }
@@ -82,6 +83,8 @@ class VgPwaActivity : ComponentActivity() {
     return true
    }
    override fun shouldInterceptRequest(view:WebView,request:WebResourceRequest):WebResourceResponse? {
+    if(trusted(request.url.toString())&&request.url.lastPathSegment=="vg-quality-pricing.js")
+     return WebResourceResponse("application/javascript","UTF-8",assets.open("vg-quality-pricing.js"))
     if(trusted(request.url.toString())&&request.url.lastPathSegment=="vg-font-settings.js")
      return WebResourceResponse("application/javascript","UTF-8",java.io.ByteArrayInputStream(ByteArray(0)))
     return null
@@ -132,6 +135,11 @@ class VgPwaActivity : ComponentActivity() {
    state.put("fontRevision",fontRevision).put("sources",fonts.getJSONArray("sources")).put("faces",fonts.getJSONArray("faces")).put("fontStatus",fonts.getString("fontStatus"))
   }
   web.evaluateJavascript(appearanceScript+";window.__vgApplyAppearance&&window.__vgApplyAppearance("+state.toString()+");",null)
+ }
+ private fun pasteArticleClipboard(){
+  val clipboard=getSystemService(android.content.ClipboardManager::class.java)
+  val text=clipboard?.primaryClip?.takeIf{it.itemCount>0}?.getItemAt(0)?.coerceToText(this)?.toString().orEmpty()
+  web.evaluateJavascript("window.vgReceiveArticleClipboard&&window.vgReceiveArticleClipboard("+JSONObject.quote(text)+");",null)
  }
  private fun message(title:String,text:String){runOnUiThread{if(!isFinishing)AlertDialog.Builder(appearance.dialogContext()).setTitle(title).setMessage(text).setPositiveButton("OK",null).show()}}
  private fun captureSession(silent:Boolean=false,action:(String)->Unit){

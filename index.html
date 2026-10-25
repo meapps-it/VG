@@ -585,6 +585,7 @@ window.addEventListener('error',e=>{
 });
 
 </script>
+<script src="./vg-quality-pricing.js?v=0.8.5"></script>
 <script src="supabaseClient.js"></script>
   <meta name="vg-version" content="v152-owner-login-no-license">
 
@@ -757,7 +758,7 @@ window.addEventListener('error',e=>{
       <div class="grid2 artFilterGrid" style="margin-top:10px">
         <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
         <div><select id="qArtBrand"><option value="">Tutte le marche</option></select></div>
-        
+
       </div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn" type="button" data-action="clearArtFilters">Mostra prodotti</button>
@@ -929,20 +930,22 @@ window.addEventListener('error',e=>{
 
       <div class="card" style="margin-top:12px">
         <div class="h2">Prezzi, ricarico e IVA</div>
-        <div class="small">Scegli una sola regola di ricarico. Le vecchie regole automatiche per qualità e margine non vengono più usate.</div>
+        <div class="small">Le fasce Original e Top/Standard sono la regola predefinita. Puoi scegliere anche percentuale, importo fisso o prezzo manuale.</div>
         <div class="grid2" style="margin-top:10px">
           <div><div class="k">Tipo ricarico</div><select id="pricingMarkupMode">
+            <option value="quality">Fasce Original / Top-Standard</option>
             <option value="percent">Percentuale sul costo</option>
             <option value="fixed">Maggiorazione fissa €</option>
             <option value="manual">Prezzo manuale</option>
           </select></div>
-          <div><div class="k">Valore ricarico</div><input id="pricingMarkupValue" inputmode="decimal" placeholder="Es. 30"/></div>
+          <div><div class="k">Valore per percentuale/importo fisso</div><input id="pricingMarkupValue" inputmode="decimal" placeholder="Es. 30"/></div>
         </div>
         <div class="grid2" style="margin-top:10px">
           <div><div class="k">IVA predefinita %</div><input id="pricingVatDefault" inputmode="decimal" placeholder="22"/></div>
           <div><div class="k">IVA per categoria</div><textarea id="pricingVatCategories" rows="4" placeholder="Alimentari = 10&#10;Bevande = 22&#10;Libri = 4"></textarea></div>
         </div>
         <div class="small" style="margin-top:8px">Nella scheda articolo puoi scrivere una percentuale IVA manuale. Se la lasci vuota viene usata prima la regola della categoria, poi l'IVA predefinita.</div>
+        <div class="small" style="margin-top:8px">Fasce Original: fino a 210 € +70 €, fino a 230 € +75 €, fino a 250 € +80 €, fino a 300 € +85 €, fino a 350 € +95 €; oltre: il maggiore tra 110 € e il 25% del costo. Top/Standard: fino a 50 € +45 €, fino a 80 € +55 €, fino a 120 € +60 €, fino a 160 € +70 €, fino a 220 € +80 €; oltre: il maggiore tra 90 € e il 25% del costo.</div><div class="small" style="margin-top:8px">Le fasce mantengono il calcolo precedente: costo + ricarico arrotondato per difetto a 5 €, poi +10 € di trattativa per Original. In questa modalità l’IVA configurata non viene aggiunta al prezzo; viene usata nelle modalità percentuale e importo fisso.</div>
         <div class="actions" style="margin-top:10px"><button class="btn primary" type="button" data-action="savePricingSettings">Salva regole prezzi</button></div>
       </div>
 
@@ -1085,6 +1088,8 @@ window.addEventListener('error',e=>{
 
 <div id="mArtEdit" class="modalwrap"><div class="modal artModal">
   <div class="h2" id="artEditTitle">Nuovo articolo</div>
+  <button type="button" class="btn bulkPasteLaunch" data-action="openBulkPasteArticle">Incolla dati articolo</button>
+  <div class="small" style="margin:6px 0 12px">Compila i campi da un blocco di testo preparato da ChatGPT. Puoi controllare e modificare i dati prima di salvare.</div>
   <div style="display:none!important" aria-hidden="true"><textarea id="a_post"></textarea><textarea id="a_post_ig"></textarea></div>
 
   <div class="formBlock dati inputSoft">
@@ -1152,9 +1157,10 @@ window.addEventListener('error',e=>{
 
   <div class="formBlock prezzi inputSoft">
     <div class="blockTitle">Prezzo fornitore</div>
+    <div style="margin-top:10px"><label class="k" for="a_qual">Qualità per il ricarico</label><input id="a_qual" list="a_quality_presets" autocomplete="off" placeholder="Original Quality oppure Top Quality"/><datalist id="a_quality_presets"><option value="Original Quality 🥇"></option><option value="Top Quality 🥈"></option></datalist><div class="helper">Jayden: Original. Daniel e Jessica: Top/Standard. Con altri fornitori scegli la qualità.</div></div>
     <div><div class="k">Prezzo fornitore USD</div><input id="a_usd" inputmode="decimal" autocomplete="off"/></div>
     <div style="display:none!important">
-      <input id="a_qual"/><datalist id="a_quality_presets"></datalist>
+
       <input id="a_usd_promo" inputmode="decimal"/>
       <input id="a_supplier_promo_on" type="checkbox"/>
       <input id="a_std_cost_unknown" type="checkbox"/>
@@ -1208,7 +1214,7 @@ window.addEventListener('error',e=>{
   </div>
 </div></div>
 
-<div id="mArtBulkPaste" class="modalwrap" style="display:none!important"><div class="modal">
+<div id="mArtBulkPaste" class="modalwrap" style="display:none"><div class="modal">
   <div class="h2">Incolla dati articolo</div>
   <div class="bulkPasteHint">Incolla il blocco preparato da ChatGPT. Descrizione e note vengono ignorate. Se il costo reale manca, puoi importare una stima: resterà sempre indicata come ipotetica.</div>
   <textarea id="a_bulk_paste" class="bulkPasteBox" style="margin-top:10px" placeholder="CODICE: 202357&#10;BRAND:&#10;MODELLO:&#10;CATEGORIA:&#10;FORNITORE:&#10;MATERIALE:&#10;VARIANTE:&#10;TIPO COLORE:&#10;COLORE:&#10;DISPONIBILE IN COLORI:&#10;ABBINAMENTO NUMERO / COLORE:&#10;MISURE:&#10;ALTEZZA CINTURA:&#10;PREZZO FORNITORE USD:&#10;PREZZO FORNITORE PROMO USD:&#10;SCADENZA PROMO FORNITORE:&#10;LINK: https://...&#10;PREZZO UFFICIALE EUR:&#10;COSTO FORNITORE STIMATO USD:&#10;COSTO FORNITORE STIMATO EUR:&#10;STIMA MINIMA EUR:&#10;STIMA MASSIMA EUR:&#10;AFFIDABILITÀ STIMA:&#10;METODO STIMA:&#10;CAMPIONI STIMA:"></textarea>
@@ -4274,7 +4280,7 @@ async function shareCurrentArticlePhotos(channel='fb'){
   try{
     const shared = await tryNativeShareArticleFiles(files, ctx.baseName);
     if(shared){
-      
+
       toast(isTelegramChannel ? 'Condivisione aperta. Se Telegram è installato, scegli Telegram dalla condivisione.' : (files.length===1 ? 'Condivisione aperta.' : `Condivisione aperta per ${files.length} foto.`));
       return;
     }
@@ -4283,7 +4289,7 @@ async function shareCurrentArticlePhotos(channel='fb'){
       const sheetFile=getCachedArticlePhotoSheetForCtx(ctx) || await ensureCurrentArticlePhotoSheet(ctx, files);
       const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
       if(sheetShared){
-        
+
         toast(isTelegramChannel ? `Ho aperto la condivisione. Se Telegram è installato, sceglilo dall'elenco app.` : `La condivisione multipla è stata rifiutata dal browser. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
         return;
       }
@@ -4302,7 +4308,7 @@ async function shareCurrentArticlePhotos(channel='fb'){
         const sheetFile=getCachedArticlePhotoSheetForCtx(ctx) || await ensureCurrentArticlePhotoSheet(ctx, files);
         const sheetShared = sheetFile ? await tryNativeShareArticleFiles([sheetFile], `${ctx.baseName||'articolo'}_tutte_le_foto`) : false;
         if(sheetShared){
-          
+
           toast(isTelegramChannel ? `Ho aperto la condivisione. Se Telegram è installato, sceglilo dall'elenco app.` : `La condivisione multipla non è passata. Ho aperto una tavola unica con tutte e ${files.length} le foto.`);
           return;
         }
@@ -4984,8 +4990,8 @@ function qualityPricingKey(value=''){
   const raw=normalizeSpaceText(value||'').toLowerCase();
   if(!raw) return '';
   const key=raw.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'');
-  if(key.includes('originalquality') || key.includes('originale') || key==='orig' || key==='or') return 'ORIGINALE';
-  if(key.includes('topquality') || key.includes('standard') || key==='std' || key.includes('top100')) return 'STANDARD';
+  if(key.includes('originalquality') || key.includes('originale') || ['original','orig','or'].includes(key)) return 'ORIGINALE';
+  if(key.includes('topquality') || key.includes('standard') || ['std','top'].includes(key) || key.includes('top100')) return 'STANDARD';
   if(/[🥇]/u.test(raw)) return 'ORIGINALE';
   if(/[🥈🔝💯]/u.test(raw)) return 'STANDARD';
   return '';
@@ -5119,56 +5125,6 @@ function handleSupplierLinkChange(){
   updateSupplierField(document.getElementById('a_forn')?.value||'');
   renderArtAutoFields();
   saveArticleDraft();
-}
-function recommendedProfitByQuality(costo, qual){
-  const cost=Math.max(0,Number(costo||0));
-  const quality=qualityPricingKey(qual);
-  if(!(cost>0)) return 0;
-  // Soglie ORIGINAL QUALITY riviste per mantenere prezzi più competitivi:
-  // fino a 210 €  -> 70 €
-  // 210,01-230 €  -> 75 €
-  // 230,01-250 €  -> 80 €
-  // 250,01-300 €  -> 85 €
-  // 300,01-350 €  -> 95 €
-  // oltre 350 €   -> 110 € oppure 25% del costo, il maggiore
-  if(quality==='ORIGINALE'){
-    if(cost<=210) return 70;
-    if(cost<=230) return 75;
-    if(cost<=250) return 80;
-    if(cost<=300) return 85;
-    if(cost<=350) return 95;
-    return Math.max(110,cost*0.25);
-  }
-  // TOP QUALITY / STANDARD, rimessa in pari con la revisione Original:
-  // fino a 50 €   -> 45 €
-  // 50,01-80 €    -> 55 €
-  // 80,01-120 €   -> 60 €
-  // 120,01-160 €  -> 70 €
-  // 160,01-220 €  -> 80 €
-  // oltre 220 €   -> 90 € oppure 25% del costo, il maggiore
-  if(cost<=50) return 45;
-  if(cost<=80) return 55;
-  if(cost<=120) return 60;
-  if(cost<=160) return 70;
-  if(cost<=220) return 80;
-  return Math.max(90,cost*0.25);
-}
-function calcSellFromEurCost(cost, qual){
-  const costo=Math.max(0,Number(cost||0));
-  if(!(costo>0)) return {costo:0,sell:0,marg:0,theoretical:0,minPrice:0,buffer:0,highCost:false};
-  const quality=qualityPricingKey(qual);
-  const marg=recommendedProfitByQuality(costo,quality);
-  const theoretical=roundDown5(costo+marg);
-  // Il prezzo teorico è il pavimento economico: costo + guadagno minimo.
-  // Sull'Original Quality aggiungiamo 10 € al prezzo consigliato per lasciare
-  // un piccolo spazio di trattativa senza intaccare il guadagno minimo.
-  const buffer=quality==='ORIGINALE' ? 10 : 0;
-  return {costo,sell:roundUp5(theoretical+buffer),marg,theoretical,minPrice:theoretical,buffer,highCost:(quality==='ORIGINALE'?costo>350:costo>220)};
-}
-function calcFromUsd(usd, qual){
-  const costo=(Number(usd||0)*0.90)+5;
-  if(!isFinite(costo) || !(costo>0)) return {costo:0,sell:0,marg:0,theoretical:0,highCost:false};
-  return calcSellFromEurCost(costo,qual);
 }
 function sortedQuantile(values,q){
   const arr=(values||[]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
@@ -10439,13 +10395,15 @@ function renderFinanze(){
   renderStorageInfo();
 }
 
-const PRICING_SETTINGS_KEY='vg_pricing_settings_v2';
-function defaultPricingSettings(){ return {mode:'percent',value:30,vatDefault:22,vatByCategory:{}}; }
+const PRICING_SETTINGS_KEY='vg_pricing_settings_v3_quality';
+function defaultPricingSettings(){ return {mode:'quality',value:30,vatDefault:22,vatByCategory:{}}; }
 function loadPricingSettings(){
  try{
-  const raw=JSON.parse(localStorage.getItem(PRICING_SETTINGS_KEY)||'{}');
+  const stored=localStorage.getItem(PRICING_SETTINGS_KEY);
+  const raw=JSON.parse(stored||localStorage.getItem('vg_pricing_settings_v2')||'{}');
+  if(!stored) raw.mode='quality';
   const d=defaultPricingSettings();
-  const mode=['percent','fixed','manual'].includes(raw?.mode)?raw.mode:d.mode;
+  const mode=['quality','percent','fixed','manual'].includes(raw?.mode)?raw.mode:d.mode;
   const value=Math.max(0,Number(raw?.value??d.value)||0);
   const vatDefault=Math.max(0,Math.min(100,Number(raw?.vatDefault??d.vatDefault)||0));
   const vatByCategory=(raw?.vatByCategory&&typeof raw.vatByCategory==='object')?raw.vatByCategory:{};
@@ -10473,12 +10431,12 @@ function fillPricingSettings(){
  const vat=document.getElementById('pricingVatDefault');
  const cats=document.getElementById('pricingVatCategories');
  if(mode) mode.value=p.mode;
- if(value){ value.value=p.value; value.disabled=p.mode==='manual'; }
- if(vat) vat.value=p.vatDefault;
- if(cats) cats.value=vatRulesToText(p.vatByCategory);
+ if(value){ value.value=p.value; value.disabled=['manual','quality'].includes(p.mode); }
+ if(vat){vat.value=p.vatDefault;vat.disabled=p.mode==='quality';}
+ if(cats){cats.value=vatRulesToText(p.vatByCategory);cats.disabled=p.mode==='quality';}
 }
 function savePricingSettings(){
- const mode=document.getElementById('pricingMarkupMode')?.value||'percent';
+ const mode=document.getElementById('pricingMarkupMode')?.value||'quality';
  const value=Math.max(0,Number(String(document.getElementById('pricingMarkupValue')?.value||'0').replace(',','.'))||0);
  const vatDefault=Math.max(0,Math.min(100,Number(String(document.getElementById('pricingVatDefault')?.value||'22').replace(',','.'))||0));
  const vatByCategory=parseVatCategoryRules(document.getElementById('pricingVatCategories')?.value||'');
@@ -10497,17 +10455,19 @@ function resolveArticleVatPercent(article={}, formMode=false){
  if(key && Object.prototype.hasOwnProperty.call(p.vatByCategory,key)) return Number(p.vatByCategory[key])||0;
  return Number(p.vatDefault)||0;
 }
-function recommendedProfitByQuality(costo,_qual){
+function recommendedProfitByQuality(costo,qual){
  const p=loadPricingSettings(), cost=Math.max(0,Number(costo)||0);
  if(!(cost>0)) return 0;
+ if(p.mode==='quality') return VgQualityPricing.profit(cost,qualityPricingKey(qual));
  if(p.mode==='percent') return cost*(p.value/100);
  if(p.mode==='fixed') return p.value;
  return 0;
 }
-function calcSellFromEurCost(cost,_qual,articleOrCategory=null){
+function calcSellFromEurCost(cost,qual,articleOrCategory=null){
  const costo=Math.max(0,Number(cost||0));
  if(!(costo>0)) return {costo:0,sell:0,marg:0,theoretical:0,minPrice:0,buffer:0,highCost:false};
  const p=loadPricingSettings();
+ if(p.mode==='quality') return VgQualityPricing.calculate(costo,qualityPricingKey(qual));
  if(p.mode==='manual') return {costo,sell:0,marg:0,theoretical:0,minPrice:0,buffer:0,highCost:false};
  const ricarico=p.mode==='percent' ? costo*(p.value/100) : p.value;
  const netto=costo+ricarico;
@@ -10515,15 +10475,12 @@ function calcSellFromEurCost(cost,_qual,articleOrCategory=null){
  const sell=Math.round(netto*(1+vat/100)*100)/100;
  return {costo,sell,marg:ricarico,theoretical:sell,minPrice:0,buffer:0,highCost:false,iva:vat};
 }
-function calcFromUsd(usd,_qual,articleOrCategory=null){
+function calcFromUsd(usd,qual,articleOrCategory=null){
  const costo=(Number(usd||0)*0.90)+5;
  if(!isFinite(costo)||!(costo>0)) return {costo:0,sell:0,marg:0,theoretical:0,highCost:false};
- return calcSellFromEurCost(costo,'',articleOrCategory);
+ return calcSellFromEurCost(costo,qual,articleOrCategory);
 }
 function articleQualityLabel(){ return ''; }
-function getEffectiveArticleQuality(){ return ''; }
-function currentArticleFormQuality(){ return ''; }
-function qualityPricingKey(){ return ''; }
 function articleMarginInfo(){ return null; }
 function articleMarginInfoHtml(a){ return articleCostInfoHtml(a); }
 function articleMinimumPriceWarningHtml(){ return ''; }
@@ -10824,6 +10781,7 @@ async function openBulkPasteArticle(){
 }
 async function readBulkPasteClipboard(){
   const box=document.getElementById('a_bulk_paste');
+  if(navigator.userAgent.includes('VgClipboard/1')){location.href='vgapp://clipboard';return;}
   try{
     const text=await navigator.clipboard.readText();
     if(!text) throw new Error('Appunti vuoti');
@@ -10838,6 +10796,12 @@ async function readBulkPasteClipboard(){
     try{ document.activeElement?.blur?.(); }catch(_e){}
     toast('Impossibile leggere gli appunti automaticamente. Tocca il riquadro solo se vuoi incollare manualmente.');
   }
+}
+function vgReceiveArticleClipboard(text){
+  const box=document.getElementById('a_bulk_paste');
+  if(!text){toast('Appunti vuoti');return;}
+  if(box){box.value=text;box.blur();}
+  toast('Testo incollato: premi Compila campi');
 }
 function applyBulkPasteArticle(){
   const box=document.getElementById('a_bulk_paste');
@@ -11374,10 +11338,11 @@ function renderArtAutoFields(){
   }
 
   const usd=hasUsd ? Number(usdRaw) : 0;
-  const pricingCtx={categoria:document.getElementById('a_cat')?.value||'',ivaPercent:document.getElementById('a_iva')?.value||''}; const r=usd>0 ? calcFromUsd(usd, '', pricingCtx) : (hasAcceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,'',pricingCtx) : {costo:0,sell:0,marg:0});
+  const pricingCtx={categoria:document.getElementById('a_cat')?.value||'',ivaPercent:document.getElementById('a_iva')?.value||''}; const r=usd>0 ? calcFromUsd(usd, qual, pricingCtx) : (hasAcceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,qual,pricingCtx) : {costo:0,sell:0,marg:0});
   const promoUsd=hasPromoUsd ? Number(usdPromoRaw) : 0;
-  const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, '', pricingCtx) : {costo:0, sell:0, marg:0};
+  const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual, pricingCtx) : {costo:0, sell:0, marg:0};
   const baseCalc=Number(r.costo)>0?r:rPromo;
+  if(sellHint && baseCalc.needsQuality){sellHint.style.display='block';sellHint.textContent='Scegli Original Quality oppure Top Quality per calcolare il prezzo.';}
   const recommendedSell=Number(baseCalc.sell||0);
   const theoreticalSell=Number(baseCalc.theoretical||((Number(baseCalc.costo)||0)+(Number(baseCalc.marg)||0))||0);
   const profitMinimum=0;
@@ -11639,6 +11604,7 @@ async function saveArt(){
     const acceptedEstimate=(!usd && !promoUsd) ? acceptedArticleCostEstimate() : null;
     const r=usd>0 ? calcFromUsd(usd, qual) : (acceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,qual) : {costo:0,sell:0,marg:0});
     const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0,theoretical:0};
+    if((r.needsQuality||rPromo.needsQuality)&&loadPricingSettings().mode==='quality'){toast('Scegli la qualità: Original oppure Top/Standard');document.getElementById('a_qual')?.focus();return;}
     const chosenSale=Number(document.getElementById('a_sell')?.value||0) || Number(r.sell||rPromo.sell||0);
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
@@ -13941,7 +13907,9 @@ document.getElementById('qArtCat')?.addEventListener('change', ()=>{ setArtBrows
 document.getElementById('qArtBrand')?.addEventListener('change', renderArt);
 document.getElementById('pricingMarkupMode')?.addEventListener('change',()=>{
   const value=document.getElementById('pricingMarkupValue');
-  if(value) value.disabled=document.getElementById('pricingMarkupMode').value==='manual';
+  const mode=document.getElementById('pricingMarkupMode').value;
+  if(value) value.disabled=['manual','quality'].includes(mode);
+  for(const id of ['pricingVatDefault','pricingVatCategories']){const field=document.getElementById(id);if(field)field.disabled=mode==='quality';}
 });
 document.getElementById('a_iva')?.addEventListener('input',()=>{ renderArtAutoFields(); saveArticleDraft(); });
 

@@ -64,7 +64,7 @@ class VgAppearanceDeviceTest {
                     view = web(activity.window.decorView)!!
                     view.stopLoading()
                     view.loadDataWithBaseURL("https://meapps-it.github.io/VG/",
-                        """<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}.card{padding:12px}p{font-size:16px}button{font-size:16px}</style></head><body><div id="sec_impostazioni"></div><p id="sample">Articoli e clienti</p><i class="fa" style="font-family:monospace" id="icon">*</i></body></html>""",
+                        """<html><head><script src="https://meapps-it.github.io/VG/vg-quality-pricing.js"></script><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}.card{padding:12px}p{font-size:16px}button{font-size:16px}</style></head><body><div id="sec_impostazioni"></div><p id="sample">Articoli e clienti</p><i class="fa" style="font-family:monospace" id="icon">*</i></body></html>""",
                         "text/html","UTF-8","https://meapps-it.github.io/VG/")
                 }
                 await(view, "document.getElementById('vg-font-range') && !document.getElementById('vg-font-range').disabled")
@@ -78,6 +78,9 @@ class VgAppearanceDeviceTest {
                 val fonts = VgAppearance(activity).fontState()
                 android.util.Log.i("VgAppearanceTest", "Native faces=" + fonts.getJSONArray("faces").length() + "; " + fonts.getString("fontStatus"))
             }
+            assertEquals("75",eval(view,"VgQualityPricing.profit(210.01,'ORIGINALE')"))
+            assertEquals("290",eval(view,"VgQualityPricing.calculate(210,'ORIGINALE').sell"))
+            assertEquals("90",eval(view,"VgQualityPricing.profit(220.01,'STANDARD')"))
             assertEquals("100%", eval(view, "document.getElementById('vg-font-value').textContent"))
             await(view, "document.documentElement.style.getPropertyValue('--vg-android-font') === 'VgAndroidSystem'")
             assertEquals("monospace",eval(view,"getComputedStyle(document.getElementById('icon')).fontFamily"))
@@ -105,6 +108,30 @@ class VgAppearanceDeviceTest {
             eval(view,"document.getElementById('vg-font-reset').click();'ok'")
             await(view,"document.getElementById('vg-font-value').textContent === '100%'")
             assertEquals(100,VgAppearance(ctx).percent)
+            // Script navigation cannot read clipboard; an explicit tap can.
+            val copied = "CODICE: TEST-CLIP\nMODELLO: \"Prova\""
+            instrumentation.runOnMainSync {
+                ctx.getSystemService(android.content.ClipboardManager::class.java)
+                    .setPrimaryClip(android.content.ClipData.newPlainText("test",copied))
+            }
+            eval(view,"window.vgReceiveArticleClipboard=text=>window.testClip=text;const b=document.createElement('button');b.id='native-paste';b.textContent='Incolla';b.onclick=()=>location.href='vgapp://clipboard';document.body.appendChild(b);location.href='vgapp://clipboard';'ok'")
+            Thread.sleep(250)
+            assertEquals("undefined",eval(view,"typeof window.testClip"))
+            eval(view,"document.getElementById('native-paste').scrollIntoView({block:'center'});'ok'")
+            val point=org.json.JSONObject(eval(view,"JSON.stringify((()=>{const r=document.getElementById('native-paste').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2,width:innerWidth}})())"))
+            val origin=IntArray(2)
+            var scale=1f
+            instrumentation.runOnMainSync {view.getLocationOnScreen(origin);scale=view.width/point.getDouble("width").toFloat()}
+            val x=origin[0]+point.getDouble("x").toFloat()*scale
+            val y=origin[1]+point.getDouble("y").toFloat()*scale
+            val now=android.os.SystemClock.uptimeMillis()
+            for(action in listOf(android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_UP)){
+                val event=android.view.MotionEvent.obtain(now,android.os.SystemClock.uptimeMillis(),action,x,y,0)
+                event.source=android.view.InputDevice.SOURCE_TOUCHSCREEN
+                instrumentation.sendPointerSync(event);event.recycle()
+            }
+            await(view,"typeof window.testClip === 'string'")
+            assertEquals(copied,eval(view,"window.testClip"))
             // An untrusted top-level origin never receives the bridge or APK controls.
             scenario.onActivity { view.loadDataWithBaseURL("https://example.org/","<html><body>Untrusted</body></html>","text/html","UTF-8","https://example.org/") }
             await(view,"document.body && document.body.textContent === 'Untrusted'")
