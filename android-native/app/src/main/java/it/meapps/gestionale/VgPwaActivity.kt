@@ -14,6 +14,8 @@ import android.webkit.*
 import android.widget.*
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.google.firebase.messaging.FirebaseMessaging
@@ -39,8 +41,16 @@ class VgPwaActivity : ComponentActivity() {
  @SuppressLint("SetJavaScriptEnabled")
  override fun onCreate(savedInstanceState:Bundle?) {
   super.onCreate(savedInstanceState)
-  val layout=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setBackgroundColor(Color.rgb(248,245,239))}
-  androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(layout){view,insets->val bars=insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars());view.setPadding(bars.left,bars.top,bars.right,bars.bottom);insets}
+  enableEdgeToEdge(statusBarStyle=SystemBarStyle.dark(Color.TRANSPARENT),navigationBarStyle=SystemBarStyle.light(Color.TRANSPARENT,Color.TRANSPARENT))
+  val layout=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setBackgroundColor(Color.rgb(247,248,252))}
+  val statusInset=android.view.View(this).apply{setBackgroundColor(Color.rgb(15,23,42))}
+  layout.addView(statusInset,LinearLayout.LayoutParams(-1,0))
+  androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(layout){view,insets->
+   val bars=insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+   view.setPadding(bars.left,0,bars.right,maxOf(bars.bottom,insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom))
+   if(statusInset.layoutParams.height!=bars.top){statusInset.layoutParams=statusInset.layoutParams.apply{height=bars.top}}
+   insets
+  }
   web=WebView(this);layout.addView(web,LinearLayout.LayoutParams(-1,0,1f));setContentView(layout)
   web.settings.javaScriptEnabled=true;web.settings.domStorageEnabled=true;web.settings.allowFileAccess=false;web.settings.allowContentAccess=true;web.settings.mixedContentMode=WebSettings.MIXED_CONTENT_NEVER_ALLOW
   web.settings.userAgentString=web.settings.userAgentString+" VgHybrid/"+BuildConfig.VERSION_NAME
