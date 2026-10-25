@@ -1,3 +1,4 @@
+import {accessAction,catalogSession,trackVisit} from "./shop-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const PROJECT = Deno.env.get("SUPABASE_URL")!;
 const KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -16,6 +17,10 @@ Deno.serve(async(req)=>{
   if(origin&&!ALLOWED_ORIGINS.has(origin))return fail("Origine non autorizzata",403);
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
   const url=new URL(req.url);
+  const action=url.searchParams.get("action")||"";
+  const handled=await accessAction(db,req,OWNER,action,out);if(handled)return handled;
+  const viewer=await catalogSession(db,req,OWNER);if(!viewer)return fail("Inserisci la password del catalogo",401);
+
   if(req.method==="GET"){
     if(url.searchParams.get("action")!=="catalog")return fail("Operazione non valida",404);
     const {data,error}=await published(db.from("prodotti").select("id,sku,nome,descrizione,descrizione_app,marca,prezzo_vendita,in_promozione,prezzo_promozionale,categoria_id,giacenza").order("nome",{ascending:true}).limit(400));
@@ -61,7 +66,8 @@ Deno.serve(async(req)=>{
       const description=rawDescription.replace(/\[VGMETA\][\s\S]*?\[\/VGMETA\]/gi," ").replace(/\[VGMETA\][\s\S]*$/gi,"").trim();
       return {id:p.id,sku:p.sku,name:p.nome,description,brand,category:categoryMap.get(p.categoria_id)||"Altri articoli",price:promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita),originalPrice:Number(p.prezzo_vendita),promotion:promo,image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
     });
-    return out({items,imagesExpiresAt});
+    await trackVisit(db,OWNER,viewer);
+    return out({items,imagesExpiresAt,administrator:viewer.is_admin});
   }
   if(req.method!=="POST")return fail("Metodo non consentito",405);
   const length=Number(req.headers.get("content-length")||0);
@@ -105,6 +111,12 @@ Deno.serve(async(req)=>{
     if(oe)throw oe;orderId=order.id;
     const {error:re}=await db.from("righe_ordine").insert(lines.map(x=>({user_id:OWNER,ordine_id:orderId,prodotto_id:x.id,quantita:x.qty,prezzo_unitario:x.price,sconto:0,costo_unitario:0,guadagno_riga:0})));
     if(re)throw re;
+    const queued=await db.from("vg_shop_notification_outbox").insert({order_id:order.id,owner_id:OWNER});
+    if(queued.error)console.error("VG shop notification queue unavailable");
+    else if(Deno.env.get("FCM_SERVICE_ACCOUNT")){
+      const dispatch=fetch(PROJECT+"/functions/v1/vg-shop-push",{method:"POST",headers:{"Authorization":"Bearer "+KEY,"Content-Type":"application/json"},body:JSON.stringify({action:"dispatch",orderId:order.id})}).catch(()=>console.error("VG shop push delivery pending"));
+      if(typeof EdgeRuntime!=="undefined")EdgeRuntime.waitUntil(dispatch);else await dispatch;
+    }
     return out({ok:true,number:order.numero_ordine});
   }catch(e){
     if(orderId)await db.from("ordini").delete().eq("id",orderId).eq("user_id",OWNER);

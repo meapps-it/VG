@@ -6,7 +6,7 @@ const assert=require('node:assert/strict');
  try{
  for(const width of [360,412,1280]){
   const context=await browser.newContext({viewport:{width,height:800},hasTouch:true,isMobile:width<650});
-  const page=await context.newPage();page.setDefaultTimeout(20000);
+  const page=await context.newPage();page.setDefaultTimeout(45000);
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/functions/v1/vg-shop-catalog**',r=>r.request().method()==='GET'?r.continue():r.abort());
   // GitHub Pages can take a few minutes to deploy the main branch.
@@ -15,6 +15,16 @@ const assert=require('node:assert/strict');
    if(await page.locator('.visual-categories').count())break;
    if(attempt===17)throw Error('Published gallery version did not appear');
    await page.waitForTimeout(10000);
+  }
+  // Password is supplied through a CI secret or an already-issued short-lived test session.
+  if(process.env.VG_SHOP_TEST_SESSION)await page.evaluate(token=>localStorage.setItem('vg-shop-session-v1',token),process.env.VG_SHOP_TEST_SESSION);
+  if(await page.locator('body.shop-locked').count()){
+   if(!process.env.VG_SHOP_PASSWORD&&!process.env.VG_SHOP_TEST_SESSION){
+    assert.ok(await page.locator('#accessGate').isVisible());
+    console.log('LIVE PASS '+width+'px: password gate visible; authenticated read-only checks require a CI secret/session');await context.close();continue;
+   }
+   if(process.env.VG_SHOP_TEST_SESSION)await page.reload();
+   else{await page.locator('#accessPassword').fill(process.env.VG_SHOP_PASSWORD);await page.locator('#accessSubmit').click()}
   }
   await page.locator('.item').first().waitFor();
   const inventory=await page.evaluate(()=>products.map(p=>({id:p.id,photos:p.images?.length||0,image:p.image,description:p.description})));

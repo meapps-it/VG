@@ -23,6 +23,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
   });
   await page.route('https://photos.test/**',r=>r.request().url().includes('broken')?r.fulfill({status:404}):r.fulfill({contentType:'image/png',body:png}));
   await page.route(API+'**',r=>{assert.equal(r.request().method(),'GET');requests++;return r.fulfill({contentType:'application/json',body:JSON.stringify({items:[item('many',[photo(1),photo(2),photo(3)]),item('single',[photo(4)]),item('none',[]),item('broken',[photo('broken'),photo(5)])],imagesExpiresAt:Date.now()+(requests===1?1000:3600000)})})});
+  await page.addInitScript(()=>localStorage.setItem('vg-shop-session-v1','a'.repeat(64)));
   await page.goto(base);await page.locator('.item').first().waitFor();
   await page.locator('[data-detail="many"]').first().click();
   await page.waitForFunction(()=>document.querySelector('#galleryCount').textContent==='1 / 3');
@@ -48,7 +49,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
   assert.equal(await page.locator('#productHero img').evaluate(e=>getComputedStyle(e).objectFit),'contain');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow');
   await page.locator('#productQty').fill('2');await page.locator('#productAdd').click();assert.match(await page.locator('#total').textContent(),/50,00/);
-  await page.locator('input[name=name]').fill('Cliente di prova');await page.locator('input[name=phone]').fill('3330000000');await page.locator('input[name=address]').fill('Via di prova 1');await page.locator('input[name=city]').fill('Torino');await page.locator('input[name=privacy]').check();
+  await page.locator('input[name=name]').fill('Cliente di prova');await page.locator('input[name=phone]').fill('3330000000');await page.locator('input[name=address]').fill('Via di prova 1');await page.locator('input[name=city]').fill('Torino');await page.locator('input[name=privacy]').check();await page.locator('select[name=province]').selectOption('manual');await page.locator('input[name=cap]').fill('10100');
   await page.locator('#checkoutNext').click();assert.match(await page.locator('#checkoutReview').textContent(),/2 × Borsa many/);assert.ok(await page.locator('#sendOrder').isVisible());
   await page.locator('#checkoutBack').click();await page.locator('#closeCart').click();
   for(const [id,counter] of [['single','1 / 1'],['none','Nessuna fotografia'],['broken','1 / 2']]){

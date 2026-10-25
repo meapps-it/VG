@@ -6,6 +6,7 @@ on:
       - 'catalogo-nuovo.html'
       - 'shop-*'
       - 'shop-icons/**'
+      - 'shop-data/**'
       - 'supabase/functions/vg-shop-catalog/**'
       - 'tests/catalog-*.cjs'
       - '.github/workflows/catalog-gallery.yml'
@@ -30,8 +31,9 @@ jobs:
         env:
           NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
         run: |
-          node --test tests/catalog-api.test.cjs
+          node --test tests/catalog-api.test.cjs tests/catalog-access.test.cjs
           node tests/catalog-dom.test.cjs
+          node tests/catalog-shipping.test.cjs
           node tests/catalog-gallery.test.cjs
       - name: Verify the published catalog (read only)
         if: github.ref == 'refs/heads/main'

@@ -9,6 +9,8 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images?.[0],price:25,
  let requests=0;
  const dom=new JSDOM(html,{url:'https://meapps-it.github.io/VG/catalogo-nuovo.html',runScripts:'dangerously',pretendToBeVisual:true,beforeParse(w){
   w.HTMLElement.prototype.scrollIntoView=function(){};
+  w.shopAccess={fetch:(...args)=>w.fetch(...args),viewer:()=>{},start:load=>{w.document.body.classList.remove('shop-locked');load().catch(()=>{})}};
+  w.shopShipping={load:()=>{},save:()=>{}};
   w.fetch=async(url,options)=>{assert.notEqual(options?.method,'POST','No orders should be sent by tests');requests++;return {ok:true,json:async()=>({items:[item('many',[image(1),image(2),image(3)]),item('single',[image(4)]),item('empty',[]),item('legacy',undefined)],imagesExpiresAt:Date.now()+(requests===1?1000:3600000)})}};
  }});
  const w=dom.window,doc=w.document,$=id=>doc.getElementById(id),tick=()=>new Promise(r=>setTimeout(r,0));
@@ -34,7 +36,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images?.[0],price:25,
  $('galleryNext').click();assert.ok($('productHero').querySelector('img'));
  $('productQty').value='2';$('productAdd').click();assert.match($('total').textContent,/50,00/);
  for(const [name,value] of Object.entries({name:'Cliente prova',phone:'3330000000',address:'Via prova 1',city:'Torino'}))doc.querySelector('[name='+name+']').value=value;
- doc.querySelector('[name=privacy]').checked=true;$('checkoutNext').click();assert.match($('checkoutReview').textContent,/2 × Borsa many/);assert.equal($('sendOrder').classList.contains('checkout-hide'),false);
+ doc.querySelector('[name=privacy]').checked=true;doc.querySelector('[name=province]').value='manual';doc.querySelector('[name=cap]').value='12081';$('checkoutNext').click();assert.match($('checkoutReview').textContent,/2 × Borsa many/);assert.equal($('sendOrder').classList.contains('checkout-hide'),false);
  $('checkoutBack').click();$('closeCart').click();
  click('[data-detail=single]');assert.equal($('galleryCount').textContent,'1 / 1');assert.equal($('galleryNext').hidden,true);assert.equal($('galleryThumbs').children.length,0);$('closeProduct').click();
  click('[data-detail=empty]');assert.equal($('productHero').disabled,true);assert.match($('productHero').textContent,/Nessuna fotografia/);$('closeProduct').click();

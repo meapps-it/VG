@@ -12,12 +12,21 @@ android {
         applicationId = "it.meapps.gestionale"
         minSdk = 26
         targetSdk = 36
-        versionCode = 15
-        versionName = "0.7.4"
+        versionCode = 16
+        versionName = "0.8.0"
 
         buildConfigField("String", "SUPABASE_URL", "\"https://qfjwtawsqfwmsmrrgqfi.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_-EUVjwsk3txKk2Opqrc7Kw_xFNa9Hw1\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    flavorDimensions += "experience"
+    productFlavors {
+        create("native") { dimension = "experience" }
+        create("vg") {
+            dimension = "experience"
+            applicationId = "com.vg.gestionale.seconda"
+        }
     }
 
     buildFeatures {
@@ -52,6 +61,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.google.firebase:firebase-messaging:25.0.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("com.android.billingclient:billing-ktx:9.1.0")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
