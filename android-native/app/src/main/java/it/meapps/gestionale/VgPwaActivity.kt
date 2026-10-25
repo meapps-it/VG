@@ -51,12 +51,27 @@ class VgPwaActivity : ComponentActivity() {
    if(statusInset.layoutParams.height!=bars.top){statusInset.layoutParams=statusInset.layoutParams.apply{height=bars.top}}
    insets
   }
+  val settingsBar=LinearLayout(this).apply {
+   orientation=LinearLayout.HORIZONTAL
+   gravity=android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL
+   setPadding(8,2,12,2)
+   setBackgroundColor(Color.rgb(247,248,252))
+  }
+  val fontButton=Button(this).apply {
+   text="Aa · Testo"
+   textSize=13f
+   isAllCaps=false
+   contentDescription="Impostazioni dimensione font"
+   setOnClickListener{showFontSettings()}
+  }
+  settingsBar.addView(fontButton,LinearLayout.LayoutParams(-2,-2))
+  layout.addView(settingsBar,LinearLayout.LayoutParams(-1,-2))
   web=WebView(this);layout.addView(web,LinearLayout.LayoutParams(-1,0,1f));setContentView(layout)
   web.settings.javaScriptEnabled=true;web.settings.domStorageEnabled=true;web.settings.allowFileAccess=false;web.settings.allowContentAccess=true;web.settings.mixedContentMode=WebSettings.MIXED_CONTENT_NEVER_ALLOW
   web.settings.userAgentString=web.settings.userAgentString+" VgHybrid/"+BuildConfig.VERSION_NAME
   web.settings.standardFontFamily="sans-serif"
   web.settings.sansSerifFontFamily="sans-serif"
-  web.settings.textZoom=(resources.configuration.fontScale*100).toInt()
+  web.settings.textZoom=getFontPercentage()
   web.settings.useWideViewPort=true
   web.settings.loadWithOverviewMode=true
   CookieManager.getInstance().setAcceptCookie(true)
@@ -85,6 +100,27 @@ class VgPwaActivity : ComponentActivity() {
  }
  override fun onSaveInstanceState(outState:Bundle){super.onSaveInstanceState(outState);web.saveState(outState)}
  override fun onDestroy(){fileCallback?.onReceiveValue(null);io.coroutineContext[kotlinx.coroutines.Job]?.cancel();web.destroy();super.onDestroy()}
+ private fun getFontPercentage():Int = getSharedPreferences("vg_android_settings",MODE_PRIVATE).getInt("font_percent",100).coerceIn(75,150)
+ private fun showFontSettings(){
+  val holder=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(48,24,48,8)}
+  val value=TextView(this).apply{text="Dimensione del testo: ${getFontPercentage()}%";textSize=17f}
+  val slider=SeekBar(this).apply{max=15;progress=(getFontPercentage()-75)/5}
+  holder.addView(value)
+  holder.addView(slider)
+  slider.setOnSeekBarChangeListener(object:SeekBar.OnSeekBarChangeListener{
+   override fun onProgressChanged(seekBar:SeekBar?,progress:Int,fromUser:Boolean){
+    val percent=75+progress*5
+    value.text="Dimensione del testo: ${percent}%"
+    web.settings.textZoom=percent
+    getSharedPreferences("vg_android_settings",MODE_PRIVATE).edit().putInt("font_percent",percent).apply()
+   }
+   override fun onStartTrackingTouch(seekBar:SeekBar?){}
+   override fun onStopTrackingTouch(seekBar:SeekBar?){}
+  })
+  AlertDialog.Builder(this).setTitle("Impostazioni carattere").setView(holder)
+   .setNeutralButton("Ripristina 100%"){_,_->web.settings.textZoom=100;getSharedPreferences("vg_android_settings",MODE_PRIVATE).edit().putInt("font_percent",100).apply()}
+   .setPositiveButton("Chiudi",null).show()
+ }
  private fun message(title:String,text:String){runOnUiThread{if(!isFinishing)AlertDialog.Builder(this).setTitle(title).setMessage(text).setPositiveButton("OK",null).show()}}
  private fun captureSession(silent:Boolean=false,action:(String)->Unit){
   if(!trusted(web.url)){if(!silent)message("Accesso richiesto","Apri il gestionale e accedi con il tuo account amministratore.");return}
