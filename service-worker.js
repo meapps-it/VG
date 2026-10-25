@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.142-system-font';
+const VERSION = 'gestionale-vg-1.0.143-font-settings';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',
@@ -25,6 +25,20 @@ self.addEventListener('activate', event => {
   })());
 });
 
+async function withFontSettings(response) {
+  if (!response || !response.ok) return response;
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('text/html')) return response;
+  const html = await response.text();
+  if (html.includes('vg-font-settings.js')) return new Response(html, response);
+  const tag = '<script src="./vg-font-settings.js" defer></script>';
+  const transformed = html.includes('</head>') ? html.replace('</head>', tag + '</head>') : tag + html;
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  headers.delete('content-encoding');
+  return new Response(transformed, { status:response.status, statusText:response.statusText, headers });
+}
+
 self.addEventListener('fetch', event => {
   const req=event.request;
   if(req.method!=='GET') return;
@@ -36,9 +50,9 @@ self.addEventListener('fetch', event => {
         const fresh=await fetch(req,{cache:'no-store'});
         const cache=await caches.open(CACHE);
         cache.put('./index.html',fresh.clone());
-        return fresh;
+        return withFontSettings(fresh);
       }catch(_e){
-        return (await caches.match('./index.html')) || Response.error();
+        return withFontSettings((await caches.match('./index.html')) || Response.error());
       }
     })());
     return;
@@ -49,6 +63,7 @@ self.addEventListener('fetch', event => {
       url.pathname.endsWith('supabaseClient.js') ||
       url.pathname.endsWith('vg-catalog-stats.js') ||
       url.pathname.endsWith('vg-catalog-stats.css') ||
+      url.pathname.endsWith('vg-font-settings.js') ||
       /icon-|apple-touch|favicon/.test(url.pathname))){
     event.respondWith((async()=>{
       try{
