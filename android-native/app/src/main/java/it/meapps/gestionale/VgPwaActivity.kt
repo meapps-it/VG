@@ -55,6 +55,8 @@ class VgPwaActivity : ComponentActivity() {
   web.settings.javaScriptEnabled=true;web.settings.domStorageEnabled=true;web.settings.allowFileAccess=false;web.settings.allowContentAccess=true;web.settings.mixedContentMode=WebSettings.MIXED_CONTENT_NEVER_ALLOW
   web.settings.userAgentString=web.settings.userAgentString+" VgHybrid/"+BuildConfig.VERSION_NAME
   web.settings.textZoom=100
+  web.settings.useWideViewPort=true
+  web.settings.loadWithOverviewMode=true
   CookieManager.getInstance().setAcceptCookie(true)
   web.webViewClient=object:WebViewClient(){
    override fun shouldOverrideUrlLoading(view:WebView,request:WebResourceRequest):Boolean {
