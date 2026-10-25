@@ -23,7 +23,7 @@ Deno.serve(async(req)=>{
 
   if(req.method==="GET"){
     if(url.searchParams.get("action")!=="catalog")return fail("Operazione non valida",404);
-    const {data,error}=await published(db.from("prodotti").select("id,sku,nome,descrizione,descrizione_app,marca,prezzo_vendita,in_promozione,prezzo_promozionale,categoria_id,giacenza").order("nome",{ascending:true}).limit(400));
+    const {data,error}=await published(db.from("prodotti").select("id,sku,nome,descrizione,descrizione_app,marca,qualita,prezzo_vendita,in_promozione,prezzo_promozionale,categoria_id,giacenza").order("nome",{ascending:true}).limit(400));
     if(error)throw error;
     const ids=(data||[]).map((x:any)=>x.id);
     // Page explicitly: PostgREST's row cap must not silently truncate galleries.
@@ -63,7 +63,7 @@ Deno.serve(async(req)=>{
       const rawDescription=String(p.descrizione_app||p.descrizione||"");
       let meta:any={};try{meta=JSON.parse(rawDescription.match(/\[VGMETA\]([\s\S]*?)\[\/VGMETA\]/i)?.[1]||"{}")}catch{}
       const brand=valid(p.marca||meta?.brand||"",100);
-      const rawQuality=String(meta?.qualita||meta?.qualità||"").trim().toUpperCase();
+      const rawQuality=String(p.qualita||meta?.qualita||meta?.qualità||"").trim().toUpperCase();
       const quality=rawQuality==="ORIGINALE"?"ORIGINALE":rawQuality==="STANDARD"?"STANDARD":"";
       const description=rawDescription.replace(/\[VGMETA\][\s\S]*?\[\/VGMETA\]/gi," ").replace(/\[VGMETA\][\s\S]*$/gi,"").trim();
       return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||"Senza categoria",price:promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita),originalPrice:Number(p.prezzo_vendita),promotion:promo,image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
