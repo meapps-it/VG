@@ -26,11 +26,11 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
   await page.locator('#galleryNext').click();assert.equal(await page.locator('#galleryCount').textContent(),'2 / 3');
   await page.locator('#galleryPrev').click();assert.equal(await page.locator('#galleryCount').textContent(),'1 / 3');
   await page.getByRole('button',{name:'Mostra fotografia 3',exact:true}).click();assert.equal(await page.locator('#galleryCount').textContent(),'3 / 3');
-  await page.locator('#productHero').dispatchEvent('touchstart',{touches:[{clientX:250,clientY:200}]});
-  await page.locator('#productHero').dispatchEvent('touchend',{changedTouches:[{clientX:100,clientY:205}]});
+  await page.locator('#productHero').dispatchEvent('touchstart',{touches:[{identifier:1,clientX:250,clientY:200}]});
+  await page.locator('#productHero').dispatchEvent('touchend',{changedTouches:[{identifier:1,clientX:100,clientY:205}]});
   assert.equal(await page.locator('#galleryCount').textContent(),'1 / 3');
-  await page.locator('#productHero').dispatchEvent('touchstart',{touches:[{clientX:100,clientY:200}]});
-  await page.locator('#productHero').dispatchEvent('touchend',{changedTouches:[{clientX:250,clientY:205}]});
+  await page.locator('#productHero').dispatchEvent('touchstart',{touches:[{identifier:1,clientX:100,clientY:200}]});
+  await page.locator('#productHero').dispatchEvent('touchend',{changedTouches:[{identifier:1,clientX:250,clientY:205}]});
   assert.equal(await page.locator('#galleryCount').textContent(),'3 / 3');
   await page.waitForTimeout(410);await page.locator('#productHero').click();
   assert.equal(await page.locator('#photoZoom').getAttribute('aria-hidden'),'false');
