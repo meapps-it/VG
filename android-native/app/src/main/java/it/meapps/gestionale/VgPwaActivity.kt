@@ -92,7 +92,7 @@ class VgPwaActivity : ComponentActivity() {
    }
    override fun onPageCommitVisible(view:WebView,url:String){if(trusted(url))applyAppearance()}
    override fun onPageFinished(view:WebView,url:String){if(trusted(url)){applyAppearance();captureSession(silent=true){jwt->
-    if(!autoPushAttempted){autoPushAttempted=true; if(getSharedPreferences("vg_push",MODE_PRIVATE).getString("token",null)==null) configurePush()}
+    if(!autoPushAttempted){autoPushAttempted=true; val missingToken=getSharedPreferences("vg_push",MODE_PRIVATE).getString("token",null)==null; val missingPermission=Build.VERSION.SDK_INT>=33&&ContextCompat.checkSelfPermission(this@VgPwaActivity,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED; if(missingToken||missingPermission) configurePush()}
     io.launch{runCatching{val token=getSharedPreferences("vg_push",MODE_PRIVATE).getString("token",null);if(token!=null)VgPush.request(jwt,"register",JSONObject().put("token",token))}}
    }}}
   }
