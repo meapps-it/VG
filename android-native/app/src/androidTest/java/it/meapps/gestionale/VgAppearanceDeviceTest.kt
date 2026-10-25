@@ -71,14 +71,27 @@ class VgAppearanceDeviceTest {
                 scenario.onActivity { activity ->
                     view = web(activity.window.decorView)!!
                     view.stopLoading()
-                    view.loadDataWithBaseURL("https://meapps-it.github.io/VG/",
-                        """<html><head><script src="https://meapps-it.github.io/VG/vg-quality-pricing.js"></script><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}.card{padding:12px}p{font-size:16px}button{font-size:16px}</style></head><body><div id="sec_impostazioni"></div><p id="sample">Articoli e clienti</p><i class="fa" style="font-family:monospace" id="icon">*</i></body></html>""",
-                        "text/html","UTF-8","https://meapps-it.github.io/VG/")
+                    val html="""<html><head><script src="https://meapps-it.github.io/VG/vg-quality-pricing.js"></script><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}.card{padding:12px}p{font-size:16px}button{font-size:16px}</style></head><body><div id="sec_impostazioni"></div><p id="sample">Articoli e clienti</p><i class="fa" style="font-family:monospace" id="icon">*</i></body></html>"""
+                    val delegate=requireNotNull(view.webViewClient)
+                    view.webViewClient=object:android.webkit.WebViewClient(){
+                        override fun shouldInterceptRequest(v:WebView,r:android.webkit.WebResourceRequest):android.webkit.WebResourceResponse? {
+                            if(r.isForMainFrame&&r.url.path=="/VG/__appearance_device_fixture.html")
+                                return android.webkit.WebResourceResponse("text/html","UTF-8",java.io.ByteArrayInputStream(html.toByteArray()))
+                            return delegate.shouldInterceptRequest(v,r)
+                        }
+                        override fun onPageFinished(v:WebView,url:String){delegate.onPageFinished(v,url)}
+                        override fun onPageCommitVisible(v:WebView,url:String){delegate.onPageCommitVisible(v,url)}
+                        override fun shouldOverrideUrlLoading(v:WebView,r:android.webkit.WebResourceRequest):Boolean {
+                            if(r.url.scheme=="vgapp")android.util.Log.i("VgNativeActionTest","host=${r.url.host}; gesture=${r.hasGesture()}; main=${r.isForMainFrame}")
+                            return delegate.shouldOverrideUrlLoading(v,r)
+                        }
+                    }
+                    view.loadUrl("https://meapps-it.github.io/VG/__appearance_device_fixture.html?t="+System.nanoTime())
                 }
                 await(view, "document.getElementById('vg-font-range') && !document.getElementById('vg-font-range').disabled")
             }
             fixture()
-            scenario.onActivity { assertEquals("https://meapps-it.github.io/VG/",view.url) }
+            scenario.onActivity { assertTrue(view.url.orEmpty().startsWith("https://meapps-it.github.io/VG/__appearance_device_fixture.html")) }
             scenario.onActivity { activity ->
                 val themeFont = activity.obtainStyledAttributes(intArrayOf(android.R.attr.fontFamily))
                 try { assertNull("VG theme must not inherit a forced font family",themeFont.getString(0)) }
