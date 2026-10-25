@@ -4,13 +4,34 @@
  const opener=document.getElementById('vgCatalogStatsOpen');if(!opener)return;
  const hybrid=/\bVgHybrid\/\d/.test(navigator.userAgent);
  document.querySelectorAll('.vgNativeAction').forEach(link=>{
-  link.hidden=!hybrid;
+  const password=link.getAttribute('href')==='vgapp://password';
+  link.hidden=!hybrid&&!password;
   link.addEventListener('click',()=>{if(typeof setTopMenuOpen==='function')setTopMenuOpen(false)});
+  if(password)link.addEventListener('click',event=>{event.preventDefault();openPasswordDialog()});
  });
  const dialog=document.createElement('dialog');dialog.id='vgCatalogStats';dialog.className='vgStatsDialog';dialog.setAttribute('aria-labelledby','vgStatsTitle');
  dialog.innerHTML='<header class="vgStatsHeader"><div id="vgStatsTitle" class="vgStatsHeading" role="heading" aria-level="2">Statistiche catalogo</div><button type="button" id="vgStatsClose">Chiudi ✕</button></header><div class="vgStatsContent"><p class="vgStatsStatus" id="vgStatsStatus" role="status" aria-live="polite"></p><button type="button" class="vgStatsRetry" id="vgStatsRetry" hidden>Riprova</button><div id="vgStatsResults" hidden><div class="vgStatsSummary" id="vgStatsSummary"></div><figure class="vgStatsFigure" style="margin-top:16px"><figcaption>Andamento degli accessi</figcaption><p>Visite giornaliere al catalogo clienti</p><div class="vgStatsRange" role="group" aria-label="Periodo del grafico"><button type="button" data-vg-days="7" aria-pressed="true">7 giorni</button><button type="button" data-vg-days="30" aria-pressed="false">30 giorni</button></div><div class="vgStatsChartScroll"><ol class="vgStatsBars" id="vgStatsBars" aria-label="Visite per giorno"></ol></div><p id="vgStatsEmpty" hidden>Nessuna visita nel periodo selezionato.</p></figure><p class="vgStatsNote" id="vgStatsDefinition"></p><p class="vgStatsNote">I tuoi accessi tramite anteprima amministratore sono esclusi.</p></div></div>';
  document.body.append(dialog);
  const el=id=>document.getElementById(id),number=value=>Math.max(0,Math.trunc(Number(value)||0));
+ const passwordDialog=document.createElement('dialog');passwordDialog.id='vgOwnerPassword';passwordDialog.className='vgStatsDialog';passwordDialog.setAttribute('aria-labelledby','vgOwnerPasswordTitle');
+ passwordDialog.innerHTML='<header class="vgStatsHeader"><div id="vgOwnerPasswordTitle" class="vgStatsHeading" role="heading" aria-level="2">Password clienti</div><button type="button" id="vgOwnerPasswordClose">Chiudi ✕</button></header><form id="vgOwnerPasswordForm" class="vgStatsContent vgPasswordForm"><p class="vgStatsNote">Imposta la password del catalogo, di almeno 6 caratteri. Dopo la modifica i clienti dovranno reinserirla.</p><label for="vgOwnerPasswordValue">Nuova password<input id="vgOwnerPasswordValue" type="password" minlength="6" maxlength="128" required autocomplete="new-password"></label><label for="vgOwnerPasswordConfirm">Ripeti password<input id="vgOwnerPasswordConfirm" type="password" minlength="6" maxlength="128" required autocomplete="new-password"></label><button class="vgStatsRetry" id="vgOwnerPasswordSave" type="submit">Salva password</button><p id="vgOwnerPasswordStatus" class="vgStatsStatus" role="status" aria-live="polite"></p></form>';
+ document.body.append(passwordDialog);
+ function openPasswordDialog(){el('vgOwnerPasswordForm').reset();el('vgOwnerPasswordStatus').textContent='';if(!passwordDialog.open)passwordDialog.showModal()}
+ el('vgOwnerPasswordClose').addEventListener('click',()=>passwordDialog.close());
+ passwordDialog.addEventListener('close',()=>{el('vgOwnerPasswordForm').reset()});
+ el('vgOwnerPasswordForm').addEventListener('submit',async event=>{
+  event.preventDefault();const password=el('vgOwnerPasswordValue').value,status=el('vgOwnerPasswordStatus'),button=el('vgOwnerPasswordSave');
+  if(password.length<6){status.textContent='Usa almeno 6 caratteri.';return}
+  if(password!==el('vgOwnerPasswordConfirm').value){status.textContent='Le due password non coincidono.';return}
+  button.disabled=true;status.textContent='Salvataggio…';
+  try{
+   const client=await window.VG_SUPABASE_READY;if(!client)throw Error('Connessione al gestionale non disponibile.');
+   const result=await client.auth.getSession();if(result.error||!result.data?.session?.access_token)throw Error('Accedi con il tuo account amministratore.');
+   const response=await fetch(endpoint.replace('action=stats','action=set-password'),{method:'POST',headers:{Authorization:'Bearer '+result.data.session.access_token,'Content-Type':'application/json'},body:JSON.stringify({password})});
+   const data=await response.json();if(!response.ok)throw Error(response.status===403?'Operazione riservata al titolare del catalogo.':data.error||'Salvataggio non riuscito.');
+   el('vgOwnerPasswordForm').reset();status.textContent='Password aggiornata. I clienti dovranno reinserirla.';
+  }catch(error){status.textContent=error.message||'Salvataggio non riuscito. Riprova.'}finally{button.disabled=false}
+ });
  let daily=[],days=7,controller=null;
  function renderChart(){
   const rows=daily.slice(-days),max=Math.max(1,...rows.map(row=>number(row.visits))),list=el('vgStatsBars');list.replaceChildren();list.classList.toggle('vgStatsMonth',days===30);

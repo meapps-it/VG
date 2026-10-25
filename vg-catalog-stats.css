@@ -38,3 +38,9 @@ html,body,button,input,select,textarea{font-family:system-ui,-apple-system,"Sego
 @media(max-width:380px){.vgStatsContent{padding:12px}.vgStatsCard{padding:13px}.vgStatsHeader{padding:14px}.vgStatsHeading{font-size:18px}.vgStatsFigure{padding:13px}.vgStatsBars{gap:6px}}
 
 .bulkPasteBox{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.vgPasswordForm label{display:grid;gap:8px;font-size:14px;font-weight:700}
+.vgPasswordForm input{font:inherit;font-size:16px;min-height:44px;max-width:100%}
+.vgPasswordForm button:disabled{opacity:.6}
+
+/* Follow the renderer default font; do not select a named substitute. */
+html,body{font-family:sans-serif!important}body *{font-family:inherit!important}

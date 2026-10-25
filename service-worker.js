@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.139-system-font';
+const VERSION = 'gestionale-vg-1.0.141-default-font';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json',

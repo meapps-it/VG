@@ -1,7 +1,17 @@
 # V&G ibrida
 
 Build existing project variant: `./gradlew :app:assembleVgDebug :app:lintVgDebug :app:testVgDebugUnitTest`.
-Package: `com.vg.gestionale.seconda`; version 0.8.2 (18). The existing native Compose experience is retained as the `native` flavor.
+Package: `com.vg.gestionale.seconda`; version 0.8.3 (19). The existing native Compose experience is retained as the `native` flavor.
+
+## Signing and existing installations
+
+The previously delivered 0.8.0/0.8.1/0.8.2 APKs used three different ephemeral Android Debug certificates. They cannot update each other. The original private keys were not retained. Do not promise that resigning a replacement APK will update one of those installations, and do not tell the owner to uninstall without a verified backup of local data and photographs.
+
+CI now uses an explicit project-relative test keystore and verifies its certificate fingerprint before uploading. The public CI debug key is ONLY a reproducible test identity. **Never deliver the CI test-signed artifact as an app update.**
+
+The persistent private delivery identity is held outside Git in the owner's private file `VG-Android-signing-private.json`. Resolve and materialize that exact file through the owner's private file storage before signing; never regenerate it if it already exists, never print its contents and never put it in this repository or the APK. The bundle contains the expected certificate fingerprint, keystore and credentials. Use `ci/sign-delivery.py --config <private-file> --input <CI-apk> --output <delivery-apk> --apksig-jar <pinned-Google-Maven-apksig-8.13.2.jar>`. The script refuses a wrong application package, library or certificate. Verify the final signer and increasing versionCode against the preceding DELIVERY artifact before sharing any new APK.
+
+The existing installed hybrid apps can continue receiving web changes. In particular, Password clienti now uses the shared web form, accepting six characters even on the old APK, and never requires reinstalling it merely to change the catalog password.
 
 The `vg` launcher loads the existing remote VG PWA over HTTPS. Product data, web UI, catalog and checkout updates deploy online; Android framework, permissions and native integrations require a new APK. The wrapper supports persistent web storage, file chooser, external downloads and back navigation, without exposing a JavaScript-to-Java bridge.
 

@@ -12,8 +12,8 @@ android {
         applicationId = "it.meapps.gestionale"
         minSdk = 26
         targetSdk = 36
-        versionCode = 18
-        versionName = "0.8.2"
+        versionCode = 19
+        versionName = "0.8.3"
 
         buildConfigField("String", "SUPABASE_URL", "\"https://qfjwtawsqfwmsmrrgqfi.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_-EUVjwsk3txKk2Opqrc7Kw_xFNa9Hw1\"")
@@ -32,6 +32,14 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    // Test builds must never silently generate a new identity on a fresh runner.
+    signingConfigs.getByName("debug") {
+        storeFile = rootProject.file("ci/debug.keystore")
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
     }
 
     buildTypes {

@@ -28,6 +28,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
    const file=path.join(root,name);return fs.existsSync(file)?route.fulfill({path:file}):route.abort();
   });
   await page.route('**/functions/v1/vg-shop-catalog**',route=>{
+   if(route.request().method()==='POST'){assert.equal(new URL(route.request().url()).searchParams.get('action'),'set-password');assert.deepEqual(route.request().postDataJSON(),{password:'test-6'});return route.fulfill({contentType:'application/json',body:'{"ok":true}'});}
    assert.equal(route.request().method(),'GET');assert.equal(route.request().headers().authorization,'Bearer isolated-owner-fixture');requests++;
    if(forbidden)return route.fulfill({status:403,contentType:'application/json',body:'{"error":"forbidden"}'});
    const daily=Array.from({length:30},(_,i)=>({day:'2026-10-'+String(i+1).padStart(2,'0'),visits:i<23?0:[2,4,0,8,1,3,6][i-23]}));
@@ -36,7 +37,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   await page.goto('https://meapps-it.github.io/VG/');
   assert.equal(await page.locator('#homeSpark .sparkBar').count(),6);
   assert(await page.locator('#homeSpark .sparkBar').evaluateAll(bars=>bars.every(b=>b.getBoundingClientRect().height>0)),'six-month sales columns remain visible');
-  assert.equal(await page.locator('.vgNativeAction:not([hidden])').count(),hybrid?4:0);
+  assert.equal(await page.locator('.vgNativeAction:not([hidden])').count(),hybrid?4:1);
   if(hybrid&&process.env.VG_UI_SCREENSHOTS){fs.mkdirSync(process.env.VG_UI_SCREENSHOTS,{recursive:true});await page.screenshot({path:path.join(process.env.VG_UI_SCREENSHOTS,'dashboard-'+width+'.png')});}
   await page.locator('#topMenuBtn').click();await page.locator('#vgCatalogStatsOpen').click();
   await page.locator('#vgStatsResults:not([hidden])').waitFor();assert.equal(await page.locator('#vgStatsBars li').count(),7);
@@ -46,7 +47,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   assert(await page.locator('#vgStatsClose').isVisible());
   assert(await page.locator('#vgStatsTitle').isVisible());
   console.log('STAT HEADER',width,hybrid,await page.locator('#vgStatsTitle').evaluate(e=>({text:e.textContent,color:getComputedStyle(e).color,rect:e.getBoundingClientRect().toJSON()})));
-  const fonts=await page.locator('body,#vgCatalogStatsOpen,#vgStatsClose,.bulkPasteBox').evaluateAll(nodes=>nodes.map(n=>getComputedStyle(n).fontFamily));assert(fonts.every(f=>f.includes('system-ui')));
+  const fonts=await page.locator('body,#vgCatalogStatsOpen,#vgStatsClose,.bulkPasteBox').evaluateAll(nodes=>nodes.map(n=>getComputedStyle(n).fontFamily));assert(fonts.every(f=>f==='sans-serif'));
   assert(await page.locator('#vgCatalogStats').evaluate(d=>{const r=d.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight}));
   if(hybrid&&process.env.VG_UI_SCREENSHOTS)await page.screenshot({path:path.join(process.env.VG_UI_SCREENSHOTS,'statistics-'+width+'.png')});
   await page.getByRole('button',{name:'30 giorni',exact:true}).click();assert.equal(await page.locator('#vgStatsBars li').count(),30);
@@ -54,7 +55,15 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   forbidden=true;await page.locator('#topMenuBtn').click();await page.locator('#vgCatalogStatsOpen').click();
   await page.getByText('Statistiche riservate al titolare del catalogo.',{exact:true}).waitFor();assert(await page.locator('#vgStatsResults').isHidden());
   forbidden=false;await page.locator('#vgStatsRetry').click();await page.locator('#vgStatsResults:not([hidden])').waitFor();assert.equal(requests,3);
-  await page.locator('#vgStatsClose').click();assert.deepEqual(errors,[]);
+  await page.locator('#vgStatsClose').click();
+  await page.locator('#topMenuBtn').click();await page.locator('a[href="vgapp://password"]').click();
+  assert(await page.locator('#vgOwnerPassword').isVisible());
+  await page.locator('#vgOwnerPasswordValue').fill('12345');await page.locator('#vgOwnerPasswordConfirm').fill('12345');await page.locator('#vgOwnerPasswordSave').click();
+  assert.equal(await page.locator('#vgOwnerPasswordValue').evaluate(e=>e.validity.tooShort),true);
+  await page.locator('#vgOwnerPasswordValue').fill('test-6');await page.locator('#vgOwnerPasswordConfirm').fill('test-6');await page.locator('#vgOwnerPasswordSave').click();
+  await page.getByText('Password aggiornata. I clienti dovranno reinserirla.',{exact:true}).waitFor();
+  assert.equal(await page.locator('#vgOwnerPasswordValue').inputValue(),'');await page.locator('#vgOwnerPasswordClose').click();
+  assert.deepEqual(errors,[]);
   console.log('PASS management '+width+'px '+(hybrid?'APK':'PWA')+': original dashboard, sales bars, shared system font, 7/30-day visit columns, zero visits, owner errors, retry and close');
   await context.close();
  }

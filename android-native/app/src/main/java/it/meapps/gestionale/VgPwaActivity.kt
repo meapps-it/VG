@@ -54,7 +54,9 @@ class VgPwaActivity : ComponentActivity() {
   web=WebView(this);layout.addView(web,LinearLayout.LayoutParams(-1,0,1f));setContentView(layout)
   web.settings.javaScriptEnabled=true;web.settings.domStorageEnabled=true;web.settings.allowFileAccess=false;web.settings.allowContentAccess=true;web.settings.mixedContentMode=WebSettings.MIXED_CONTENT_NEVER_ALLOW
   web.settings.userAgentString=web.settings.userAgentString+" VgHybrid/"+BuildConfig.VERSION_NAME
-  web.settings.textZoom=100
+  web.settings.standardFontFamily="sans-serif"
+  web.settings.sansSerifFontFamily="sans-serif"
+  web.settings.textZoom=(resources.configuration.fontScale*100).toInt()
   web.settings.useWideViewPort=true
   web.settings.loadWithOverviewMode=true
   CookieManager.getInstance().setAcceptCookie(true)
