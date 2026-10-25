@@ -1,6 +1,6 @@
 const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),source=fs.readFileSync(root+'/index.html','utf8');
-const supplierCode=source.slice(source.indexOf('const SUPPLIER_DEFAULT_QUALITY='),source.indexOf('function sortedQuantile('));
+const supplierCode=source.slice(source.indexOf('const SUPPLIER_PRESETS='),source.indexOf('function sortedQuantile('));
 const pasteCode=source.slice(source.indexOf('function normalizeBulkArticleLabel('),source.indexOf('async function openArtEdit('));
 const brandCode=source.slice(source.indexOf('function syncBrandField('),source.indexOf('function handleBrandSelectionChange('));
 let html=source.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<body[^>]*>[\s\S]*?(?=<div class="top">)/,'<body>');

@@ -12,7 +12,7 @@ const assert=require('node:assert/strict');
   // GitHub Pages can take a few minutes to deploy the main branch.
   for(let attempt=0;attempt<18;attempt++){
    await page.goto((process.env.CATALOG_LIVE_URL||'https://meapps-it.github.io/VG/catalogo-nuovo.html')+'?gallery-check='+Date.now());
-   if(await page.locator('.visual-categories').count())break;
+   if(await page.locator('.collection-heading').count())break;
    if(attempt===17)throw Error('Published gallery version did not appear');
    await page.waitForTimeout(10000);
   }

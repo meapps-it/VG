@@ -10,7 +10,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images?.[0],price:25,
  const dom=new JSDOM(html,{url:'https://meapps-it.github.io/VG/catalogo-nuovo.html',runScripts:'dangerously',pretendToBeVisual:true,beforeParse(w){
   w.HTMLElement.prototype.scrollIntoView=function(){};
   w.shopAccess={fetch:(...args)=>w.fetch(...args),viewer:()=>{},start:load=>{w.document.body.classList.remove('shop-locked');load().catch(()=>{})}};
-  w.shopShipping={load:()=>{},save:()=>{}};
+  w.shopShipping={load:()=>{},save:()=>{},address:()=>({city:'Torino',province:'TO',cap:'12081'})};
   w.fetch=async(url,options)=>{assert.notEqual(options?.method,'POST','No orders should be sent by tests');requests++;return {ok:true,json:async()=>({items:[item('many',[image(1),image(2),image(3)]),item('single',[image(4)]),item('empty',[]),item('legacy',undefined)],imagesExpiresAt:Date.now()+(requests===1?1000:3600000)})}};
  }});
  const w=dom.window,doc=w.document,$=id=>doc.getElementById(id),tick=()=>new Promise(r=>setTimeout(r,0));
@@ -49,7 +49,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images?.[0],price:25,
  w.eval(`products=[{id:'bag',name:'Borsa a tracolla',brand:'Hermès',sku:'ABC-123',category:'Borse/Zaini',description:'Pelle marrone',price:145,images:[]},{id:'shoe',name:'Sneaker Bianca',brand:'Gucci',sku:'S001',category:'Scarpe',description:'Pelle',price:90,images:[]},{id:'wallet',name:'Portafoglio',brand:'Hermès',sku:'W002',category:'Portafogli',description:'Pelle nera',price:60,images:[]}];render()`);
  $('search').value='hermes tracolla';$('search').dispatchEvent(new w.Event('input'));assert.equal(doc.querySelectorAll('.item').length,1);assert.match($('catalog').textContent,/tracolla/);
  $('search').value='ABC 123';$('search').dispatchEvent(new w.Event('input'));assert.equal(doc.querySelectorAll('.item').length,1);
- $('clearSearch').click();$('categoryQuick').innerHTML='<button data-category-quick="Scarpe">Scarpe</button>';$('categoryQuick').querySelector('button').click();assert.equal(doc.querySelectorAll('.item').length,1);assert.match($('catalog').textContent,/Sneaker/);
+ $('clearSearch').click();$('category').innerHTML='<option value="">Tutte le categorie</option><option>Scarpe</option>';$('categoryQuick').innerHTML='<button data-category-quick="Scarpe">Scarpe</button>';$('categoryQuick').querySelector('button').click();assert.equal(doc.querySelectorAll('.item').length,1);assert.match($('catalog').textContent,/Sneaker/);
  $('resetAll').click();$('minPrice').value='100';$('minPrice').dispatchEvent(new w.Event('input'));assert.equal(doc.querySelectorAll('.item').length,1);
  $('resetAll').click();$('sort').value='price-asc';$('sort').dispatchEvent(new w.Event('change'));assert.match(doc.querySelector('.item .name').textContent,/Portafoglio/);
  $('search').value='zzzzimpossibile';$('search').dispatchEvent(new w.Event('input'));assert.match($('catalog').textContent,/Nessun articolo/);doc.querySelector('[data-reset]').click();assert.equal(doc.querySelectorAll('.item').length,3);
