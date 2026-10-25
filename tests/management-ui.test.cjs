@@ -19,7 +19,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  try{
  for(const width of [360,412,1280])for(const hybrid of [false,true]){
-  const context=await browser.newContext({viewport:{width,height:844},userAgent:hybrid?'Mozilla/5.0 Android VgHybrid/0.8.1':undefined});
+  const context=await browser.newContext({viewport:{width,height:844},isMobile:width<650,hasTouch:width<650,userAgent:hybrid?'Mozilla/5.0 Android VgHybrid/0.8.1':undefined});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   let forbidden=false,requests=0;
   await page.route('https://meapps-it.github.io/VG/**',route=>{
@@ -37,6 +37,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   assert.equal(await page.locator('#homeSpark .sparkBar').count(),6);
   assert(await page.locator('#homeSpark .sparkBar').evaluateAll(bars=>bars.every(b=>b.getBoundingClientRect().height>0)),'six-month sales columns remain visible');
   assert.equal(await page.locator('.vgNativeAction:not([hidden])').count(),hybrid?3:0);
+  if(hybrid&&process.env.VG_UI_SCREENSHOTS){fs.mkdirSync(process.env.VG_UI_SCREENSHOTS,{recursive:true});await page.screenshot({path:path.join(process.env.VG_UI_SCREENSHOTS,'dashboard-'+width+'.png')});}
   await page.locator('#topMenuBtn').click();await page.locator('#vgCatalogStatsOpen').click();
   await page.locator('#vgStatsResults:not([hidden])').waitFor();assert.equal(await page.locator('#vgStatsBars li').count(),7);
   assert.equal(await page.locator('#vgStatsSummary strong').allTextContents().then(x=>x.join(',')),'6,24,24,9');
@@ -45,6 +46,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   assert(await page.locator('#vgStatsClose').isVisible());
   const fonts=await page.locator('body,#vgCatalogStatsOpen,#vgStatsClose').evaluateAll(nodes=>nodes.map(n=>getComputedStyle(n).fontFamily));assert(fonts.every(f=>f.includes('system-ui')));
   assert(await page.locator('#vgCatalogStats').evaluate(d=>{const r=d.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight}));
+  if(hybrid&&process.env.VG_UI_SCREENSHOTS)await page.screenshot({path:path.join(process.env.VG_UI_SCREENSHOTS,'statistics-'+width+'.png')});
   await page.getByRole('button',{name:'30 giorni',exact:true}).click();assert.equal(await page.locator('#vgStatsBars li').count(),30);
   assert(await page.locator('#vgStatsClose').isVisible());await page.locator('#vgStatsClose').click();
   forbidden=true;await page.locator('#topMenuBtn').click();await page.locator('#vgCatalogStatsOpen').click();
