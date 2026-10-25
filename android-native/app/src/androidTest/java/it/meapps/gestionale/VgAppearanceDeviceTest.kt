@@ -36,6 +36,14 @@ class VgAppearanceDeviceTest {
         }
         error("WebView condition not reached: $expression; status=" + eval(view,"document.getElementById('vg-font-status')?.textContent"))
     }
+    private fun awaitNativePercent(context: android.content.Context, expected: Int) {
+        val deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(10)
+        while(System.nanoTime()<deadline){
+            if(VgAppearance(context).percent==expected)return
+            Thread.sleep(50)
+        }
+        assertEquals("Android must acknowledge the requested percentage",expected,VgAppearance(context).percent)
+    }
     @Test fun persistAcrossProcessStop() {
         val stage = InstrumentationRegistry.getArguments().getString("appearancePersistence") ?: return
         val ctx = instrumentation.targetContext
@@ -88,6 +96,7 @@ class VgAppearanceDeviceTest {
             for (percent in listOf(75,100,150)) {
                 eval(view, "document.getElementById('vg-font-range').value='$percent';document.getElementById('vg-font-range').dispatchEvent(new Event('input',{bubbles:true}));'ok'")
                 await(view, "document.getElementById('vg-font-value').textContent === '$percent%'")
+                awaitNativePercent(ctx,percent)
                 instrumentation.waitForIdleSync()
                 scenario.onActivity { activity ->
                     assertEquals(VgTextScale.zoom(percent, activity.resources.configuration.fontScale), view.settings.textZoom)
@@ -107,6 +116,7 @@ class VgAppearanceDeviceTest {
             await(view,"document.getElementById('vg-font-value').textContent === '150%'")
             eval(view,"document.getElementById('vg-font-reset').click();'ok'")
             await(view,"document.getElementById('vg-font-value').textContent === '100%'")
+            awaitNativePercent(ctx,100)
             assertEquals(100,VgAppearance(ctx).percent)
             // Script navigation cannot read clipboard; an explicit tap can.
             val copied = "CODICE: TEST-CLIP\nMODELLO: \"Prova\""
