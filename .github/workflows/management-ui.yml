@@ -1,0 +1,27 @@
+name: Management PWA and hybrid UI
+on:
+  push:
+    paths:
+      - 'index.html'
+      - 'vg-catalog-stats.*'
+      - 'tests/management-ui.test.cjs'
+      - '.github/workflows/management-ui.yml'
+permissions:
+  contents: read
+jobs:
+  responsive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install isolated browser tools
+        run: npm install --prefix "$RUNNER_TEMP/vg-tests" --no-audit --no-fund playwright@1.58.2
+      - name: Install Chromium
+        run: node "$RUNNER_TEMP/vg-tests/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Verify original dashboard and catalog statistics on mobile and desktop
+        env:
+          NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
+        run: node tests/management-ui.test.cjs

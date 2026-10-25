@@ -603,6 +603,8 @@ window.addEventListener('error',e=>{
 #simplexLicenseLoading{position:fixed;inset:0;z-index:2147483500;background:var(--bg,#f5f7fb);display:none}
 #simplexLicenseLoading.show{display:block}
 </style>
+<link rel="stylesheet" href="./vg-catalog-stats.css?v=0.8.1">
+<script src="./vg-catalog-stats.js?v=0.8.1" defer></script>
 </head>
 <body class="auth-locked">
 <script>window.SimplexClientConfig={status:'active',modules:{clienti:true,ordini:true,magazzino:true,statistiche:true}};window.SimplexLicense={refresh:()=>{},clear:()=>{},getKey:()=>''};</script>
@@ -658,6 +660,10 @@ window.addEventListener('error',e=>{
         <button class="topMenuLink" type="button" data-go="home"><span class="topMenuEmoji">🏠</span><span class="topMenuText"><span class="topMenuTitle">Dashboard</span><span class="topMenuSub">Panoramica generale</span></span></button>
         <button class="topMenuLink" type="button" data-go="articoli"><span class="topMenuEmoji">🏷️</span><span class="topMenuText"><span class="topMenuTitle">Articoli</span><span class="topMenuSub">Catalogo prodotti</span></span></button>
         <a class="topMenuLink" href="./catalogo.html" target="_blank" rel="noopener noreferrer" style="text-decoration:none"><span class="topMenuEmoji">👜</span><span class="topMenuText"><span class="topMenuTitle">Shop &amp; Parallelo</span><span class="topMenuSub">Apri catalogo clienti</span></span></a>
+        <button class="topMenuLink" type="button" id="vgCatalogStatsOpen"><span class="topMenuEmoji">📊</span><span class="topMenuText"><span class="topMenuTitle">Statistiche catalogo</span><span class="topMenuSub">Visite e andamento giornaliero</span></span></button>
+        <a class="topMenuLink vgNativeAction" hidden href="vgapp://preview"><span class="topMenuEmoji">🛍️</span><span class="topMenuText"><span class="topMenuTitle">Anteprima amministratore</span><span class="topMenuSub">Escludi i miei accessi al catalogo</span></span></a>
+        <a class="topMenuLink vgNativeAction" hidden href="vgapp://password"><span class="topMenuEmoji">🔑</span><span class="topMenuText"><span class="topMenuTitle">Password clienti</span><span class="topMenuSub">Gestisci l’accesso al catalogo</span></span></a>
+        <a class="topMenuLink vgNativeAction" hidden href="vgapp://notifications"><span class="topMenuEmoji">🔔</span><span class="topMenuText"><span class="topMenuTitle">Notifiche ordini</span><span class="topMenuSub">Abilita su questo telefono</span></span></a>
         <button class="topMenuLink" type="button" data-go="clienti"><span class="topMenuEmoji">👥</span><span class="topMenuText"><span class="topMenuTitle">Clienti</span><span class="topMenuSub">Schede e contatti</span></span></button>
         <button class="topMenuLink" type="button" data-go="ordini"><span class="topMenuEmoji">📦</span><span class="topMenuText"><span class="topMenuTitle">Ordini</span><span class="topMenuSub">Vendite e tracking</span></span></button>
         <button class="topMenuLink" type="button" data-go="finanze"><span class="topMenuEmoji">💶</span><span class="topMenuText"><span class="topMenuTitle">Finanze</span><span class="topMenuSub">Incassi e margini</span></span></button>
@@ -15007,7 +15013,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.136', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.137', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});

@@ -1,0 +1,36 @@
+/* Shared by the PWA and its Android container. */
+html,body,button,input,select,textarea{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.vgNativeAction[hidden]{display:none!important}
+.vgNativeAction{text-decoration:none}
+.topMenuPanel{max-height:calc(100dvh - 160px);overflow-y:auto;overscroll-behavior:contain}
+.vgStatsDialog{box-sizing:border-box;width:min(680px,calc(100% - 24px));max-height:calc(100dvh - 32px);padding:0;border:1px solid var(--line,#d7deea);border-radius:24px;background:var(--bg,#f7f8fc);color:#111827;overflow:auto;font:inherit;box-shadow:0 20px 70px #0f172a38}
+.vgStatsDialog::backdrop{background:#0f172a99}
+.vgStatsDialog *{box-sizing:border-box}
+.vgStatsHeader{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;background:#fff;border-bottom:1px solid var(--line,#d7deea)}
+.vgStatsHeader h2{font-size:20px;line-height:1.25;margin:0;font-weight:900}
+.vgStatsHeader button,.vgStatsRetry{font:inherit;border:1px solid var(--line,#d7deea);border-radius:14px;padding:11px 14px;background:#fff;color:#0f172a;font-weight:800;min-height:44px;cursor:pointer}
+.vgStatsContent{padding:16px;display:grid;gap:16px}
+.vgStatsSummary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.vgStatsCard{min-width:0;background:#fff;border:1px solid var(--line,#d7deea);border-radius:20px;padding:16px}
+.vgStatsCard span{display:block;color:#64748b;font-size:12px;text-transform:uppercase;font-weight:800;line-height:1.4}
+.vgStatsCard strong{display:block;font-size:30px;font-weight:900;margin-top:8px;color:#0f172a;font-variant-numeric:tabular-nums}
+.vgStatsFigure{margin:0;padding:18px;border:1px solid #e5e8f1;border-radius:22px;background:linear-gradient(125deg,#fffaf1,#eff3ff)}
+.vgStatsFigure figcaption{font-size:16px;font-weight:900;margin:0 0 8px}
+.vgStatsFigure p,.vgStatsNote{font-size:13px;line-height:1.5;color:#64748b;margin:8px 0 0}
+.vgStatsRange{display:flex;gap:8px;margin:14px 0}
+.vgStatsRange button{font:inherit;font-size:13px;font-weight:800;border:1px solid #d7deea;border-radius:999px;padding:9px 14px;min-height:40px;background:#fff;color:#334155;cursor:pointer}
+.vgStatsRange button[aria-pressed=true]{background:#fff3c4;border-color:#f4b544;color:#1e293b}
+.vgStatsChartScroll{overflow-x:auto;overscroll-behavior-x:contain;padding:2px 0 6px}
+.vgStatsBars{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;padding:0;margin:0;list-style:none;min-width:100%}
+.vgStatsBars.vgStatsMonth{grid-auto-columns:38px;width:max-content}
+.vgStatsBars li{min-width:0;text-align:center}
+.vgStatsValue{display:block;font-size:12px;font-weight:800;color:#334155;min-height:20px}
+.vgStatsTrack{height:132px;display:flex;align-items:flex-end;border-bottom:1px solid #cbd5e1}
+.vgStatsBar{width:100%;border-radius:12px 12px 4px 4px;background:linear-gradient(180deg,#60a5fa,#1d4ed8)}
+.vgStatsBars li:last-child .vgStatsBar{background:linear-gradient(180deg,#fbbf24,#f59e0b)}
+.vgStatsDate{display:block;margin-top:8px;font-size:11px;font-weight:800;color:#64748b;white-space:nowrap}
+.vgStatsStatus{margin:0;color:#475569;font-size:14px;line-height:1.5}
+.vgStatsStatus:empty{display:none}
+.vgStatsError{color:#991b1b}
+.vgStatsDialog [hidden]{display:none!important}
+@media(max-width:380px){.vgStatsContent{padding:12px}.vgStatsCard{padding:13px}.vgStatsHeader{padding:14px}.vgStatsHeader h2{font-size:18px}.vgStatsFigure{padding:13px}.vgStatsBars{gap:6px}}
