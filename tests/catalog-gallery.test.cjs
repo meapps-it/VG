@@ -25,6 +25,10 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
   await page.route(API+'**',r=>{assert.equal(r.request().method(),'GET');requests++;return r.fulfill({contentType:'application/json',body:JSON.stringify({items:[item('many',[photo(1),photo(2),photo(3)]),item('single',[photo(4)]),item('none',[]),item('broken',[photo('broken'),photo(5)])],imagesExpiresAt:Date.now()+(requests===1?1000:3600000)})})});
   await page.addInitScript(()=>localStorage.setItem('vg-shop-session-v1','a'.repeat(64)));
   await page.goto(base);await page.locator('.item').first().waitFor();
+  assert.equal(await page.locator('.intro').count(),0,'selected product-first design has no hero');
+  assert.ok(await page.locator('.header-whatsapp').isVisible(),'WhatsApp remains in the compact header');
+  if(width<650){const box=await page.locator('.catalog').boundingBox();assert.ok(box.y<270,'products start in the first 270px');assert.equal(await page.locator('.catalog').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),2,'two mobile product columns')}
+
   assert.ok(await page.locator('.intro h1,.item .name').evaluateAll(nodes=>nodes.every(n=>getComputedStyle(n).fontFamily.includes('system-ui'))),'catalog headings use the system font');
   await page.locator('[data-detail="many"]').first().click();
   await page.waitForFunction(()=>document.querySelector('#galleryCount').textContent==='1 / 3');
