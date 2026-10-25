@@ -36,3 +36,5 @@ html,body,button,input,select,textarea{font-family:system-ui,-apple-system,"Sego
 .vgStatsError{color:#991b1b}
 .vgStatsDialog [hidden]{display:none!important}
 @media(max-width:380px){.vgStatsContent{padding:12px}.vgStatsCard{padding:13px}.vgStatsHeader{padding:14px}.vgStatsHeading{font-size:18px}.vgStatsFigure{padding:13px}.vgStatsBars{gap:6px}}
+
+.bulkPasteBox{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}

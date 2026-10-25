@@ -46,7 +46,7 @@ export async function accessAction(db:any,req:Request,owner:string,action:string
   if(action==='set-password'&&req.method==='POST'){
    let body:any;try{body=await req.json()}catch{return out({error:'Richiesta non valida'},400)}
    const password=typeof body.password==='string'?body.password:'';
-   if(password.length<10||password.length>128)return out({error:'Usa una password di almeno 10 caratteri'},400);
+   if(password.length<6||password.length>128)return out({error:'Usa una password di almeno 6 caratteri'},400);
    const salt=hex(crypto.getRandomValues(new Uint8Array(16)));
    const result=await db.from('vg_shop_password').upsert({owner_id:owner,salt,password_hash:await passwordHash(password,salt),iterations:200000,updated_at:new Date().toISOString()});if(result.error)throw result.error;
    return out({ok:true});

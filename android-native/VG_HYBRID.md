@@ -1,7 +1,7 @@
 # V&G ibrida
 
 Build existing project variant: `./gradlew :app:assembleVgDebug :app:lintVgDebug :app:testVgDebugUnitTest`.
-Package: `com.vg.gestionale.seconda`; version 0.8.1 (17). The existing native Compose experience is retained as the `native` flavor.
+Package: `com.vg.gestionale.seconda`; version 0.8.2 (18). The existing native Compose experience is retained as the `native` flavor.
 
 The `vg` launcher loads the existing remote VG PWA over HTTPS. Product data, web UI, catalog and checkout updates deploy online; Android framework, permissions and native integrations require a new APK. The wrapper supports persistent web storage, file chooser, external downloads and back navigation, without exposing a JavaScript-to-Java bridge.
 
@@ -10,7 +10,7 @@ The APK uses the same PWA header, hamburger menu, dashboard and system font. It 
 Existing PWA hamburger menu:
 - Statistics: shared web dialog with owner-only API authorization, 1 visit/device/30-minute window, today/7/30 days, devices and vertical 7/30-day bar charts. These statistics and their layout can update online without rebuilding Android.
 - Admin catalog preview: signed administrator session, excluded from analytics. Opening it in the phone browser also marks a previous browser session as administrator, removing its earlier visits from the reported totals.
-- Customer password: owner-only update; previous customer sessions are invalidated. Passwords are hashed server-side with salted PBKDF2; no shared password or server secret is bundled in the app.
+- Customer password: minimum 6 characters, owner-only update; previous customer sessions are invalidated. Passwords are hashed server-side with salted PBKDF2; no shared password or server secret is bundled in the app.
 - Order notifications: FCM client and server code are present, but delivery is NOT active until the Firebase project is configured.
 
 ## Firebase activation still required

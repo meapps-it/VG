@@ -9,3 +9,6 @@
 body.shop-locked>.view,body.shop-locked>.overlay,body.shop-locked>.zoom-view{display:none!important}
 
 .shop-whatsapp{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:8px 12px;margin:10px 0;border:1px solid #128c46;border-radius:999px;background:#25d366;color:#073b23;font:700 13px system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;text-decoration:none;line-height:1.25;max-width:100%;touch-action:manipulation}.shop-whatsapp img{display:block;flex:0 0 auto;width:19px;height:19px}.shop-whatsapp:hover{background:#20c660}.shop-whatsapp:focus-visible{outline:3px solid #083e26;outline-offset:3px}.intro>.shop-whatsapp{margin-top:14px}.drawer>.shop-whatsapp{margin:0 0 16px}
+
+/* Use the device system font throughout the catalog, including headings. */
+body,.intro h1,.name,.empty h2,.footer strong,.drawer-head h2,.access-card h1,button,input,select,textarea{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
