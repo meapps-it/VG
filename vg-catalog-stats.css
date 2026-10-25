@@ -8,7 +8,7 @@ html,body,button,input,select,textarea{font-family:system-ui,-apple-system,"Sego
 .vgStatsDialog[open]{display:flex;flex-direction:column;overflow:hidden}
 .vgStatsDialog *{box-sizing:border-box}
 .vgStatsHeader{position:relative;flex-shrink:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:18px;background:#fff;border-bottom:1px solid var(--line,#d7deea)}
-.vgStatsHeader h2{min-width:0;color:#111827;font-size:20px;line-height:1.25;margin:0;font-weight:900;overflow-wrap:anywhere}
+.vgStatsHeading{position:relative;z-index:1;min-width:0;color:#111827;font-size:20px;line-height:1.25;margin:0;font-weight:900;overflow-wrap:anywhere}
 .vgStatsHeader button,.vgStatsRetry{font:inherit;border:1px solid var(--line,#d7deea);border-radius:14px;padding:11px 14px;background:#fff;color:#0f172a;font-weight:800;min-height:44px;cursor:pointer}
 .vgStatsHeader button{white-space:nowrap;flex-shrink:0}
 .vgStatsContent{min-height:0;overflow-y:auto;padding:16px;display:grid;gap:16px}
@@ -35,4 +35,4 @@ html,body,button,input,select,textarea{font-family:system-ui,-apple-system,"Sego
 .vgStatsStatus:empty{display:none}
 .vgStatsError{color:#991b1b}
 .vgStatsDialog [hidden]{display:none!important}
-@media(max-width:380px){.vgStatsContent{padding:12px}.vgStatsCard{padding:13px}.vgStatsHeader{padding:14px}.vgStatsHeader h2{font-size:18px}.vgStatsFigure{padding:13px}.vgStatsBars{gap:6px}}
+@media(max-width:380px){.vgStatsContent{padding:12px}.vgStatsCard{padding:13px}.vgStatsHeader{padding:14px}.vgStatsHeading{font-size:18px}.vgStatsFigure{padding:13px}.vgStatsBars{gap:6px}}

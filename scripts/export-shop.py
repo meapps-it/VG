@@ -10,7 +10,7 @@ root=Path(__file__).resolve().parents[1]
 dest=args.destination.resolve()
 dest.mkdir(parents=True,exist_ok=True)
 shutil.copy2(root/'catalogo-nuovo.html',dest/'index.html')
-for name in ['shop-catalog.css','shop-parallelo-logo.svg','shop-hero.webp','shop-scarpe.webp','shop-accessori.webp','shop-access.js','shop-shipping.js']:
+for name in ['shop-catalog.css','shop-parallelo-logo.svg','shop-hero.webp','shop-scarpe.webp','shop-accessori.webp','shop-access.js','shop-shipping.js','shop-contact.js']:
     shutil.copy2(root/name,dest/name)
 shutil.copytree(root/'shop-icons',dest/'shop-icons',dirs_exist_ok=True)
 shutil.copytree(root/'shop-data',dest/'shop-data',dirs_exist_ok=True)

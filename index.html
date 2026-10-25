@@ -13872,6 +13872,7 @@ document.addEventListener('click',(ev)=>{
     return openOrdEdit(currentOrdId||null, art.id);
   }
   
+  if(a==='pickMoreArtPhotos'){ ev.preventDefault(); const total=(currentArtExistingPics||[]).length+(currentArtPendingFiles||[]).length; if(total>=MAX_ARTICLE_PHOTOS){toast('Hai già raggiunto il massimo di 20 foto per articolo');return;} document.getElementById('a_photo')?.click(); return; }
   if(a==='clearPendingArtPhotos'){ resetPendingArtPhotoFiles(); renderCurrentArtPhotoPreview(); saveArticleDraft(); toast('Nuove foto annullate'); return; }
   if(a==='pickArtVideos'){ document.getElementById('a_video')?.click(); return; }
   if(a==='clearArtVideos'){ currentArtExistingVideoIds=[]; currentArtPendingVideos=[]; renderArtVideoPreview(); toast('Video rimossi'); return; }
