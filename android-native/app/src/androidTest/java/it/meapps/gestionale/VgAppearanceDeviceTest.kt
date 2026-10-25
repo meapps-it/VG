@@ -72,6 +72,9 @@ class VgAppearanceDeviceTest {
             fixture()
             scenario.onActivity { assertEquals("https://meapps-it.github.io/VG/",view.url) }
             scenario.onActivity { activity ->
+                val themeFont = activity.obtainStyledAttributes(intArrayOf(android.R.attr.fontFamily))
+                try { assertNull("VG theme must not inherit a forced font family",themeFont.getString(0)) }
+                finally { themeFont.recycle() }
                 val fonts = VgAppearance(activity).fontState()
                 android.util.Log.i("VgAppearanceTest", "Native faces=" + fonts.getJSONArray("faces").length() + "; " + fonts.getString("fontStatus"))
             }

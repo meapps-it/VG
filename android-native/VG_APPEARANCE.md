@@ -30,7 +30,9 @@ settings fits: device review is still required at the user's chosen font size.
 ## Font transfer and honest fallback
 
 `system-ui` and WebSettings.sansSerifFontFamily alone cannot guarantee a Samsung
-Galaxy Store/One UI font. The APK does not hard-code Roboto or guess private
+Galaxy Store/One UI font. The VG flavor explicitly clears the base theme's fontFamily with @null (omitting
+the item would merge the forced family back in from the main resources).
+The APK does not hard-code Roboto or guess private
 Samsung font paths and does not use reflection or hidden Android APIs.
 
 On API 31+ a themed native TextView supplies its Typeface. TextRunShaper shapes
