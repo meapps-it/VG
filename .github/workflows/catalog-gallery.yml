@@ -1,0 +1,33 @@
+name: Catalog gallery checks
+
+on:
+  push:
+    paths:
+      - 'catalogo-nuovo.html'
+      - 'supabase/functions/vg-shop-catalog/**'
+      - 'tests/catalog-*.cjs'
+      - '.github/workflows/catalog-gallery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  gallery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install isolated test dependencies
+        run: npm install --prefix "$RUNNER_TEMP/vg-tests" --no-audit --no-fund playwright@1.58.2 jsdom@26.1.0
+      - name: Install Chromium
+        run: node "$RUNNER_TEMP/vg-tests/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: API, DOM and responsive browser checks
+        env:
+          NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
+        run: |
+          node --test tests/catalog-api.test.cjs
+          node tests/catalog-dom.test.cjs
+          node tests/catalog-gallery.test.cjs

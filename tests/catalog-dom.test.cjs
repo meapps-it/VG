@@ -1,0 +1,47 @@
+// Run with jsdom 26.1.0 available in NODE_PATH.
+const {JSDOM}=require('jsdom');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync(__dirname+'/../catalogo-nuovo.html','utf8');
+const image=n=>'https://images.example/'+n;
+const item=(id,images)=>({id,name:'Borsa '+id,images,image:images?.[0],price:25,category:'Borse',description:'Pelle vera\n[VGMETA]{"privato":true}[/VGMETA]\nMisure 20 cm'});
+(async()=>{
+ let requests=0;
+ const dom=new JSDOM(html,{url:'https://meapps-it.github.io/VG/catalogo-nuovo.html',runScripts:'dangerously',pretendToBeVisual:true,beforeParse(w){
+  w.HTMLElement.prototype.scrollIntoView=function(){};
+  w.fetch=async(url,options)=>{assert.notEqual(options?.method,'POST','No orders should be sent by tests');requests++;return {ok:true,json:async()=>({items:[item('many',[image(1),image(2),image(3)]),item('single',[image(4)]),item('empty',[]),item('legacy',undefined)],imagesExpiresAt:Date.now()+(requests===1?1000:3600000)})}};
+ }});
+ const w=dom.window,doc=w.document,$=id=>doc.getElementById(id),tick=()=>new Promise(r=>setTimeout(r,0));
+ const click=selector=>doc.querySelector(selector).click();
+ try{
+ await tick();assert.equal(doc.querySelectorAll('.item').length,4);
+ click('[data-detail=many]');await tick();assert.equal(requests,2,'renew expired links');
+ assert.equal($('galleryCount').textContent,'1 / 3');assert.equal($('galleryThumbs').children.length,3);
+ $('galleryNext').click();assert.equal($('galleryCount').textContent,'2 / 3');
+ $('galleryPrev').click();assert.equal($('galleryCount').textContent,'1 / 3');
+ $('galleryThumbs').children[2].click();assert.equal($('galleryCount').textContent,'3 / 3');
+ function touch(type,x,y){const e=new w.Event(type);Object.defineProperty(e,type==='touchstart'?'touches':'changedTouches',{value:[{clientX:x,clientY:y}]});$('productHero').dispatchEvent(e)}
+ touch('touchstart',250,100);touch('touchend',100,105);assert.equal($('galleryCount').textContent,'1 / 3');
+ touch('touchstart',100,100);touch('touchend',250,105);assert.equal($('galleryCount').textContent,'3 / 3');
+ touch('touchstart',100,100);touch('touchend',105,250);assert.equal($('galleryCount').textContent,'3 / 3','vertical scroll does not change image');
+ await new Promise(r=>setTimeout(r,410));$('productHero').click();assert.equal($('photoZoom').getAttribute('aria-hidden'),'false');
+ $('zoomNext').click();assert.equal($('zoomCount').textContent,'1 / 3');
+ $('zoomImage').dispatchEvent(new w.Event('error'));assert.equal($('zoomError').hidden,false);
+ $('zoomNext').click();assert.equal($('zoomError').hidden,true);
+ $('closeZoom').click();assert.equal($('photoZoom').getAttribute('aria-hidden'),'true');
+ assert.match($('productDescription').textContent,/Pelle vera/);assert.match($('productDescription').textContent,/Misure/);assert.doesNotMatch($('productDescription').textContent,/VGMETA|privato/);
+ $('productHero').querySelector('img').dispatchEvent(new w.Event('error'));assert.match($('productHero').textContent,/non disponibile/);
+ $('galleryNext').click();assert.ok($('productHero').querySelector('img'));
+ $('productQty').value='2';$('productAdd').click();assert.match($('total').textContent,/50,00/);
+ for(const [name,value] of Object.entries({name:'Cliente prova',phone:'3330000000',address:'Via prova 1',city:'Torino'}))doc.querySelector('[name='+name+']').value=value;
+ doc.querySelector('[name=privacy]').checked=true;$('checkoutNext').click();assert.match($('checkoutReview').textContent,/2 × Borsa many/);assert.equal($('sendOrder').classList.contains('checkout-hide'),false);
+ $('checkoutBack').click();$('closeCart').click();
+ click('[data-detail=single]');assert.equal($('galleryCount').textContent,'1 / 1');assert.equal($('galleryNext').hidden,true);assert.equal($('galleryThumbs').children.length,0);$('closeProduct').click();
+ click('[data-detail=empty]');assert.equal($('productHero').disabled,true);assert.match($('productHero').textContent,/Nessuna fotografia/);$('closeProduct').click();
+ // Legacy API shape with only image remains supported.
+ w.eval('products.find(p=>p.id==="legacy").image="https://images.example/legacy"');
+ click('[data-detail=legacy]');assert.equal($('galleryCount').textContent,'1 / 1');
+ assert.match($('productHero').querySelector('img').src,/legacy/);
+ console.log('PASS DOM: thumbnails, arrows, bidirectional swipe, vertical scroll, zoom/close, broken/empty/single/legacy images, signed URL renewal, description, cart and order review');
+ }finally{w.close()}
+})().catch(e=>{console.error(e);process.exitCode=1});
