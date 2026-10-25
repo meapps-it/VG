@@ -14283,6 +14283,7 @@ async function upsertCloudArticle(art){
     link_prodotto: normalizeExternalArticleUrl(art?.fornitoreLink||'') || null,
     categoria_id,
     marca: art.brand || null,
+    qualita: normalizeSpaceText(art?.qualita||art?.qualità||'') || null,
     colore: art.colore || null,
     taglia: null,
     materiale: art.materiale || art.taglia || art.variante || null,
