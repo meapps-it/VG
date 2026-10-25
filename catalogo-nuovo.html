@@ -56,6 +56,14 @@ async function load(){try{const response=await fetch(API+'?action=catalog',{head
 el('orderForm').addEventListener('submit',async e=>{e.preventDefault();const btn=el('sendOrder'),status=el('orderStatus');const f=new FormData(e.target);const items=Object.entries(cart).filter(([id,qty])=>products.some(p=>p.id===id)&&qty>0).map(([id,qty])=>({id,qty}));if(!items.length)return;btn.disabled=true;status.textContent='Invio richiesta in corso…';try{const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer:Object.fromEntries(['name','phone','email','address','city','cap','notes'].map(k=>[k,f.get(k)||''])),website:f.get('website')||'',items})});const data=await response.json();if(!response.ok)throw Error(data.error||'Impossibile inviare la richiesta');cart={};save();renderCart();e.target.reset();status.textContent='Richiesta inviata! Numero: '+data.number+'. Ti contatteremo per confermare.';}catch(err){status.textContent=err.message||'Errore di invio';btn.disabled=false;}});
 
 let activeProduct=null;
+function publicDescription(raw){
+ let text=String(raw||'');
+ text=text.replace(/\[VGMETA\][\s\S]*?\[\/VGMETA\]/gi,' ');
+ text=text.replace(/\[VGMETA\][\s\S]*$/gi,' ');
+ text=text.replace(/\{\s*"(?:brand|modello|categoria|descrizione|fornitore|foto|createdAt)"[\s\S]*?\}/gi,' ');
+ text=text.replace(/\\n/g,'\n').replace(/\s{3,}/g,' ').trim();
+ return text;
+}
 function showProduct(id){
  const p=products.find(x=>x.id===id);if(!p)return;
  activeProduct=p;
@@ -63,7 +71,7 @@ function showProduct(id){
  el('productTitle').textContent=p.name||'';
  el('productSku').textContent=p.sku?'Codice: '+p.sku:'';
  el('productPrice').textContent=euro(p.price)+(p.promotion?' (in promozione)':'');
- el('productDescription').textContent=p.description||'Descrizione non disponibile';
+ el('productDescription').textContent=publicDescription(p.description)||'Per informazioni su materiali, colori e misure contattaci.';
  el('productAvailability').textContent=p.availability==='disponibile'?'Disponibilità da confermare':'Su richiesta, disponibilità da verificare';
  el('productHero').replaceChildren();
  if(p.image){const img=document.createElement('img');img.src=p.image;img.alt=p.name;el('productHero').append(img)}
