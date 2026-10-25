@@ -34,7 +34,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
   assert.equal(await page.locator('#galleryCount').textContent(),'3 / 3');
   await page.waitForTimeout(410);await page.locator('#productHero').click();
   assert.equal(await page.locator('#photoZoom').getAttribute('aria-hidden'),'false');
-  const close=await page.locator('#closeZoom').boundingBox();console.log('ZOOM BOUNDS',width,close,await page.evaluate(()=>({innerWidth,innerHeight,scrollWidth:document.documentElement.scrollWidth})));assert.ok(close.x>=0&&close.y>=0&&close.x+close.width<=width&&close.y+close.height<800);
+  const close=await page.locator('#closeZoom').boundingBox();console.log('ZOOM BOUNDS',width,close,await page.evaluate(()=>({innerWidth,innerHeight,scrollWidth:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>360&&getComputedStyle(e).position!=='fixed').slice(0,8).map(e=>({tag:e.tagName,id:e.id,cls:e.className,right:e.getBoundingClientRect().right}))})));assert.ok(close.x>=0&&close.y>=0&&close.x+close.width<=width&&close.y+close.height<800);
   await page.locator('#zoomNext').click();assert.equal(await page.locator('#zoomCount').textContent(),'1 / 3');
   await page.locator('#closeZoom').click();assert.equal(await page.locator('#photoZoom').getAttribute('aria-hidden'),'true');
   assert.ok(requests>=2,'expired signed URLs must refresh');
