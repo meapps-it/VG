@@ -22,6 +22,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
   await page.locator('[data-detail="many"]').first().click();
   await page.waitForFunction(()=>document.querySelector('#galleryCount').textContent==='1 / 3');
   await page.waitForFunction(()=>document.querySelector('#productHero img')?.naturalWidth>0);
+  assert.ok(await page.locator('#productHero').evaluate(hero=>{const h=hero.getBoundingClientRect(),i=hero.querySelector('img').getBoundingClientRect();return i.left>=h.left&&i.top>=h.top&&i.right<=h.right+0.5&&i.bottom<=h.bottom+0.5}),'image must fit completely inside hero');
   assert.equal(await page.locator('#galleryThumbs button').count(),3);
   await page.locator('#galleryNext').click();assert.equal(await page.locator('#galleryCount').textContent(),'2 / 3');
   await page.locator('#galleryPrev').click();assert.equal(await page.locator('#galleryCount').textContent(),'1 / 3');
