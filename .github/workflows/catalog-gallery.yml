@@ -31,3 +31,8 @@ jobs:
           node --test tests/catalog-api.test.cjs
           node tests/catalog-dom.test.cjs
           node tests/catalog-gallery.test.cjs
+      - name: Verify the published catalog (read only)
+        if: github.ref == 'refs/heads/main'
+        env:
+          NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
+        run: node tests/catalog-live.test.cjs
