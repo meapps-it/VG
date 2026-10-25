@@ -62,6 +62,7 @@ internal class VgAppearance(private val context: Context) {
             }
             result.put("faces", faces).put("fontStatus", "Carattere del testo Android disponibile; caricamento nella WebView…")
         }.getOrElse {
+            android.util.Log.w("VgAppearance", "Native font transfer unavailable", it)
             result.put("faces", JSONArray()).put("fontStatus",
                 "Il dispositivo non espone un font trasferibile: la WebView usa il proprio carattere di sistema. Il font Samsung personalizzato non è garantito.")
         }

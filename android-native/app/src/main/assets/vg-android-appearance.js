@@ -6,7 +6,6 @@
   window.__vgAppearanceInstalled = true;
   let state = {percent:100, systemPercent:100}, fontStatus = 'Carattere Android in verifica…';
   let loadedFonts = [], fontRevision = null, loadGeneration = 0;
-  const excluded = 'svg,svg *,canvas,script,style,.material-icons,.material-symbols-outlined,.material-symbols-rounded,.fa,.fas,.far,.fab,[class*="icon-"],[data-vg-preserve-font]';
   const style = document.createElement('style');
   style.id = 'vg-android-appearance-style';
   style.textContent = `
@@ -80,7 +79,7 @@
       faces.forEach(font => document.fonts.add(font)); loadedFonts = faces;
       document.documentElement.style.setProperty('--vg-android-font', 'VgAndroidSystem');
       fontStatus = 'Carattere del testo nativo Android caricato nella WebView. Se differisce da quello scelto in Samsung, il dispositivo non lo espone correttamente.';
-    } catch (_) {fontStatus = 'La WebView non accetta il font fornito da Android: viene usato il carattere di sistema della WebView. Il font Samsung personalizzato non è garantito.';}
+    } catch (error) {console.warn('VgAppearance font load:',error.name,error.message);fontStatus = 'La WebView non accetta il font fornito da Android: viene usato il carattere di sistema della WebView. Il font Samsung personalizzato non è garantito.';}
     sync();
   };
   let pending = false;

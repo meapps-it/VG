@@ -1,7 +1,7 @@
 # V&G ibrida
 
 Build existing project variant: `./gradlew :app:assembleVgDebug :app:lintVgDebug :app:testVgDebugUnitTest`.
-Package: `com.vg.gestionale.seconda`; version 0.8.3 (19). The existing native Compose experience is retained as the `native` flavor.
+Package: `com.vg.gestionale.seconda`; version 0.8.4 (20). The existing native Compose experience is retained as the `native` flavor.
 
 ## Signing and existing installations
 
@@ -13,9 +13,9 @@ The persistent private delivery identity is held outside Git in the owner's priv
 
 The existing installed hybrid apps can continue receiving web changes. In particular, Password clienti now uses the shared web form, accepting six characters even on the old APK, and never requires reinstalling it merely to change the catalog password.
 
-The `vg` launcher loads the existing remote VG PWA over HTTPS. Product data, web UI, catalog and checkout updates deploy online; Android framework, permissions and native integrations require a new APK. The wrapper supports persistent web storage, file chooser, external downloads and back navigation, without exposing a JavaScript-to-Java bridge.
+The `vg` launcher loads the existing remote VG PWA over HTTPS. Product data, web UI, catalog and checkout updates deploy online; Android framework, permissions and native integrations require a new APK. The wrapper supports persistent web storage, file chooser, external downloads and back navigation, with an origin-restricted WebMessage bridge for Android appearance preferences only.
 
-The APK uses the same PWA header, hamburger menu, dashboard and system font. It adds no native toolbar. The six-month sales chart remains in Dashboard; it is separate from catalog visit statistics.
+The APK uses the same PWA header, hamburger menu and dashboard. Android font transfer, accessibility scaling and fallback limits are documented in [VG_APPEARANCE.md](VG_APPEARANCE.md). It adds no native toolbar. The six-month sales chart remains in Dashboard; it is separate from catalog visit statistics.
 
 Existing PWA hamburger menu:
 - Statistics: shared web dialog with owner-only API authorization, 1 visit/device/30-minute window, today/7/30 days, devices and vertical 7/30-day bar charts. These statistics and their layout can update online without rebuilding Android.

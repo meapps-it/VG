@@ -34,7 +34,7 @@ class VgAppearanceDeviceTest {
             if (eval(view, "Boolean($expression)") == "true") return
             Thread.sleep(100)
         }
-        error("WebView condition not reached: $expression")
+        error("WebView condition not reached: $expression; status=" + eval(view,"document.getElementById('vg-font-status')?.textContent"))
     }
     @Test fun persistAcrossProcessStop() {
         val stage = InstrumentationRegistry.getArguments().getString("appearancePersistence") ?: return
@@ -70,6 +70,10 @@ class VgAppearanceDeviceTest {
                 await(view, "document.getElementById('vg-font-range') && !document.getElementById('vg-font-range').disabled")
             }
             fixture()
+            scenario.onActivity { activity ->
+                val fonts = VgAppearance(activity).fontState()
+                android.util.Log.i("VgAppearanceTest", "Native faces=" + fonts.getJSONArray("faces").length() + "; " + fonts.getString("fontStatus"))
+            }
             assertEquals("100%", eval(view, "document.getElementById('vg-font-value').textContent"))
             await(view, "document.documentElement.style.getPropertyValue('--vg-android-font') === 'VgAndroidSystem'")
             assertEquals("monospace",eval(view,"getComputedStyle(document.getElementById('icon')).fontFamily"))
