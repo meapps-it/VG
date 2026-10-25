@@ -42,6 +42,16 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images?.[0],price:25,
  w.eval('products.find(p=>p.id==="legacy").image="https://images.example/legacy"');
  click('[data-detail=legacy]');assert.equal($('galleryCount').textContent,'1 / 1');
  assert.match($('productHero').querySelector('img').src,/legacy/);
+ // Search/filters combine independent fields and tolerate accents and word order.
+ $('closeProduct').click();
+ w.eval(`products=[{id:'bag',name:'Borsa a tracolla',brand:'Hermès',sku:'ABC-123',category:'Borse/Zaini',description:'Pelle marrone',price:145,images:[]},{id:'shoe',name:'Sneaker Bianca',brand:'Gucci',sku:'S001',category:'Scarpe',description:'Pelle',price:90,images:[]},{id:'wallet',name:'Portafoglio',brand:'Hermès',sku:'W002',category:'Portafogli',description:'Pelle nera',price:60,images:[]}];render()`);
+ $('search').value='hermes tracolla';$('search').dispatchEvent(new w.Event('input'));assert.equal(doc.querySelectorAll('.item').length,1);assert.match($('catalog').textContent,/tracolla/);
+ $('search').value='ABC 123';$('search').dispatchEvent(new w.Event('input'));assert.equal(doc.querySelectorAll('.item').length,1);
+ $('clearSearch').click();doc.querySelector('.visual-categories [data-group=scarpe]').click();assert.equal(doc.querySelectorAll('.item').length,1);assert.match($('catalog').textContent,/Sneaker/);
+ $('resetAll').click();$('minPrice').value='100';$('minPrice').dispatchEvent(new w.Event('input'));assert.equal(doc.querySelectorAll('.item').length,1);
+ $('resetAll').click();$('sort').value='price-asc';$('sort').dispatchEvent(new w.Event('change'));assert.match(doc.querySelector('.item .name').textContent,/Portafoglio/);
+ $('search').value='zzzzimpossibile';$('search').dispatchEvent(new w.Event('input'));assert.match($('catalog').textContent,/Nessun articolo/);doc.querySelector('[data-reset]').click();assert.equal(doc.querySelectorAll('.item').length,3);
+ $('toggleFilters').click();assert.equal($('filterPanel').hidden,false);$('toggleFilters').click();assert.equal($('filterPanel').hidden,true);
  console.log('PASS DOM: thumbnails, arrows, bidirectional swipe, vertical scroll, zoom/close, broken/empty/single/legacy images, signed URL renewal, description, cart and order review');
  }finally{w.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

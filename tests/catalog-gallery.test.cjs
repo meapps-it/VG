@@ -15,7 +15,12 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
   const context=await browser.newContext({viewport:{width,height:800},hasTouch:true,isMobile:width<650});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   let requests=0;
-  await page.route(base,r=>r.fulfill({contentType:'text/html',body:html}));
+  await page.route('https://meapps-it.github.io/VG/**',r=>{
+   const path=decodeURIComponent(new URL(r.request().url()).pathname.replace('/VG/',''));
+   if(path==='catalogo-nuovo.html')return r.fulfill({contentType:'text/html',body:html});
+   if(path.startsWith('shop-')&&fs.existsSync(__dirname+'/../'+path))return r.fulfill({path:__dirname+'/../'+path});
+   return r.abort();
+  });
   await page.route('https://photos.test/**',r=>r.request().url().includes('broken')?r.fulfill({status:404}):r.fulfill({contentType:'image/png',body:png}));
   await page.route(API+'**',r=>{assert.equal(r.request().method(),'GET');requests++;return r.fulfill({contentType:'application/json',body:JSON.stringify({items:[item('many',[photo(1),photo(2),photo(3)]),item('single',[photo(4)]),item('none',[]),item('broken',[photo('broken'),photo(5)])],imagesExpiresAt:Date.now()+(requests===1?1000:3600000)})})});
   await page.goto(base);await page.locator('.item').first().waitFor();

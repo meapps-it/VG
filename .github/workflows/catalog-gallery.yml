@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - 'catalogo-nuovo.html'
+      - 'shop-*'
+      - 'shop-icons/**'
       - 'supabase/functions/vg-shop-catalog/**'
       - 'tests/catalog-*.cjs'
       - '.github/workflows/catalog-gallery.yml'
@@ -35,4 +37,6 @@ jobs:
         if: github.ref == 'refs/heads/main'
         env:
           NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
-        run: node tests/catalog-live.test.cjs
+        run: |
+          node tests/catalog-live.test.cjs
+          CATALOG_LIVE_URL=https://simplexapp.it/shop/ node tests/catalog-live.test.cjs

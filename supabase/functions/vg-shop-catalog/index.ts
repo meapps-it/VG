@@ -4,16 +4,17 @@ const KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(PROJECT, KEY, { auth:{persistSession:false} });
 const OWNER = "a51e2715-3b5e-4ad3-906e-c664fcdd486d";
 const SITE = "https://meapps-it.github.io";
-const cors = {"Access-Control-Allow-Origin":SITE,"Access-Control-Allow-Headers":"content-type,apikey,authorization","Access-Control-Allow-Methods":"GET,POST,OPTIONS","Vary":"Origin"};
-function out(data:unknown,status=200){return new Response(JSON.stringify(data),{status,headers:{...cors,"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store"}})}
-function fail(message:string,status=400){return out({error:message},status)}
+const ALLOWED_ORIGINS=new Set([SITE,"https://simplexapp.it"]);
 function valid(value:unknown,max:number){return typeof value==="string"?value.trim().slice(0,max):""}
 const published=(q:any)=>q.eq("user_id",OWNER).eq("attivo",true).eq("disponibile",true).eq("stato_pubblicazione","pubblicato").eq("is_demo",false);
 Deno.serve(async(req)=>{
+ const origin=req.headers.get("origin");
+ const cors={"Access-Control-Allow-Origin":origin&&ALLOWED_ORIGINS.has(origin)?origin:SITE,"Access-Control-Allow-Headers":"content-type,apikey,authorization","Access-Control-Allow-Methods":"GET,POST,OPTIONS","Vary":"Origin"};
+ function out(data:unknown,status=200){return new Response(JSON.stringify(data),{status,headers:{...cors,"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store"}})}
+ function fail(message:string,status=400){return out({error:message},status)}
  try{
+  if(origin&&!ALLOWED_ORIGINS.has(origin))return fail("Origine non autorizzata",403);
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
-  const origin=req.headers.get("origin");
-  if(origin && origin!==SITE)return fail("Origine non autorizzata",403);
   const url=new URL(req.url);
   if(req.method==="GET"){
     if(url.searchParams.get("action")!=="catalog")return fail("Operazione non valida",404);
@@ -54,8 +55,11 @@ Deno.serve(async(req)=>{
       const images=(photoMap.get(p.id)||[]).map(path=>signed.get(path)||"").filter(Boolean);
       const image=images[0]||"";
       const promo=Boolean(p.in_promozione)&&Number(p.prezzo_promozionale)>0&&Number(p.prezzo_promozionale)<Number(p.prezzo_vendita);
-      const description=String(p.descrizione_app||p.descrizione||"").replace(/\[VGMETA\][\s\S]*?\[\/VGMETA\]/gi," ").replace(/\[VGMETA\][\s\S]*$/gi,"").trim();
-      return {id:p.id,sku:p.sku,name:p.nome,description,brand:p.marca||"",category:categoryMap.get(p.categoria_id)||"Altri articoli",price:promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita),originalPrice:Number(p.prezzo_vendita),promotion:promo,image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
+      const rawDescription=String(p.descrizione_app||p.descrizione||"");
+      let meta:any={};try{meta=JSON.parse(rawDescription.match(/\[VGMETA\]([\s\S]*?)\[\/VGMETA\]/i)?.[1]||"{}")}catch{}
+      const brand=valid(p.marca||meta?.brand||meta?.marca,100);
+      const description=rawDescription.replace(/\[VGMETA\][\s\S]*?\[\/VGMETA\]/gi," ").replace(/\[VGMETA\][\s\S]*$/gi,"").trim();
+      return {id:p.id,sku:p.sku,name:p.nome,description,brand,category:categoryMap.get(p.categoria_id)||"Altri articoli",price:promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita),originalPrice:Number(p.prezzo_vendita),promotion:promo,image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
     });
     return out({items,imagesExpiresAt});
   }
