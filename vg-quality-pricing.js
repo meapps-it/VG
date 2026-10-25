@@ -1,4 +1,4 @@
-/* Shared by the PWA and the APK asset: original V e G quality pricing rules. */
+/* Shared by the PWA and the APK asset: original V e G quality pricing rules. CI refresh. */
 (function(root,factory){
  const api=factory();
  if(typeof module==='object'&&module.exports) module.exports=api;
