@@ -36,7 +36,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   await page.goto('https://meapps-it.github.io/VG/');
   assert.equal(await page.locator('#homeSpark .sparkBar').count(),6);
   assert(await page.locator('#homeSpark .sparkBar').evaluateAll(bars=>bars.every(b=>b.getBoundingClientRect().height>0)),'six-month sales columns remain visible');
-  assert.equal(await page.locator('.vgNativeAction:not([hidden])').count(),hybrid?3:0);
+  assert.equal(await page.locator('.vgNativeAction:not([hidden])').count(),hybrid?4:0);
   if(hybrid&&process.env.VG_UI_SCREENSHOTS){fs.mkdirSync(process.env.VG_UI_SCREENSHOTS,{recursive:true});await page.screenshot({path:path.join(process.env.VG_UI_SCREENSHOTS,'dashboard-'+width+'.png')});}
   await page.locator('#topMenuBtn').click();await page.locator('#vgCatalogStatsOpen').click();
   await page.locator('#vgStatsResults:not([hidden])').waitFor();assert.equal(await page.locator('#vgStatsBars li').count(),7);
