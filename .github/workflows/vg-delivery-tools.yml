@@ -1,0 +1,20 @@
+name: VG delivery signing tools
+on:
+  push:
+    paths: ['.github/workflows/vg-delivery-tools.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tools:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch pinned Google APK signature library
+        run: |
+          curl -fsSL https://dl.google.com/dl/android/maven2/com/android/tools/build/apksig/8.13.2/apksig-8.13.2.jar -o apksig-8.13.2.jar
+          echo 'c070ed1394629d74641aa0906f60b2ffa1ee77e6366a1f93437f59717b1aeb89  apksig-8.13.2.jar' | sha256sum -c
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VG-pinned-signing-library
+          path: apksig-8.13.2.jar
+          if-no-files-found: error
