@@ -45,6 +45,14 @@ Deno.serve(async(req)=>{
       if(!paths.includes(p.path))paths.push(p.path);
       photoMap.set(p.prodotto_id,paths);
     }
+    // Some legacy articles only retain their original Storage paths in VGMETA.
+    // Merge those associated references after the ordered photo rows; never guess files.
+    for(const p of data||[]){
+      let meta:any={};try{meta=JSON.parse(String(p.descrizione||"").match(/\[VGMETA\]([\s\S]*?)\[\/VGMETA\]/i)?.[1]||"{}")}catch{}
+      const legacy=Array.isArray(meta.foto)?meta.foto:Array.isArray(meta.fotoCloud)?meta.fotoCloud:[];
+      const associated=legacy.filter((path:unknown)=>typeof path==="string"&&!path.includes("..")&&!path.includes("://")&&(path.startsWith(String(p.sku)+"/")||path.startsWith(OWNER+"/")));
+      photoMap.set(p.id,[...new Set([...(photoMap.get(p.id)||[]),...associated])]);
+    }
     const paths=[...new Set([...photoMap.values()].flat())];
     const signed=new Map<string,string>();
     const imagesExpiresAt=Date.now()+3600*1000;

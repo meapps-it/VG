@@ -78,7 +78,7 @@ el('cartLines').innerHTML=entries.length?entries.map(([id,qty])=>{let p=products
 el('total').textContent='Totale indicativo: '+euro(entries.reduce((s,[id,qty])=>s+products.find(p=>p.id===id).price*qty,0));
 el('sendOrder').disabled=!entries.length;
 render();}
-function openCart(open){if(open){setCheckout(2);shopShipping.load()}el('overlay').classList.toggle('open',open);el('overlay').setAttribute('aria-hidden',String(!open));renderCart()}
+function openCart(open){if(open){setCheckout(2);shopShipping.load()}document.body.style.overflow=open?'hidden':'';el('overlay').classList.toggle('open',open);el('overlay').setAttribute('aria-hidden',String(!open));renderCart()}
 el('openCart').onclick=()=>openCart(true);el('closeCart').onclick=()=>openCart(false);
 el('overlay').addEventListener('click',e=>{if(e.target===el('overlay'))openCart(false)});
 el('catalog').addEventListener('click',e=>{
@@ -198,6 +198,7 @@ el('productAdd').onclick=()=>{
 let checkoutStep=2;
 function setCheckout(step){
  checkoutStep=step;
+ el('cartLines').hidden=step===3;el('total').hidden=step===3;
  el('stepReview').classList.toggle('active',step===3);
  el('checkoutHeading').textContent=step===3?'Verifica la richiesta':'I tuoi dati';
  el('checkoutReview').hidden=step!==3;
@@ -215,6 +216,7 @@ function setCheckout(step){
      const p=products.find(x=>x.id===id);return q+' × '+p.name+' · '+qualityLabel(p.quality)+' · '+euro(q*p.price)
    });
    const total=Object.entries(cart).reduce((v,[id,q])=>v+(products.find(p=>p.id===id)?.price||0)*q,0);
+   el('overlay').querySelector('.drawer').scrollTop=0;
    el('checkoutReview').textContent='ARTICOLI RICHIESTI\n'+lines.join('\n')+'\n\nTotale indicativo: '+euro(total)+'\n\nDATI CLIENTE\n'+['name','phone','address','city','province','cap','notes'].map(k=>String(['city','province','cap'].includes(k)?shopShipping.address()[k]:(f.get(k)||'')).trim()).filter(Boolean).join(' · ')+'\n\nLa richiesta non comporta pagamento. Sarai ricontattato per la conferma.';
  }
 }
