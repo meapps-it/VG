@@ -42,4 +42,4 @@ jobs:
           NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
         run: |
           node tests/catalog-live.test.cjs
-          CATALOG_LIVE_URL=https://simplexapp.it/shop/ node tests/catalog-live.test.cjs
+          # The source-owned deployment for this repository is GitHub Pages.
