@@ -50,6 +50,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow');
   await page.locator('#productQty').fill('2');await page.locator('#productAdd').click();assert.match(await page.locator('#total').textContent(),/50,00/);
   await page.locator('input[name=name]').fill('Cliente di prova');await page.locator('input[name=phone]').fill('3330000000');await page.locator('input[name=address]').fill('Via di prova 1');await page.locator('input[name=city]').fill('Torino');await page.locator('input[name=privacy]').check();await page.locator('select[name=province]').selectOption('manual');await page.locator('input[name=cap]').fill('10100');
+  await page.locator('input[name=city]').fill('Torino');
   await page.locator('#checkoutNext').click();assert.match(await page.locator('#checkoutReview').textContent(),/2 × Borsa many/);assert.ok(await page.locator('#sendOrder').isVisible());
   await page.locator('#checkoutBack').click();await page.locator('#closeCart').click();
   for(const [id,counter] of [['single','1 / 1'],['none','Nessuna fotografia'],['broken','1 / 2']]){
