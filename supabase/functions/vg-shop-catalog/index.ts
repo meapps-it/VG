@@ -80,7 +80,16 @@ Deno.serve(async(req)=>{
   const raw=Array.isArray(body?.items)?body.items:[];
   if(raw.length<1||raw.length>30)return fail("Carrello vuoto o troppo grande");
   const selected=new Map<string,number>();
-  for(const entry of raw){const id=valid(entry?.id,60),qty=Number(entry?.qty);if(!/^[0-9a-f-]{36}$/i.test(id)||!Number.isInteger(qty)||qty<1||qty>20)return fail("Articolo o quantità non validi");selected.set(id,(selected.get(id)||0)+qty)}
+  const requestedQuality=new Map<string,string>();
+  for(const entry of raw){
+    const id=valid(entry?.id,60),qty=Number(entry?.qty);
+    const quality=entry?.quality===undefined?"ORIGINALE":valid(entry.quality,32).toUpperCase();
+    if(!/^[0-9a-f-]{36}$/i.test(id)||!Number.isInteger(qty)||qty<1||qty>20)return fail("Articolo o quantità non validi");
+    if(!["ORIGINALE","TOP QUALITY"].includes(quality))return fail("Qualità richiesta non valida");
+    if(requestedQuality.has(id)&&requestedQuality.get(id)!==quality)return fail("Seleziona una qualità per articolo");
+    requestedQuality.set(id,quality);
+    selected.set(id,(selected.get(id)||0)+qty);
+  }
   if([...selected.values()].some(n=>n>20))return fail("Quantità non valida");
   const ip=(req.headers.get("cf-connecting-ip")||req.headers.get("x-forwarded-for")||"unknown").split(",")[0].trim();
   const bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("vg-catalog-v1:"+ip));
@@ -98,7 +107,7 @@ Deno.serve(async(req)=>{
   const lines=products.map((p:any)=>{
     const promo=p.in_promozione&&Number(p.prezzo_promozionale)>0&&Number(p.prezzo_promozionale)<Number(p.prezzo_vendita);
     const price=promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita);
-    return {id:p.id,qty:selected.get(p.id)||1,price};
+    return {id:p.id,qty:selected.get(p.id)||1,price,quality:requestedQuality.get(p.id)||"ORIGINALE"};
   });
   const total=Math.round(lines.reduce((v,x)=>v+x.qty*x.price,0)*100)/100;
   if(!(total>=0&&total<1000000))return fail("Totale ordine non valido");
@@ -107,7 +116,7 @@ Deno.serve(async(req)=>{
     const {data:client,error:ce}=await db.from("clienti").insert({user_id:OWNER,nome:name,telefono:phone,indirizzo:address,citta:city,cap,email:email||null,note:"Richiesta da Shop & Parallelo"}).select("id").single();
     if(ce)throw ce;clientId=client.id;
     const number="WEB-"+new Date().toISOString().replace(/[-:TZ.]/g,"").slice(0,14)+"-"+crypto.randomUUID().slice(0,6).toUpperCase();
-    const {data:order,error:oe}=await db.from("ordini").insert({user_id:OWNER,numero_ordine:number,cliente_id:clientId,stato:"in_lavorazione",totale:total,pagato:false,stato_pagamento:"da_pagare",note:"Richiesta da catalogo Shop & Parallelo. Da confermare. "+notes}).select("id,numero_ordine").single();
+    const {data:order,error:oe}=await db.from("ordini").insert({user_id:OWNER,numero_ordine:number,cliente_id:clientId,stato:"in_lavorazione",totale:total,pagato:false,stato_pagamento:"da_pagare",note:"Richiesta da catalogo Shop & Parallelo. Da confermare qualità e prezzo; importi indicativi. "+lines.map(x=>x.id+" ("+x.qty+"): "+x.quality).join("; ")+(notes?" | Note cliente: "+notes:"")}).select("id,numero_ordine").single();
     if(oe)throw oe;orderId=order.id;
     const {error:re}=await db.from("righe_ordine").insert(lines.map(x=>({user_id:OWNER,ordine_id:orderId,prodotto_id:x.id,quantita:x.qty,prezzo_unitario:x.price,sconto:0,costo_unitario:0,guadagno_riga:0})));
     if(re)throw re;
