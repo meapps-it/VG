@@ -11604,7 +11604,7 @@ async function saveArt(){
     const acceptedEstimate=(!usd && !promoUsd) ? acceptedArticleCostEstimate() : null;
     const r=usd>0 ? calcFromUsd(usd, qual) : (acceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,qual) : {costo:0,sell:0,marg:0});
     const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0,theoretical:0};
-    if((r.needsQuality||rPromo.needsQuality)&&loadPricingSettings().mode==='quality'){toast('Scegli la qualità: Original oppure Top/Standard');document.getElementById('a_qual')?.focus();return;}
+    if((r.needsQuality||rPromo.needsQuality)&&loadPricingSettings().mode==='quality'&&!(currentArtPriceManuallySet&&Number(document.getElementById('a_sell')?.value||0)>0)){toast('Scegli la qualità: Original oppure Top/Standard');document.getElementById('a_qual')?.focus();return;}
     const chosenSale=Number(document.getElementById('a_sell')?.value||0) || Number(r.sell||rPromo.sell||0);
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);

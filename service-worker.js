@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.145-quality-autofill';
+const VERSION = 'gestionale-vg-1.0.146-quality-existing-price';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json', './vg-quality-pricing.js',
