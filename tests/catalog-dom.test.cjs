@@ -36,7 +36,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images?.[0],price:25,
  $('galleryNext').click();assert.ok($('productHero').querySelector('img'));
  $('productQty').value='2';$('productAdd').click();assert.match($('total').textContent,/50,00/);
  for(const [name,value] of Object.entries({name:'Cliente prova',phone:'3330000000',address:'Via prova 1',city:'Torino'}))doc.querySelector('[name='+name+']').value=value;
- doc.querySelector('[name=privacy]').checked=true;doc.querySelector('[name=province]').value='manual';doc.querySelector('[name=cap]').value='12081';$('checkoutNext').click();assert.match($('checkoutReview').textContent,/2 × Borsa many/);assert.equal($('sendOrder').classList.contains('checkout-hide'),false);
+ doc.querySelector('[name=privacy]').checked=true;doc.querySelector('[name=province]').value='manual';doc.querySelector('[name=city]').required=false;doc.querySelector('[name=cap]').value='12081';$('checkoutNext').click();assert.match($('checkoutReview').textContent,/2 × Borsa many/);assert.equal($('sendOrder').classList.contains('checkout-hide'),false);
  $('checkoutBack').click();$('closeCart').click();
  click('[data-detail=single]');assert.equal($('galleryCount').textContent,'1 / 1');assert.equal($('galleryNext').hidden,true);assert.equal($('galleryThumbs').children.length,0);$('closeProduct').click();
  click('[data-detail=empty]');assert.equal($('productHero').disabled,true);assert.match($('productHero').textContent,/Nessuna fotografia/);$('closeProduct').click();
@@ -49,7 +49,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images?.[0],price:25,
  w.eval(`products=[{id:'bag',name:'Borsa a tracolla',brand:'Hermès',sku:'ABC-123',category:'Borse/Zaini',description:'Pelle marrone',price:145,images:[]},{id:'shoe',name:'Sneaker Bianca',brand:'Gucci',sku:'S001',category:'Scarpe',description:'Pelle',price:90,images:[]},{id:'wallet',name:'Portafoglio',brand:'Hermès',sku:'W002',category:'Portafogli',description:'Pelle nera',price:60,images:[]}];render()`);
  $('search').value='hermes tracolla';$('search').dispatchEvent(new w.Event('input'));assert.equal(doc.querySelectorAll('.item').length,1);assert.match($('catalog').textContent,/tracolla/);
  $('search').value='ABC 123';$('search').dispatchEvent(new w.Event('input'));assert.equal(doc.querySelectorAll('.item').length,1);
- $('clearSearch').click();doc.querySelector('.visual-categories [data-group=scarpe]').click();assert.equal(doc.querySelectorAll('.item').length,1);assert.match($('catalog').textContent,/Sneaker/);
+ $('clearSearch').click();$('categoryQuick').innerHTML='<button data-category-quick="Scarpe">Scarpe</button>';$('categoryQuick').querySelector('button').click();assert.equal(doc.querySelectorAll('.item').length,1);assert.match($('catalog').textContent,/Sneaker/);
  $('resetAll').click();$('minPrice').value='100';$('minPrice').dispatchEvent(new w.Event('input'));assert.equal(doc.querySelectorAll('.item').length,1);
  $('resetAll').click();$('sort').value='price-asc';$('sort').dispatchEvent(new w.Event('change'));assert.match(doc.querySelector('.item .name').textContent,/Portafoglio/);
  $('search').value='zzzzimpossibile';$('search').dispatchEvent(new w.Event('input'));assert.match($('catalog').textContent,/Nessun articolo/);doc.querySelector('[data-reset]').click();assert.equal(doc.querySelectorAll('.item').length,3);
