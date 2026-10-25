@@ -31,7 +31,7 @@ jobs:
         env:
           NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
         run: |
-          node --test tests/catalog-api.test.cjs tests/catalog-access.test.cjs tests/catalog-order.test.cjs
+          node --test tests/catalog-api.test.cjs tests/catalog-access.test.cjs tests/catalog-order.test.cjs tests/catalog-push.test.cjs
           node tests/catalog-dom.test.cjs
           node tests/catalog-shipping.test.cjs
           node tests/catalog-gallery.test.cjs
