@@ -36,6 +36,24 @@ class VgAppearanceDeviceTest {
         }
         error("WebView condition not reached: $expression")
     }
+    @Test fun persistAcrossProcessStop() {
+        val stage = InstrumentationRegistry.getArguments().getString("appearancePersistence") ?: return
+        val ctx = instrumentation.targetContext
+        if (stage == "prepare") {
+            VgAppearance(ctx).percent = 145
+            // Flush the same SharedPreferences file before the runner is force-stopped.
+            ctx.getSharedPreferences("vg_android_settings",0).edit().commit()
+            assertEquals(145,VgAppearance(ctx).percent)
+        } else {
+            assertEquals(145,VgAppearance(ctx).percent)
+            ActivityScenario.launch(VgPwaActivity::class.java).use { scenario ->
+                scenario.onActivity { activity ->
+                    val view = web(activity.window.decorView)!!
+                    assertEquals(VgTextScale.zoom(145,activity.resources.configuration.fontScale),view.settings.textZoom)
+                }
+            }
+        }
+    }
     @Test fun realWebViewFontScalingPersistenceAndNativeDialogs() {
         val ctx = instrumentation.targetContext
         ctx.getSharedPreferences("vg_android_settings",0).edit().clear().commit()

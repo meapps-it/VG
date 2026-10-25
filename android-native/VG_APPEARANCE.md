@@ -70,10 +70,9 @@ tests, existing management UI/photo/action regression tests, and an Android 35
 emulator test. The device test checks native font loading into a real WebView,
 actual text growth at both endpoints, preference retention after Activity recreation,
 reset, native-dialog scale, icon preservation, and rejection of untrusted origins.
-A separate application restart test procedure: set a value, force-stop/relaunch,
-and confirm the saved percentage. SharedPreferences persistence is covered by
-reopening the preference store; physical Samsung and OEM font changes require a
-real device. CI evidence must be consulted: tests listed here are not a claim
+Separate instrumentation invocations save 145%, force-stop the app process,
+then verify the saved percentage and WebView zoom in a newly launched Activity.
+Physical Samsung and OEM font changes require a real device. CI evidence must be consulted: tests listed here are not a claim
 that a particular run succeeded.
 
 Delivery signing uses the existing private signing config outside the repository.

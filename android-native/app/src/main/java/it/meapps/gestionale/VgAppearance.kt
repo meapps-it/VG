@@ -47,7 +47,7 @@ internal class VgAppearance(private val context: Context) {
                     textSize = 16f
                 }
                 val glyphs = TextRunShaper.shapeTextRun("Ag", 0, 2, 0, 2, 0f, 0f, false, paint)
-                check(glyphs.glyphCount > 0) { "Nessun carattere nativo disponibile" }
+                check(glyphs.glyphCount() > 0) { "Nessun carattere nativo disponibile" }
                 val font = glyphs.getFont(0)
                 // Chromium support for nonzero faces in TTC collections is inconsistent.
                 check(font.ttcIndex == 0) { "Il font Android usa una raccolta non supportata dalla WebView" }
