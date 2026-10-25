@@ -65,11 +65,12 @@ class VgAppearanceDeviceTest {
                     view.stopLoading()
                     view.loadDataWithBaseURL("https://meapps-it.github.io/VG/",
                         """<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}.card{padding:12px}p{font-size:16px}button{font-size:16px}</style></head><body><div id="sec_impostazioni"></div><p id="sample">Articoli e clienti</p><i class="fa" style="font-family:monospace" id="icon">*</i></body></html>""",
-                        "text/html","UTF-8",null)
+                        "text/html","UTF-8","https://meapps-it.github.io/VG/")
                 }
                 await(view, "document.getElementById('vg-font-range') && !document.getElementById('vg-font-range').disabled")
             }
             fixture()
+            scenario.onActivity { assertEquals("https://meapps-it.github.io/VG/",view.url) }
             scenario.onActivity { activity ->
                 val fonts = VgAppearance(activity).fontState()
                 android.util.Log.i("VgAppearanceTest", "Native faces=" + fonts.getJSONArray("faces").length() + "; " + fonts.getString("fontStatus"))
@@ -102,7 +103,7 @@ class VgAppearanceDeviceTest {
             await(view,"document.getElementById('vg-font-value').textContent === '100%'")
             assertEquals(100,VgAppearance(ctx).percent)
             // An untrusted top-level origin never receives the bridge or APK controls.
-            scenario.onActivity { view.loadDataWithBaseURL("https://example.org/","<html><body>Untrusted</body></html>","text/html","UTF-8",null) }
+            scenario.onActivity { view.loadDataWithBaseURL("https://example.org/","<html><body>Untrusted</body></html>","text/html","UTF-8","https://example.org/") }
             await(view,"document.body && document.body.textContent === 'Untrusted'")
             assertEquals("undefined",eval(view,"typeof window.VgAppearanceBridge"))
             assertEquals("false",eval(view,"Boolean(document.getElementById('vg-font-control'))"))
