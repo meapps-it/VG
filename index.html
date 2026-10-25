@@ -9769,6 +9769,30 @@ function renderArt(){
     return okText && okCat && okBrand && okQuality && okPromo && okNoPhoto;
   }).sort((a,b)=>compareArticlesForPreview(a,b));
   const el=document.getElementById('listArt');
+  if(!el.dataset.shopPublishBound){
+    el.dataset.shopPublishBound='1';
+    el.addEventListener('click',event=>{if(event.target.closest('.shopPublishControl'))event.stopPropagation()});
+    el.addEventListener('change',async event=>{
+      const checkbox=event.target.closest('input[data-shop-publish]');
+      if(!checkbox)return;
+      const id=checkbox.dataset.shopPublish;
+      const db=loadDB(),article=db.articoli.find(x=>String(x.id)===String(id));
+      if(!article)return;
+      const before=article.pubblicatoCatalogo!==false;
+      article.pubblicatoCatalogo=checkbox.checked;article._ts=Date.now();
+      checkbox.disabled=true;
+      if(!saveDB(db)){article.pubblicatoCatalogo=before;checkbox.checked=before;checkbox.disabled=false;toast('Impossibile salvare la pubblicazione');return}
+      try{
+        if(!cloudEnabled())throw Error('Connessione cloud necessaria');
+        await cloudSaveOne('art',article,db);
+        toast(article.pubblicatoCatalogo?'Articolo pubblicato':'Articolo nascosto ai clienti');
+      }catch(err){
+        article.pubblicatoCatalogo=before;checkbox.checked=before;saveDB(db);
+        console.error('Pubblicazione catalogo fallita',err);
+        toast('Salvataggio cloud fallito. Riprova.');
+      }finally{checkbox.disabled=false}
+    });
+  }
   renderArtBreadcrumbs();
   renderArtStats(items);
   const showOverview=false;
@@ -9787,7 +9811,7 @@ function renderArt(){
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
     const promoActive=promoValid(a);
     const promoBadge=promoActive ? `<div class="artPromoBadge">🔥 IN PROMOZIONE</div>` : '';
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''} ${promoActive ? 'is-promo' : ''}" data-open="art" data-id="${a.id}">${noteHtml}${promoBadge}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s">${a.codice?`Cod. ${esc(a.codice)} • `:''}${esc(metaLine)}</div>${unavailable}</div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div></div>${articleUnderMarginListBadgeHtml(a)}</div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''} ${promoActive ? 'is-promo' : ''}" data-open="art" data-id="${a.id}">${noteHtml}${promoBadge}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s">${a.codice?`Cod. ${esc(a.codice)} • `:''}${esc(metaLine)}</div>${unavailable}<label class="shopPublishControl" style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" data-shop-publish="${a.id}" ${a.pubblicatoCatalogo!==false?"checked":""} style="width:18px;height:18px;accent-color:#167447"> Pubblicato nel catalogo clienti</label></div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div></div>${articleUnderMarginListBadgeHtml(a)}</div>`;
   }).join('');
   const emptyText=noPhotoOnly ? 'Nessun articolo senza foto.' : (promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.');
   const activeHtml=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
