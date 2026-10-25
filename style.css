@@ -85,3 +85,12 @@ button{
   font-size:13px;
   white-space:pre-line;
 }
+
+/* VG: tipografia nativa Android/iOS/desktop per tutta l'interfaccia. */
+:root { --vg-system-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+html, body, button, input, select, textarea, option, optgroup, label, summary, dialog,
+header, nav, main, footer, article, section, aside,
+h1, h2, h3, h4, h5, h6, p, span, div, a, li, td, th, small, strong,
+[role="button"], [contenteditable="true"] {
+  font-family: var(--vg-system-font) !important;
+}
