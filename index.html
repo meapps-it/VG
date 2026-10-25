@@ -1157,7 +1157,7 @@ window.addEventListener('error',e=>{
 
   <div class="formBlock prezzi inputSoft">
     <div class="blockTitle">Prezzo fornitore</div>
-    <div style="margin-top:10px"><label class="k" for="a_qual">Qualità per il ricarico</label><input id="a_qual" list="a_quality_presets" autocomplete="off" placeholder="Original Quality oppure Top Quality"/><datalist id="a_quality_presets"><option value="Original Quality 🥇"></option><option value="Top Quality 🥈"></option></datalist><div class="helper">Jayden: Original. Daniel e Jessica: Top/Standard. Con altri fornitori scegli la qualità.</div></div>
+    <div style="margin-top:10px"><label class="k" for="a_qual">Qualità</label><select id="a_qual"><option value="">Seleziona il fornitore</option><option value="ORIGINALE">Originale</option><option value="STANDARD">Standard</option></select><div class="helper">Assegnazione automatica: Jayden = Originale; tutti gli altri fornitori = Standard.</div></div>
     <div><div class="k">Prezzo fornitore USD</div><input id="a_usd" inputmode="decimal" autocomplete="off"/></div>
     <div style="display:none!important">
 
@@ -4950,11 +4950,6 @@ function setDateLine(){
 setInterval(setDateLine, 1000); document.addEventListener('DOMContentLoaded', setDateLine);
 
 /* ====== QUALITY + PRICE RULES ====== */
-const SUPPLIER_DEFAULT_QUALITY=Object.freeze({
-  Daniel:'Top Quality 🥈',
-  Jessica:'Top Quality 🥈',
-  Jayden:'Original Quality 🥇'
-});
 const SUPPLIER_PRESETS=Object.freeze(['Daniel','Jayden','Jessica']);
 let currentSupplierManualOverride=false;
 let currentQualityManualOverride=false;
@@ -4987,7 +4982,7 @@ function detectSupplierFromUrl(url=''){
 }
 function getDefaultQualityFromSupplier(supplier=''){
   const name=normalizeSupplierValue(supplier);
-  return SUPPLIER_DEFAULT_QUALITY[name]||'';
+  return name ? (name.toLowerCase()==='jayden' ? 'ORIGINALE' : 'STANDARD') : '';
 }
 function qualityPricingKey(value=''){
   const raw=normalizeSpaceText(value||'').toLowerCase();
@@ -5086,10 +5081,10 @@ function updateSupplierField(preferredValue=''){
   if(qualityEl){
     if(forcedQuality){
       qualityEl.value=forcedQuality;
-      qualityEl.readOnly=true;
+      qualityEl.disabled=true;
       currentQualityManualOverride=false;
     }else{
-      qualityEl.readOnly=false;
+      qualityEl.disabled=false;
       if(!currentQualityManualOverride) qualityEl.value='';
     }
   }
