@@ -38,6 +38,7 @@ class VgPwaActivity : ComponentActivity() {
  private val appearanceScript by lazy { assets.open("vg-android-appearance.js").bufferedReader().use { it.readText() } }
  private var fontState:JSONObject?=null
  private var fontRevision=0
+ private var autoPushAttempted=false
  private val io=CoroutineScope(kotlinx.coroutines.SupervisorJob()+Dispatchers.IO)
  private var fileCallback:ValueCallback<Array<Uri>>?=null
  private val filePicker=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){result->fileCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result.resultCode,result.data));fileCallback=null}
@@ -90,7 +91,10 @@ class VgPwaActivity : ComponentActivity() {
     return null
    }
    override fun onPageCommitVisible(view:WebView,url:String){if(trusted(url))applyAppearance()}
-   override fun onPageFinished(view:WebView,url:String){if(trusted(url)){applyAppearance();captureSession(silent=true){jwt->io.launch{runCatching{val token=getSharedPreferences("vg_push",MODE_PRIVATE).getString("token",null);if(token!=null)VgPush.request(jwt,"register",JSONObject().put("token",token))}}}}}
+   override fun onPageFinished(view:WebView,url:String){if(trusted(url)){applyAppearance();captureSession(silent=true){jwt->
+    if(!autoPushAttempted){autoPushAttempted=true;configurePush()}
+    io.launch{runCatching{val token=getSharedPreferences("vg_push",MODE_PRIVATE).getString("token",null);if(token!=null)VgPush.request(jwt,"register",JSONObject().put("token",token))}}
+   }}}
   }
   web.webChromeClient=object:WebChromeClient(){override fun onShowFileChooser(view:WebView,callback:ValueCallback<Array<Uri>>,params:FileChooserParams):Boolean {fileCallback?.onReceiveValue(null);fileCallback=callback;return runCatching{filePicker.launch(params.createIntent());true}.getOrElse{fileCallback=null;false}}}
   web.setDownloadListener{url,_,_,_,_->runCatching{startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))}}
