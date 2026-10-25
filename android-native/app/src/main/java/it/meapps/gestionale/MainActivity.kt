@@ -2312,6 +2312,16 @@ private fun ProductEditorScreen(vm: AppViewModel) {
                 } }
             }
             item { Row(verticalAlignment = Alignment.CenterVertically) { Switch(d.available, { vm.updateProductDraft(d.copy(available = it)) }); Spacer(Modifier.width(10.dp)); Text(if (d.available) stringResource(R.string.available) else stringResource(R.string.unavailable)) } }
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = d.published, onCheckedChange = { vm.updateProductDraft(d.copy(published = it)) })
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text("Pubblicato nel catalogo clienti", fontWeight = FontWeight.Bold)
+                        Text(if (d.published) "Visibile ai clienti se disponibile e attivo" else "Non visibile nel catalogo clienti", fontSize = 12.sp)
+                    }
+                }
+            }
             item { AppTextField(d.productUrl, { vm.updateProductDraft(d.copy(productUrl = it)) }, stringResource(R.string.product_link), keyboardType = KeyboardType.Uri) }
             item { AppTextField(d.notes, { vm.updateProductDraft(d.copy(notes = it)) }, stringResource(R.string.notes), minLines = 3) }
             item { SectionTitle(stringResource(R.string.images)) }
