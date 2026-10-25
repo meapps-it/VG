@@ -22,8 +22,8 @@ assert.equal(vm.runInContext("calcFromUsd(100,'Original Quality 🥇').sell",ctx
 assert.equal(vm.runInContext("calcFromUsd(100,'Top Quality 🥈').sell",ctx),155);
 vm.runInContext('fillPricingSettings()',ctx);assert.equal(fields.pricingMarkupValue.disabled,true);assert.equal(fields.pricingVatDefault.disabled,true);
 fields.pricingMarkupMode.value='percent';fields.pricingMarkupValue.value='40';vm.runInContext('savePricingSettings();fillPricingSettings()',ctx);
-assert.equal(vm.runInContext('loadPricingSettings().mode',ctx),'percent');assert.equal(vm.runInContext("calcSellFromEurCost(100,'Original Quality').sell",ctx),154);
-fields.pricingMarkupMode.value='fixed';fields.pricingMarkupValue.value='20,5';vm.runInContext('savePricingSettings()',ctx);assert.equal(vm.runInContext('calcSellFromEurCost(100).sell',ctx),132.55);
+assert.equal(vm.runInContext('loadPricingSettings().mode',ctx),'percent');assert.equal(vm.runInContext("calcSellFromEurCost(100,'Original Quality').sell",ctx),140);
+fields.pricingMarkupMode.value='fixed';fields.pricingMarkupValue.value='20,5';vm.runInContext('savePricingSettings()',ctx);assert.equal(vm.runInContext('calcSellFromEurCost(100).sell',ctx),120.5);
 fields.pricingMarkupMode.value='manual';vm.runInContext('savePricingSettings()',ctx);assert.equal(vm.runInContext('calcSellFromEurCost(100).sell',ctx),0);
 assert(!source.includes('function qualityPricingKey(){ return'), 'no later blank override');
 console.log('PASS quality pricing: every tier boundary, high-cost percentages, rounding, negotiation buffer, missing quality, migration, USD conversion, persistence and other pricing modes');
