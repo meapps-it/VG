@@ -191,6 +191,7 @@ data class ProductDraft(
     val extraCosts: String = "",
     val quantity: String = "0",
     val available: Boolean = true,
+    val published: Boolean = false,
     val inPromotion: Boolean = false,
     val promotionalPrice: String = "",
     val notes: String = "",
