@@ -44,6 +44,8 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   assert.equal(await page.locator('#vgStatsBars li').nth(2).locator('.vgStatsBar').evaluate(b=>b.getBoundingClientRect().height),0,'zero visits have no false column');
   assert(await page.locator('#vgStatsBars .vgStatsBar').nth(3).evaluate(b=>b.getBoundingClientRect().height>100));
   assert(await page.locator('#vgStatsClose').isVisible());
+  assert(await page.locator('#vgStatsTitle').isVisible());
+  console.log('STAT HEADER',width,hybrid,await page.locator('#vgStatsTitle').evaluate(e=>({text:e.textContent,color:getComputedStyle(e).color,rect:e.getBoundingClientRect().toJSON()})));
   const fonts=await page.locator('body,#vgCatalogStatsOpen,#vgStatsClose').evaluateAll(nodes=>nodes.map(n=>getComputedStyle(n).fontFamily));assert(fonts.every(f=>f.includes('system-ui')));
   assert(await page.locator('#vgCatalogStats').evaluate(d=>{const r=d.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight}));
   if(hybrid&&process.env.VG_UI_SCREENSHOTS)await page.screenshot({path:path.join(process.env.VG_UI_SCREENSHOTS,'statistics-'+width+'.png')});
