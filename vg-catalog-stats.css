@@ -9,6 +9,7 @@ html,body,button,input,select,textarea{font-family:system-ui,-apple-system,"Sego
 .vgStatsHeader{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;background:#fff;border-bottom:1px solid var(--line,#d7deea)}
 .vgStatsHeader h2{font-size:20px;line-height:1.25;margin:0;font-weight:900}
 .vgStatsHeader button,.vgStatsRetry{font:inherit;border:1px solid var(--line,#d7deea);border-radius:14px;padding:11px 14px;background:#fff;color:#0f172a;font-weight:800;min-height:44px;cursor:pointer}
+.vgStatsHeader button{white-space:nowrap;flex-shrink:0}
 .vgStatsContent{padding:16px;display:grid;gap:16px}
 .vgStatsSummary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .vgStatsCard{min-width:0;background:#fff;border:1px solid var(--line,#d7deea);border-radius:20px;padding:16px}
