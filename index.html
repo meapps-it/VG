@@ -941,10 +941,10 @@ window.addEventListener('error',e=>{
           <div><div class="k">Valore per percentuale/importo fisso</div><input id="pricingMarkupValue" inputmode="decimal" placeholder="Es. 30"/></div>
         </div>
         <div class="grid2" style="margin-top:10px">
-          <div><div class="k">IVA predefinita %</div><input id="pricingVatDefault" inputmode="decimal" placeholder="22"/ style="display:none!important" aria-hidden="true"></div>
-          <div><div class="k">IVA per categoria</div><textarea id="pricingVatCategories" rows="4" placeholder="Alimentari = 10&#10;Bevande = 22&#10;Libri = 4" style="display:none!important" aria-hidden="true"></textarea></div>
+          <div style="display:none!important"><input id="pricingVatDefault" type="hidden" value="0"></div>
+          <div style="display:none!important"><textarea id="pricingVatCategories"></textarea></div>
         </div>
-        <div class="small" style="margin-top:8px">Nella scheda articolo puoi scrivere una percentuale IVA manuale. Se la lasci vuota viene usata prima la regola della categoria, poi l'IVA predefinita.</div>
+        
         <div class="small" style="margin-top:8px">Fasce Original: fino a 210 € +70 €, fino a 230 € +75 €, fino a 250 € +80 €, fino a 300 € +85 €, fino a 350 € +95 €; oltre: il maggiore tra 110 € e il 25% del costo. Top/Standard: fino a 50 € +45 €, fino a 80 € +55 €, fino a 120 € +60 €, fino a 160 € +70 €, fino a 220 € +80 €; oltre: il maggiore tra 90 € e il 25% del costo.</div><div class="small" style="margin-top:8px">Le fasce mantengono il calcolo precedente: costo + ricarico arrotondato per difetto a 5 €, poi +10 € di trattativa per Original. In questa modalità l’IVA configurata non viene aggiunta al prezzo; viene usata nelle modalità percentuale e importo fisso.</div>
         <div class="actions" style="margin-top:10px"><button class="btn primary" type="button" data-action="savePricingSettings">Salva regole prezzi</button></div>
       </div>
