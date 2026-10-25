@@ -941,8 +941,8 @@ window.addEventListener('error',e=>{
           <div><div class="k">Valore per percentuale/importo fisso</div><input id="pricingMarkupValue" inputmode="decimal" placeholder="Es. 30"/></div>
         </div>
         <div class="grid2" style="margin-top:10px">
-          <div><div class="k">IVA predefinita %</div><input id="pricingVatDefault" inputmode="decimal" placeholder="22"/></div>
-          <div><div class="k">IVA per categoria</div><textarea id="pricingVatCategories" rows="4" placeholder="Alimentari = 10&#10;Bevande = 22&#10;Libri = 4"></textarea></div>
+          <div><div class="k">IVA predefinita %</div><input id="pricingVatDefault" inputmode="decimal" placeholder="22"/ style="display:none!important" aria-hidden="true"></div>
+          <div><div class="k">IVA per categoria</div><textarea id="pricingVatCategories" rows="4" placeholder="Alimentari = 10&#10;Bevande = 22&#10;Libri = 4" style="display:none!important" aria-hidden="true"></textarea></div>
         </div>
         <div class="small" style="margin-top:8px">Nella scheda articolo puoi scrivere una percentuale IVA manuale. Se la lasci vuota viene usata prima la regola della categoria, poi l'IVA predefinita.</div>
         <div class="small" style="margin-top:8px">Fasce Original: fino a 210 € +70 €, fino a 230 € +75 €, fino a 250 € +80 €, fino a 300 € +85 €, fino a 350 € +95 €; oltre: il maggiore tra 110 € e il 25% del costo. Top/Standard: fino a 50 € +45 €, fino a 80 € +55 €, fino a 120 € +60 €, fino a 160 € +70 €, fino a 220 € +80 €; oltre: il maggiore tra 90 € e il 25% del costo.</div><div class="small" style="margin-top:8px">Le fasce mantengono il calcolo precedente: costo + ricarico arrotondato per difetto a 5 €, poi +10 € di trattativa per Original. In questa modalità l’IVA configurata non viene aggiunta al prezzo; viene usata nelle modalità percentuale e importo fisso.</div>
@@ -1175,7 +1175,7 @@ window.addEventListener('error',e=>{
     <div class="blockTitle">Prezzo di vendita</div>
     <div class="grid2">
       <div><div class="k">Costo reale</div><input id="a_eur" readonly/></div>
-      <div><div class="k">IVA %</div><input id="a_iva" inputmode="decimal" autocomplete="off" placeholder="Da categoria"/></div>
+      <input id="a_iva" type="hidden" value="0"/>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Prezzo calcolato</div><input id="a_recommended" readonly/></div>
@@ -10499,9 +10499,8 @@ function calcSellFromEurCost(cost,qual,articleOrCategory=null){
  if(p.mode==='manual') return {costo,sell:0,marg:0,theoretical:0,minPrice:0,buffer:0,highCost:false};
  const ricarico=p.mode==='percent' ? costo*(p.value/100) : p.value;
  const netto=costo+ricarico;
- const vat=resolveArticleVatPercent(typeof articleOrCategory==='object'&&articleOrCategory?articleOrCategory:{categoria:String(articleOrCategory||'')});
- const sell=Math.round(netto*(1+vat/100)*100)/100;
- return {costo,sell,marg:ricarico,theoretical:sell,minPrice:0,buffer:0,highCost:false,iva:vat};
+ const sell=Math.round(netto*100)/100;
+ return {costo,sell,marg:ricarico,theoretical:sell,minPrice:0,buffer:0,highCost:false};
 }
 function calcFromUsd(usd,qual,articleOrCategory=null){
  const costo=(Number(usd||0)*0.90)+5;
@@ -11685,7 +11684,7 @@ async function saveArt(){
       costoStimaSogliaMinima: acceptedEstimate ? Number(acceptedEstimate.minimumPrice||0) : 0,
       costoStimaSignature: acceptedEstimate ? String(acceptedEstimate.signature||'') : '',
       prezzoVendita: chosenSale,
-      ivaPercent: resolveArticleVatPercent({categoria:categoriaValue,ivaPercent:document.getElementById('a_iva')?.value}, true),
+      ivaPercent: 0,
       promoAttiva: document.getElementById('a_promo_on').checked,
       prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
       scadenzaPromo: document.getElementById('a_promo_date').value.trim(),
