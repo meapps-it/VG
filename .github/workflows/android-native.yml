@@ -91,6 +91,8 @@ jobs:
           working-directory: android-native
           script: |
             ./gradlew :app:connectedVgDebugAndroidTest
+            adb install -r app/build/outputs/apk/vg/debug/app-vg-debug.apk
+            adb install -r app/build/outputs/apk/androidTest/vg/debug/app-vg-debug-androidTest.apk
             adb shell am instrument -w -e class it.meapps.gestionale.VgAppearanceDeviceTest#persistAcrossProcessStop -e appearancePersistence prepare com.vg.gestionale.seconda.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/vg-persist-prepare.txt"
             grep -q 'OK (1 test)' "$RUNNER_TEMP/vg-persist-prepare.txt"
             adb shell am force-stop com.vg.gestionale.seconda
