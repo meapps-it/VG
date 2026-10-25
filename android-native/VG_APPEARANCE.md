@@ -36,14 +36,16 @@ Samsung font paths and does not use reflection or hidden Android APIs.
 On API 31+ a themed native TextView supplies its Typeface. TextRunShaper shapes
 Latin text using that typeface; PositionedGlyphs.getFont returns the actual
 font selected by Android, and Font.getBuffer supplies its bytes. Four style
-variants are loaded through WebView's FontFace API. Variable font axes are retained.
+variants are loaded through WebView's FontFace API with ArrayBuffer sources.
+Repeated buffers are deduplicated by SHA-256; a variable font is transferred once,
+not once per style. Variable font axes are retained.
 The bytes stay in this app's trusted web document; they are not written to disk,
 uploaded, or added to the APK. Fonts are refreshed when the Activity resumes.
 SVG graphics and icon-font elements are excluded from text font overrides.
 
 If Android does not expose the selected Samsung font through the native renderer,
 this mechanism cannot invent it. Font collections requiring a nonzero TTC index,
-fonts larger than 2 MB per face, unavailable buffers, Android 8–11, and WebViews
+fonts larger than 8 MB per file (16 MB total unique data), unavailable buffers, Android 8–11, and WebViews
 that reject the font receive an explicit fallback status in settings. The fallback
 uses the WebView's system font and does **not** claim the Samsung font is applied.
 Even a successful transfer proves only that the native renderer's font loaded;

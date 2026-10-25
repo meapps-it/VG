@@ -58,6 +58,8 @@ const source=fs.readFileSync(root+'/index.html','utf8').replace(/<script\b[^>]*>
     const box=await page.locator('#vg-font-control').boundingBox();
     assert(box.x>=0&&box.x+box.width<=width+1,'appearance panel fits viewport');
     assert(await page.locator('#vg-font-reset').evaluate(el=>el.scrollHeight<=el.clientHeight+2),'reset label is not clipped');
+    assert.equal(await page.locator('#mArtEdit .modal').evaluate(el=>getComputedStyle(el).boxSizing),'border-box');
+    assert(await page.locator('#mArtEdit .modal').evaluate(el=>parseFloat(getComputedStyle(el).maxHeight)<=innerHeight*.901),'article dialog fits the viewport at large text');
    }
    await context.close();
   }

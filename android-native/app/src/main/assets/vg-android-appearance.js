@@ -23,7 +23,8 @@
     body textarea {height:auto;min-height:80px}
     body .topMenuText,body .card,body .grid2>*,body .grid3>* {min-width:0}
     body .topMenuTitle,body .topMenuSub,body .k,body .small {white-space:normal;overflow-wrap:anywhere}
-    body .modal,body [role=dialog] {max-height:90dvh;overflow-y:auto}
+    body .modal,body [role=dialog] {max-height:90dvh!important;overflow-y:auto;box-sizing:border-box}
+    html.vg-large-text .artMeta .t,html.vg-large-text .artMeta .s {-webkit-line-clamp:unset;display:block;overflow:visible}
     @media(max-width:480px) {html.vg-large-text .grid2,html.vg-large-text .grid3 {grid-template-columns:minmax(0,1fr)}}
   `;
   function post(data) { if (window.VgAppearanceBridge) window.VgAppearanceBridge.postMessage(JSON.stringify(data)); }
@@ -60,7 +61,7 @@
     if (!window.VgAppearanceBridge) document.getElementById('vg-font-status').textContent = 'Aggiorna Android System WebView per usare questo controllo.';
   }
   window.__vgApplyAppearance = async data => {
-    state = {...state, ...data};
+    state = {percent:data.percent ?? state.percent, systemPercent:data.systemPercent ?? state.systemPercent};
     if (data.fontStatus && data.fontRevision !== fontRevision) fontStatus = data.fontStatus;
     render();
     if (!data.faces || data.fontRevision === fontRevision) return;
@@ -70,10 +71,16 @@
     document.documentElement.style.removeProperty('--vg-android-font');
     if (!data.faces.length) {sync();return;}
     try {
+      // One buffer per unique font file; variable fonts share it across four styles.
+      const buffers = data.sources.map(encoded => {
+        const binary = atob(encoded), bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return bytes.buffer;
+      });
       const faces = await Promise.all(data.faces.map(face => {
         const descriptors = {weight:face.weight, style:face.style};
         if (face.variationSettings) descriptors.variationSettings = face.variationSettings;
-        return new FontFace('VgAndroidSystem', 'url(data:font/ttf;base64,' + face.data + ')', descriptors).load();
+        return new FontFace('VgAndroidSystem', buffers[face.source], descriptors).load();
       }));
       if (generation !== loadGeneration) return;
       faces.forEach(font => document.fonts.add(font)); loadedFonts = faces;

@@ -35,12 +35,15 @@ internal class VgAppearance(private val context: Context) {
     // Public shaping APIs return the actual font selected by the native text renderer.
     // No hidden Typeface reflection, Samsung-private filesystem paths or font downloads.
     fun fontState(): JSONObject {
-        val result = JSONObject().put("faces", JSONArray())
+        val result = JSONObject().put("faces", JSONArray()).put("sources", JSONArray())
         if (Build.VERSION.SDK_INT < 31) return result.put("fontStatus",
             "Android precedente alla versione 12: il font personalizzato del telefono non può essere trasferito automaticamente alla WebView.")
         return runCatching {
             val nativeTypeface = TextView(context).typeface
             val faces = JSONArray()
+            val sources = JSONArray()
+            val sourceIds = linkedMapOf<String,Int>()
+            var totalBytes = 0
             for (style in listOf(Typeface.NORMAL, Typeface.BOLD, Typeface.ITALIC, Typeface.BOLD_ITALIC)) {
                 val paint = android.text.TextPaint().apply {
                     typeface = Typeface.create(nativeTypeface, style)
@@ -52,15 +55,22 @@ internal class VgAppearance(private val context: Context) {
                 // Chromium support for nonzero faces in TTC collections is inconsistent.
                 check(font.ttcIndex == 0) { "Il font Android usa una raccolta non supportata dalla WebView" }
                 val buffer = font.buffer.duplicate().apply { clear() }
-                check(buffer.remaining() in 1..2_000_000) { "Il font Android non è trasferibile alla WebView" }
+                check(buffer.remaining() in 1..8_000_000) { "Dimensione font non supportata: ${buffer.remaining()} byte" }
                 val bytes = ByteArray(buffer.remaining()).also { buffer.get(it) }
+                val hash = Base64.encodeToString(java.security.MessageDigest.getInstance("SHA-256").digest(bytes), Base64.NO_WRAP)
+                val sourceId = sourceIds.getOrPut(hash) {
+                    totalBytes += bytes.size
+                    check(totalBytes <= 16_000_000) { "Dimensione totale font non supportata" }
+                    sources.put(Base64.encodeToString(bytes, Base64.NO_WRAP))
+                    sources.length() - 1
+                }
                 val axes = font.axes?.joinToString(",") { "'${it.tag}' ${it.styleValue}" }.orEmpty()
-                faces.put(JSONObject().put("data", Base64.encodeToString(bytes, Base64.NO_WRAP))
+                faces.put(JSONObject().put("source", sourceId)
                     .put("weight", if (style and Typeface.BOLD != 0) "700" else "400")
                     .put("style", if (style and Typeface.ITALIC != 0) "italic" else "normal")
                     .put("variationSettings", axes))
             }
-            result.put("faces", faces).put("fontStatus", "Carattere del testo Android disponibile; caricamento nella WebView…")
+            result.put("sources", sources).put("faces", faces).put("fontStatus", "Carattere del testo Android disponibile; caricamento nella WebView…")
         }.getOrElse {
             android.util.Log.w("VgAppearance", "Native font transfer unavailable", it)
             result.put("faces", JSONArray()).put("fontStatus",

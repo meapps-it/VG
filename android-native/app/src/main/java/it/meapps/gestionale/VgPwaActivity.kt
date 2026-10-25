@@ -129,7 +129,7 @@ class VgPwaActivity : ComponentActivity() {
   val state=appearance.state()
   if(includeFont){
    val fonts=fontState?:appearance.fontState().also{fontState=it}
-   state.put("fontRevision",fontRevision).put("faces",fonts.getJSONArray("faces")).put("fontStatus",fonts.getString("fontStatus"))
+   state.put("fontRevision",fontRevision).put("sources",fonts.getJSONArray("sources")).put("faces",fonts.getJSONArray("faces")).put("fontStatus",fonts.getString("fontStatus"))
   }
   web.evaluateJavascript(appearanceScript+";window.__vgApplyAppearance&&window.__vgApplyAppearance("+state.toString()+");",null)
  }
