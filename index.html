@@ -604,9 +604,9 @@ window.addEventListener('error',e=>{
 #simplexLicenseLoading{position:fixed;inset:0;z-index:2147483500;background:var(--bg,#f5f7fb);display:none}
 #simplexLicenseLoading.show{display:block}
 </style>
-<link rel="stylesheet" href="./vg-bold-theme.css?v=1.0.159">
-<link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.159">
-<script src="./vg-catalog-stats.js?v=1.0.159" defer></script>
+<link rel="stylesheet" href="./vg-bold-theme.css?v=1.0.160">
+<link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.160">
+<script src="./vg-catalog-stats.js?v=1.0.160" defer></script>
 </head>
 <body class="auth-locked">
 <script>window.SimplexClientConfig={status:'active',modules:{clienti:true,ordini:true,magazzino:true,statistiche:true}};window.SimplexLicense={refresh:()=>{},clear:()=>{},getKey:()=>''};</script>
@@ -644,7 +644,7 @@ window.addEventListener('error',e=>{
   </div>
 </div>
 
-<script src="./vg-startup.js?v=1.0.159" defer></script>
+<script src="./vg-startup.js?v=1.0.160" defer></script>
 <div class="top">
   <div class="topRow">
     <div class="topMain">
@@ -903,7 +903,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.159</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.160</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -7959,7 +7959,7 @@ function renderPageState(name){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   const sec=document.getElementById('sec_'+name); if(sec) sec.classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.go===name));
-  document.querySelectorAll('.navBottom button').forEach(b=>b.classList.toggle('active', b.dataset.go===name));
+  document.querySelectorAll('.navBottom button').forEach(b=>{const active=b.dataset.go===name;b.classList.toggle('active',active);if(active)b.scrollIntoView({block:'nearest',inline:'nearest'})});
 }
 function currentHistoryPage(){
   return (history.state&&history.state.page) || location.hash.replace('#','') || 'home';
@@ -14200,7 +14200,7 @@ let cloudBusy=false;
 let catalogPublicationWrites=0;
 let catalogPublicationRevision=0;
 
-const VG_BUILD='1.0.159-2026-10-26';
+const VG_BUILD='1.0.160-2026-10-26';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;

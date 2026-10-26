@@ -113,3 +113,11 @@ input::placeholder,textarea::placeholder{color:#687a94;opacity:1}
 @media(max-width:380px){.navBottom .inner{gap:4px}.navBottom button{font-size:9px;padding:8px 1px}.card{padding:12px}.cards{gap:11px}}
 @media(prefers-reduced-motion:reduce){button{transition:none!important}}
 @media print{body{background:#fff}.card,.stat,.artCard,.row{box-shadow:none!important}}
+
+/* 1.0.160: slimmer chart columns and comfortably sized scrolling navigation. */
+.sparkBarBtn{justify-content:center}.sparkBar{width:76%;max-width:38px;border-radius:8px 8px 4px 4px}.sparkBarWrap{border-radius:0}
+.navBottom .inner{display:flex;overflow-x:auto;overflow-y:hidden;gap:8px;padding:2px 2px 6px;scrollbar-width:none;scroll-snap-type:x proximity;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.navBottom .inner::-webkit-scrollbar{display:none}
+.navBottom button{flex:0 0 auto;min-width:106px;max-width:none;min-height:46px;flex-direction:row;gap:7px;padding:11px 13px;font-size:12px;white-space:nowrap;overflow-wrap:normal;border-radius:8px!important;scroll-snap-align:start}
+.navBottom button:before{flex:0 0 18px}.navBottom button.active{scroll-margin-inline:6px}
+@media(max-width:380px){.navBottom .inner{gap:7px}.navBottom button{min-width:102px;padding:11px 12px;font-size:12px}}
