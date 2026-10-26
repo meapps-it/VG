@@ -26,7 +26,7 @@ jobs:
       - name: Install isolated test dependencies
         run: npm install --prefix "$RUNNER_TEMP/vg-tests" --no-audit --no-fund playwright@1.58.2 jsdom@26.1.0
       - name: Install Chromium
-        run: node "$RUNNER_TEMP/vg-tests/node_modules/playwright/cli.js" install --with-deps chromium
+        run: node "$RUNNER_TEMP/vg-tests/node_modules/playwright/cli.js" install --with-deps chromium webkit
       - name: API, DOM and responsive browser checks
         env:
           NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
@@ -34,6 +34,7 @@ jobs:
           node --test tests/catalog-api.test.cjs tests/catalog-access.test.cjs tests/catalog-order.test.cjs tests/catalog-push.test.cjs
           node tests/catalog-auto-access.test.cjs
           node tests/catalog-navigation.test.cjs
+          SHOP_NAV_BROWSER=webkit node tests/catalog-navigation.test.cjs
           node tests/catalog-dom.test.cjs
           node tests/catalog-shipping.test.cjs
           node tests/catalog-gallery.test.cjs

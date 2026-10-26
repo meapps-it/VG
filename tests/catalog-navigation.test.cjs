@@ -1,6 +1,6 @@
-const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {chromium,webkit}=require('playwright'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),url='https://meapps-it.github.io/VG/catalogo-nuovo.html';
-(async()=>{const browser=await chromium.launch({headless:true,args:['--no-sandbox']});try{
+(async()=>{const browser=await (process.env.SHOP_NAV_BROWSER==='webkit'?webkit:chromium).launch({headless:true,...(process.env.SHOP_NAV_BROWSER==='webkit'?{}:{args:['--no-sandbox']})});try{
  for(const width of [360,412,1280]){
   const context=await browser.newContext({viewport:{width,height:844},hasTouch:true,isMobile:width<650}),page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));await context.addInitScript(()=>localStorage.setItem('vg-shop-session-v1','a'.repeat(64)));
