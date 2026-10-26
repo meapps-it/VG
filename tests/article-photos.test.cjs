@@ -40,3 +40,9 @@ test('unchanged photographs avoid delete/insert churn; new upload appends after 
 });
 
 test('an unavailable local gallery never erases existing server links',async()=>{const {c,changes}=syncHarness();assert.deepEqual(Array.from(await c.syncArticlePhotosToCloud('p','SKU',[])),['SKU/1.jpg','SKU/2.jpg']);assert.deepEqual(changes,[])});
+
+test('APK image load errors renew the signed URL once instead of reusing an expired token',async()=>{
+ let signed=0;const image={style:{},complete:false,naturalWidth:0,src:'',getAttribute(){return this.src},removeAttribute(){this.src=''}},placeholder={style:{}};
+ const c=context({articleThumbSelector:(id,attr)=>attr,document:{querySelector:selector=>selector.includes('placeholder')?placeholder:image,body:{contains:()=>true}},normalizeFotoStoragePath:()=> 'SKU/1.jpg',getSignedFotoUrl:async(path,seconds,force)=>{assert.equal(force,true);signed++;return 'https://private.test/SKU/1.jpg?token=fresh'}},slice('function setArticleThumbState(','async function hydrateOneArticleThumb('));
+ c.setArticleThumbState('p','https://private.test/SKU/1.jpg?token=expired');await image.onerror();assert.equal(signed,1);assert.match(image.src,/token=fresh/);image.onload();assert.equal(image.style.visibility,'visible');image.onerror();assert.equal(signed,1);assert.equal(placeholder.style.display,'flex');
+});
