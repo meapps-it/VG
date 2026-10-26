@@ -27,9 +27,10 @@ jobs:
           NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
           VG_UI_SCREENSHOTS: '${{ runner.temp }}/vg-ui-screenshots'
         run: |
-          node --test tests/article-photos.test.cjs
+          node --test tests/article-photos.test.cjs tests/article-sync.test.cjs tests/management-cloud.test.cjs
           node tests/management-ui.test.cjs
           node tests/management-actions.test.cjs
+          node tests/management-publication.test.cjs
       - name: Save verified layout screenshots (isolated example data)
         uses: actions/upload-artifact@v4
         with:

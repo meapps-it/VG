@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.151-photo-import';
+const VERSION = 'gestionale-vg-1.0.152-cloud-publication';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json', './vg-quality-pricing.js',

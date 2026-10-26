@@ -901,7 +901,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.136</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.152</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -2876,6 +2876,11 @@ function mergeById(arrA=[], arrB=[]){
 function loadDB(){
   try{
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
+    // Normal reads must not merge/rewrite the complete archive on every call.
+    if(!legacyKeys.some(key=>localStorage.getItem(key))){
+      const raw=localStorage.getItem(KEY);
+      if(raw) return normalizeDBShape(JSON.parse(raw));
+    }
     const keys=[...legacyKeys, KEY];
     const found=[];
     keys.forEach(k=>{
@@ -9798,17 +9803,16 @@ function renderArt(){
       const db=loadDB(),article=db.articoli.find(x=>String(x.id)===String(id));
       if(!article)return;
       const before=article.pubblicatoCatalogo!==false;
-      article.pubblicatoCatalogo=checkbox.checked;article._ts=Date.now();
+      const published=checkbox.checked;
       checkbox.disabled=true;
-      if(!saveDB(db)){article.pubblicatoCatalogo=before;checkbox.checked=before;checkbox.disabled=false;toast('Impossibile salvare la pubblicazione');return}
       try{
-        if(!cloudEnabled())throw Error('Connessione cloud necessaria');
-        await cloudSaveOne('art',article,db);
-        toast(article.pubblicatoCatalogo?'Articolo pubblicato':'Articolo nascosto ai clienti');
+        await saveArticleCatalogPublication(article,published);
+        checkbox.checked=published;
+        toast(published?'Articolo pubblicato':'Articolo nascosto ai clienti');
       }catch(err){
-        article.pubblicatoCatalogo=before;checkbox.checked=before;saveDB(db);
+        checkbox.checked=err?.cloudConfirmed ? published : before;
         console.error('Pubblicazione catalogo fallita',err);
-        toast('Salvataggio cloud fallito. Riprova.');
+        toast(err?.message||'Salvataggio cloud fallito. Riprova.');
       }finally{checkbox.disabled=false}
     });
   }
@@ -10532,7 +10536,13 @@ function articleMarginInfoHtml(a){ return articleCostInfoHtml(a); }
 function articleMinimumPriceWarningHtml(){ return ''; }
 function articleUnderMarginListBadgeHtml(){ return ''; }
 
-function renderAll(){ renderHome(); renderArt(); renderCli(); renderOrd(); renderFinanze(); renderCategorySettings(); renderBrandSettings(); refreshArticleCategorySelects(); refreshArticleBrandSelects(); fillPricingSettings(); }
+function renderAll(){
+  // Other pages render on navigation; do not rebuild hidden article grids and photos.
+  renderActivePage(currentHistoryPage());
+  refreshArticleCategorySelects();
+  refreshArticleBrandSelects();
+  fillPricingSettings();
+}
 
 /* ====== ART view/edit ====== */
 let currentArtId=null;
@@ -14178,8 +14188,10 @@ ensureComuniCapIndex().then(()=>{
 let cloudClient=null;
 let cloudSession=null;
 let cloudBusy=false;
+let catalogPublicationWrites=0;
+let catalogPublicationRevision=0;
 
-const VG_BUILD='1.0.136-2026-10-24';
+const VG_BUILD='1.0.152-2026-10-26';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14190,7 +14202,7 @@ function refreshAutoCloudPull(){
   autoCloudPullTimer=setInterval(()=>{ autoCloudPullNow('timer'); }, AUTO_CLOUD_PULL_MS);
 }
 async function autoCloudPullNow(reason='manual'){
-  if(!cloudEnabled() || autoCloudPullRunning || cloudBusy || document.hidden) return;
+  if(!cloudEnabled() || autoCloudPullRunning || cloudBusy || catalogPublicationWrites || document.hidden) return;
   const now=Date.now();
   if(reason!=='focus' && reason!=='visible' && (now-autoCloudPullLastAt)<60000) return;
   autoCloudPullRunning=true;
@@ -14247,6 +14259,40 @@ function cloudUi(){
   setDisabled(bOut,cloudBusy||!logged);
 }
 function cloudEnabled(){ return !!(window.VG_SUPABASE_READY && cloudSession); }
+async function saveArticleCatalogPublication(article,published){
+  if(!cloudEnabled()) throw new Error('Accedi al cloud per pubblicare l’articolo');
+  const sb=await ensureCloud();
+  if(!sb || !cloudSession) throw new Error('Sessione cloud scaduta: accedi di nuovo');
+  catalogPublicationWrites++;catalogPublicationRevision++;
+  cloudBusy=true;cloudUi();
+  let savedId=article.id;
+  try{
+    if(article._cloud && isUuid(article.id)){
+      const state=published ? 'pubblicato' : 'bozza';
+      const {data,error}=await sb.from('prodotti').update({stato_pubblicazione:state})
+        .eq('id',article.id).eq('user_id',cloudSession.user.id)
+        .select('id,stato_pubblicazione').single();
+      if(error) throw error;
+      if(!data || data.stato_pubblicazione!==state) throw new Error('Pubblicazione non confermata dal server');
+      savedId=data.id;
+    }else{
+      // An article that has never reached the server needs its initial full save.
+      const saved=await upsertCloudArticle({...article,pubblicatoCatalogo:published});
+      savedId=saved.id;
+    }
+    const latest=loadDB();
+    const row=latest.articoli.find(a=>String(a.id)===String(article.id));
+    if(row){row.id=savedId;row.pubblicatoCatalogo=published;row._cloud=true;row._ts=Date.now();}
+    if(!saveDBLocal(latest)){
+      const error=new Error('Pubblicazione salvata nel cloud. Ricarica i dati per aggiornare questo dispositivo.');
+      error.cloudConfirmed=true;throw error;
+    }
+    return published;
+  }finally{
+    catalogPublicationWrites=Math.max(0,catalogPublicationWrites-1);catalogPublicationRevision++;
+    cloudBusy=catalogPublicationWrites>0;cloudUi();
+  }
+}
 async function cloudSaveOne(type, payload, dbRef){
   if(!cloudEnabled()) return payload;
   cloudBusy=true; cloudUi();
@@ -14301,7 +14347,7 @@ async function ensureCloud(){
     cloudUi();
     refreshAutoCloudPull();
     if(cloudSession){
-      startAuthenticatedApp().catch(err=>console.warn('Avvio sessione autenticata fallito',err));    }else{
+      if(_e!=='TOKEN_REFRESHED') startAuthenticatedApp().catch(err=>console.warn('Avvio sessione autenticata fallito',err));    }else{
       showAuthGate('login');
     }
   });
@@ -14314,7 +14360,8 @@ function saveDBLocal(db){
     const raw=JSON.stringify(cleanDb);
     setCoreDbRawResilient(raw);
     try{ localStorage.removeItem(KEY+'_backup_latest'); }catch(_e){}
-  }catch(err){ console.error('Salvataggio locale rapido fallito',err); }
+    return true;
+  }catch(err){ console.error('Salvataggio locale rapido fallito',err); return false; }
 }
 async function ensureCategoryId(nome){
   if(!nome) return null;
@@ -14623,6 +14670,8 @@ async function pullCloudToLocal(opts={}){
   const sb=await ensureCloud();
   if(!sb||!cloudSession) throw new Error('Login cloud mancante');
   const bg=!!opts.background;
+  if(catalogPublicationWrites) return false;
+  const publicationRevision=catalogPublicationRevision;
   if(!bg){
     try{ localStorage.setItem(KEY+'_backup_before_cloud_pull', localStorage.getItem(KEY)||''); }catch(_){ }
     cloudBusy=true; cloudUi();
@@ -14640,6 +14689,8 @@ async function pullCloudToLocal(opts={}){
     const fotos=[...(fotosFirst||[]),...(fotosNext||[])];
     const fotosErr=fotosErrFirst||fotosErrNext;
     if(catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr) throw (catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr);
+    // Ignore an older download that overlapped a publication write.
+    if(publicationRevision!==catalogPublicationRevision || catalogPublicationWrites) return false;
     // La sincronizzazione e' in sola lettura: mai cancellare o accorpare clienti automaticamente.
     const catMap=new Map((cats||[]).map(c=>[c.id,c.nome]));
     const prodMap=new Map((prod||[]).map(p=>[p.id,p]));
