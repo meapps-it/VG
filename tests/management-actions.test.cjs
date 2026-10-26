@@ -15,11 +15,14 @@ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42
   await page.route('**/*',r=>r.request().url().includes('/VG/')&&r.request().resourceType()==='document'?r.fulfill({contentType:'text/html',body:html}):r.abort());
   await page.goto('https://meapps-it.github.io/VG/');
   await page.evaluate(()=>document.getElementById('mArtEdit').style.display='flex');
-  async function select(names){const pending=page.waitForEvent('filechooser');await page.locator('[data-action=pickMoreArtPhotos]').click();const chooser=await pending;assert(chooser.isMultiple());await chooser.setFiles(names.map(name=>({name,mimeType:'image/png',buffer:png})));}
+  async function select(names,mimeType='image/png'){const pending=page.waitForEvent('filechooser');await page.locator('[data-action=pickMoreArtPhotos]').click();const chooser=await pending;assert(chooser.isMultiple());await chooser.setFiles(names.map(name=>({name,mimeType,buffer:png})));}
   await select(['first.png','second.png']);await page.waitForFunction(()=>currentArtPendingFiles.length===2&&currentArtPendingPreviewUrls.length===2);
   assert.equal(await page.locator('#a_photo_prev img').count(),3,'existing photograph stays in the gallery');
   await select(['third.png']);await page.waitForFunction(()=>currentArtPendingFiles.length===3);
-  await select([]);assert.equal(await page.evaluate(()=>currentArtPendingFiles.length),3,'cancel never clears earlier selections');
+  await select(['provider-photo.bin'],'application/octet-stream');await page.waitForFunction(()=>currentArtPendingFiles.length===4);
+  assert.equal(await page.evaluate(()=>currentArtPendingFiles.at(-1).type),'image/png');
+  await page.waitForFunction(()=>Array.from(document.querySelectorAll('#a_photo_prev img')).slice(1).every(img=>img.complete&&img.naturalWidth===1));
+  await select([]);assert.equal(await page.evaluate(()=>currentArtPendingFiles.length),4,'cancel never clears earlier selections');
   await select(Array.from({length:25},(_,i)=>'extra-'+i+'.png'));await page.waitForFunction(()=>currentArtPendingFiles.length===19);
   assert.equal(await page.locator('#a_photo_prev img').count(),20);await page.locator('[data-action=pickMoreArtPhotos]').click();assert.match(await page.evaluate(()=>testToasts.at(-1)),/massimo di 20/);
   await page.locator('[data-action=clearPendingArtPhotos]').click();assert.equal(await page.evaluate(()=>currentArtPendingFiles.length),0);assert.equal(await page.locator('#a_photo_prev img').count(),1);assert.equal(await page.evaluate(()=>currentArtPhotosCleared),false);
@@ -29,3 +32,4 @@ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42
   assert.deepEqual(errors,[]);console.log('PASS actions '+width+'px: '+actions.length+' controls wired; real multiple-file chooser, append/cancel/20-photo limit, preserve existing pictures, form commands and all navigation destinations; no production writes');await context.close();
  }
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
+
