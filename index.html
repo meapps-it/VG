@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Gestionale V&G</title>
+<title>Gestionale SP</title>
 <meta name="description" content="Gestionale V&G per articoli, clienti, ordini e finanze."/>
 <meta name="application-name" content="Gestionale V&G"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -604,9 +604,9 @@ window.addEventListener('error',e=>{
 #simplexLicenseLoading{position:fixed;inset:0;z-index:2147483500;background:var(--bg,#f5f7fb);display:none}
 #simplexLicenseLoading.show{display:block}
 </style>
-<link rel="stylesheet" href="./vg-bold-theme.css?v=1.0.157">
-<link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.157">
-<script src="./vg-catalog-stats.js?v=1.0.157" defer></script>
+<link rel="stylesheet" href="./vg-bold-theme.css?v=1.0.158">
+<link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.158">
+<script src="./vg-catalog-stats.js?v=1.0.158" defer></script>
 </head>
 <body class="auth-locked">
 <script>window.SimplexClientConfig={status:'active',modules:{clienti:true,ordini:true,magazzino:true,statistiche:true}};window.SimplexLicense={refresh:()=>{},clear:()=>{},getKey:()=>''};</script>
@@ -644,11 +644,11 @@ window.addEventListener('error',e=>{
   </div>
 </div>
 
-<script src="./vg-startup.js?v=1.0.157" defer></script>
+<script src="./vg-startup.js?v=1.0.158" defer></script>
 <div class="top">
   <div class="topRow">
     <div class="topMain">
-      <h1 class="vgBrand" aria-label="Shop &amp; Parallelo"><img src="./shop-parallelo-logo.svg" alt="Shop &amp; Parallelo · borse e pelletteria" class="vgBrandIllustration" width="540" height="160"></h1>
+      <h1 class="vgBrand" aria-label="Gestionale SP"><img src="./gestionale-sp-3d.webp?v=1" alt="Gestionale SP" class="vgBrandIllustration" width="540" height="180"></h1>
       <span id="appTitle" class="vgOriginalTitle">Gestionale</span>
       <div id="dateLine" class="date">--/--/----</div>
     </div>
@@ -903,7 +903,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.157</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.158</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -14200,7 +14200,7 @@ let cloudBusy=false;
 let catalogPublicationWrites=0;
 let catalogPublicationRevision=0;
 
-const VG_BUILD='1.0.157-2026-10-26';
+const VG_BUILD='1.0.158-2026-10-26';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
