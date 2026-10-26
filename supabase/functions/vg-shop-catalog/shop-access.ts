@@ -1,3 +1,4 @@
+import {customerStatistics} from './shop-customer-stats.ts';
 const enc=new TextEncoder();
 const hex=(bytes:ArrayBuffer|Uint8Array)=>Array.from(bytes instanceof Uint8Array?bytes:new Uint8Array(bytes)).map(x=>x.toString(16).padStart(2,'0')).join('');
 export const digest=async(value:string)=>hex(await crypto.subtle.digest('SHA-256',enc.encode(value)));
@@ -40,7 +41,7 @@ export async function accessAction(db:any,req:Request,owner:string,action:string
   const result=await db.from('vg_shop_sessions').update({is_admin:true}).eq('owner_id',owner).eq('token_hash',await digest(body.previousToken));if(result.error)throw result.error;
   return out({ok:true});
  }
- if(['admin-session','set-password','stats'].includes(action)){
+ if(['admin-session','set-password','stats','customer-stats'].includes(action)){
   if(!await requireOwner(db,req,owner))return out({error:'Accesso amministratore richiesto'},403);
   if(action==='admin-session'&&req.method==='POST')return out(await createSession(db,owner,true));
   if(action==='set-password'&&req.method==='POST'){
@@ -51,7 +52,8 @@ export async function accessAction(db:any,req:Request,owner:string,action:string
    const result=await db.from('vg_shop_password').upsert({owner_id:owner,salt,password_hash:await passwordHash(password,salt),iterations:200000,updated_at:new Date().toISOString()});if(result.error)throw result.error;
    return out({ok:true});
   }
-  if(action==='stats'&&req.method==='GET')return out(await statistics(db,owner));
+  if(action==='stats'&&req.method==='GET')return out({...await statistics(db,owner),customerStats:await customerStatistics(db,owner)});
+  if(action==='customer-stats'&&req.method==='GET'){const url=new URL(req.url);return out(await customerStatistics(db,owner,Number(url.searchParams.get('customers')||0),Number(url.searchParams.get('orders')||0)))}
   return out({error:'Metodo non consentito'},405);
  }
  return null;

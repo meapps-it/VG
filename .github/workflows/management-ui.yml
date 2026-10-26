@@ -4,6 +4,8 @@ on:
     paths:
       - 'index.html'
       - 'vg-catalog-stats.*'
+      - 'vg-bold-theme.css'
+      - 'vg-startup.js'
       - 'tests/management-*.test.cjs'
       - 'tests/article-photos.test.cjs'
       - '.github/workflows/management-ui.yml'
@@ -28,8 +30,10 @@ jobs:
           VG_UI_SCREENSHOTS: '${{ runner.temp }}/vg-ui-screenshots'
         run: |
           node --test tests/article-photos.test.cjs tests/article-sync.test.cjs tests/management-cloud.test.cjs
+          node --test tests/management-customer-stats.test.cjs tests/management-startup.test.cjs
           node tests/management-ui.test.cjs
           node tests/management-actions.test.cjs
+          node tests/management-boot-browser.test.cjs
           node tests/management-publication.test.cjs
       - name: Save verified layout screenshots (isolated example data)
         uses: actions/upload-artifact@v4

@@ -1,0 +1,10 @@
+/* V e G: shared by the management PWA and the existing Android WebView. */
+:root{--line:#111;--vg-outline:#111;--vg-radius:22px}
+.card,.stat,.artCard,.socialCard,.row,.socialFolder,.socialSuggestItem,.socialCatManageRow,.socialMoveInfo,.socialCategoryHeader,.topMenuPanel,.modal,.vgStatsDialog,.vgStatsCard,.vgStatsFigure,.vgCustomerStatRow{border:3px solid var(--vg-outline)!important;border-radius:var(--vg-radius)!important;box-shadow:0 3px 0 #111!important}
+button:not(.sparkBar),.btn,.btnBig,.tab,.topMenuLink,.artCrumb,.vgStatsRange button,.vgStatsRetry,.vgStatsHeader button{border:2px solid var(--vg-outline)!important;border-radius:16px!important}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=hidden]),select,textarea{border:2px solid var(--vg-outline)!important;border-radius:14px!important}
+.vgStatsHeader{border-bottom:3px solid var(--vg-outline)!important}
+.vgStatsRange button[aria-pressed=true],.tab.active{box-shadow:0 2px 0 #111!important}
+.topMenuBtn{border:3px solid var(--vg-outline)!important}
+@media(max-width:380px){.card,.stat,.artCard,.row{border-radius:18px!important}}
+@media print{.card,.stat,.artCard,.row{box-shadow:none!important}}

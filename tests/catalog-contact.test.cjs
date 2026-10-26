@@ -12,9 +12,9 @@ const root=path.resolve(__dirname,'..'),html=fs.readFileSync(root+'/catalogo-nuo
   });
   await page.addInitScript(()=>localStorage.setItem('vg-shop-session-v1','a'.repeat(64)));
   await page.goto('https://meapps-it.github.io/VG/catalogo-nuovo.html');await page.locator('.item').waitFor();assert.equal(await page.locator('[data-whatsapp]').count(),5);
-  for(const href of await page.locator('[data-whatsapp]').evaluateAll(links=>links.map(a=>a.href)))assert.equal(new URL(href).pathname,'/393351604686');
+  for(const href of await page.locator('[data-whatsapp]').evaluateAll(links=>links.map(a=>a.href))){const u=new URL(href);assert.equal(u.pathname,'/393351604686');assert(!/https?:\/\/|www\./i.test(u.searchParams.get('text')||''))};
   await page.locator('[data-detail]').first().click();await page.evaluate(()=>history.replaceState(null,'','#admin_token=DO_NOT_LEAK'));
-  const contact=page.locator('[data-whatsapp=product]');await contact.focus();const href=await contact.getAttribute('href'),url=new URL(href),text=url.searchParams.get('text');assert.match(text,/Borsa & Pelle/);assert.match(text,/BORSA-123/);assert(text.includes('https://meapps-it.github.io/VG/catalogo-nuovo.html'));assert(!text.includes('simplexapp.it/shop')); assert(!text.includes('admin_token')&&!text.includes('DO_NOT_LEAK'));
+  const contact=page.locator('[data-whatsapp=product]');await contact.focus();const href=await contact.getAttribute('href'),url=new URL(href),text=url.searchParams.get('text');assert.match(text,/Borsa & Pelle/);assert.match(text,/BORSA-123/);assert(!/https?:\/\/|www\.|simplexapp\.it|github\.io/i.test(text),'WhatsApp message must contain no link');assert(!text.includes('simplexapp.it/shop')); assert(!text.includes('admin_token')&&!text.includes('DO_NOT_LEAK'));
   const popupPromise=context.waitForEvent('page');await contact.click();const popup=await popupPromise;await popup.waitForLoadState();assert.equal(new URL(popup.url()).pathname,'/393351604686');await popup.close();assert(await page.locator('#closeProduct').isVisible());
   await page.locator('#productQty').fill('2');await page.locator('#productAdd').click();
   for(const [field,value] of Object.entries({name:'Cliente isolato',phone:'3330000000',address:'Via del test 1'}))await page.locator('[name='+field+']').fill(value);

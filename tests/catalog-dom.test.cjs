@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const html=fs.readFileSync(__dirname+'/../catalogo-nuovo.html','utf8');
 const image=n=>'https://images.example/'+n;
-const item=(id,images)=>({id,name:'Borsa '+id,images,image:images?.[0],price:25,category:'Borse',description:'Pelle vera\n[VGMETA]{"privato":true}[/VGMETA]\nMisure 20 cm'});
+const item=(id,images)=>({id,quality:id==='many'?'ORIGINALE':'STANDARD',name:'Borsa '+id,images,image:images?.[0],price:25,category:'Borse',description:'Pelle vera\n[VGMETA]{"privato":true}[/VGMETA]\nMisure 20 cm'});
 (async()=>{
  let requests=0;
  const dom=new JSDOM(html,{url:'https://meapps-it.github.io/VG/catalogo-nuovo.html',runScripts:'dangerously',pretendToBeVisual:true,beforeParse(w){
@@ -17,7 +17,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images?.[0],price:25,
  const click=selector=>doc.querySelector(selector).click();
  const historyClick=async id=>{const popped=new Promise(resolve=>w.addEventListener('popstate',resolve,{once:true}));$(id).click();await popped;};
  try{
- await tick();assert.equal(doc.querySelectorAll('.item').length,4);
+ await tick();assert.equal(doc.querySelectorAll('.item').length,4);assert.match(doc.querySelector('.quality-original').textContent,/Qualità: Originale/);assert.match(doc.querySelector('.quality-standard').textContent,/Qualità: Standard/);doc.querySelector('[data-quality=ORIGINALE]').click();assert.equal(doc.querySelectorAll('.item').length,1);doc.querySelector('[data-quality=STANDARD]').click();assert.equal(doc.querySelectorAll('.item').length,3);doc.querySelector('[data-quality=""]').click();
  click('[data-detail=many]');await tick();assert.equal(requests,2,'renew expired links');
  assert.equal($('galleryCount').textContent,'1 / 3');assert.equal($('galleryThumbs').children.length,3);
  $('galleryNext').click();assert.equal($('galleryCount').textContent,'2 / 3');
@@ -59,3 +59,4 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images?.[0],price:25,
  console.log('PASS DOM: thumbnails, arrows, bidirectional swipe, vertical scroll, zoom/close, broken/empty/single/legacy images, signed URL renewal, description, cart and order review');
  }finally{w.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
+

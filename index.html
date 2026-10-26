@@ -604,8 +604,9 @@ window.addEventListener('error',e=>{
 #simplexLicenseLoading{position:fixed;inset:0;z-index:2147483500;background:var(--bg,#f5f7fb);display:none}
 #simplexLicenseLoading.show{display:block}
 </style>
-<link rel="stylesheet" href="./vg-catalog-stats.css?v=0.8.1">
-<script src="./vg-catalog-stats.js?v=0.8.1" defer></script>
+<link rel="stylesheet" href="./vg-bold-theme.css?v=1.0.154">
+<link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.154">
+<script src="./vg-catalog-stats.js?v=1.0.154" defer></script>
 </head>
 <body class="auth-locked">
 <script>window.SimplexClientConfig={status:'active',modules:{clienti:true,ordini:true,magazzino:true,statistiche:true}};window.SimplexLicense={refresh:()=>{},clear:()=>{},getKey:()=>''};</script>
@@ -621,12 +622,13 @@ window.addEventListener('error',e=>{
 
 
 <!-- AUTH GATE — blocca tutto finché non sei loggato -->
-<div id="authGate" style="display:none">
+<div id="authGate" style="display:flex">
   <div class="authBox">
     <div class="authLogo">🔐</div>
     <div class="authTitle" id="authAppTitle">Gestionale</div>
     <div class="authSub" id="authSub">Verifica accesso in corso…</div>
     <div id="authChecking" style="display:flex;align-items:center;justify-content:center;min-height:92px;font-weight:900;color:#64748b">Accesso in corso…</div>
+    <p id="vgStartupStatus" role="status" hidden></p><button id="vgStartupRetry" type="button" hidden>Riprova apertura</button>
     <div id="authForm" style="display:none;flex-direction:column;gap:14px">
       <div>
         <div class="k">Email</div>
@@ -642,6 +644,7 @@ window.addEventListener('error',e=>{
   </div>
 </div>
 
+<script src="./vg-startup.js?v=1.0.154" defer></script>
 <div class="top">
   <div class="topRow">
     <div class="topMain">
@@ -661,7 +664,7 @@ window.addEventListener('error',e=>{
         <button class="topMenuLink" type="button" data-go="home"><span class="topMenuEmoji">🏠</span><span class="topMenuText"><span class="topMenuTitle">Dashboard</span><span class="topMenuSub">Panoramica generale</span></span></button>
         <button class="topMenuLink" type="button" data-go="articoli"><span class="topMenuEmoji">🏷️</span><span class="topMenuText"><span class="topMenuTitle">Articoli</span><span class="topMenuSub">Catalogo prodotti</span></span></button>
         <a class="topMenuLink" href="./catalogo.html" target="_blank" rel="noopener noreferrer" style="text-decoration:none"><span class="topMenuEmoji">👜</span><span class="topMenuText"><span class="topMenuTitle">Shop &amp; Parallelo</span><span class="topMenuSub">Apri catalogo clienti</span></span></a>
-        <button class="topMenuLink" type="button" id="vgCatalogStatsOpen"><span class="topMenuEmoji">📊</span><span class="topMenuText"><span class="topMenuTitle">Statistiche catalogo</span><span class="topMenuSub">Visite e andamento giornaliero</span></span></button>
+        <button class="topMenuLink" type="button" id="vgCatalogStatsOpen"><span class="topMenuEmoji">📊</span><span class="topMenuText"><span class="topMenuTitle">Statistiche catalogo</span><span class="topMenuSub">Visite, clienti registrati e ordini</span></span></button>
         <a class="topMenuLink vgNativeAction" hidden href="vgapp://preview"><span class="topMenuEmoji">🛍️</span><span class="topMenuText"><span class="topMenuTitle">Anteprima amministratore</span><span class="topMenuSub">Escludi i miei accessi al catalogo</span></span></a>
         <a class="topMenuLink vgNativeAction" hidden href="vgapp://password"><span class="topMenuEmoji">🔑</span><span class="topMenuText"><span class="topMenuTitle">Password clienti</span><span class="topMenuSub">Gestisci l’accesso al catalogo</span></span></a>
         <a class="topMenuLink vgNativeAction" hidden href="vgapp://notifications"><span class="topMenuEmoji">🔔</span><span class="topMenuText"><span class="topMenuTitle">Notifiche ordini</span><span class="topMenuSub">Abilita su questo telefono</span></span></a>
@@ -901,7 +904,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.153</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.154</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -14191,7 +14194,7 @@ let cloudBusy=false;
 let catalogPublicationWrites=0;
 let catalogPublicationRevision=0;
 
-const VG_BUILD='1.0.153-2026-10-26';
+const VG_BUILD='1.0.154-2026-10-26';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;

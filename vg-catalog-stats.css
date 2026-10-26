@@ -44,3 +44,5 @@ html,body,button,input,select,textarea{font-family:system-ui,-apple-system,"Sego
 
 /* Follow the renderer default font; do not select a named substitute. */
 html,body{font-family:sans-serif!important}body *{font-family:inherit!important}
+
+.vgCustomerStatRow{padding:13px;margin:12px 0;background:#fff;overflow-wrap:anywhere}.vgCustomerStatRow summary{font-size:14px;font-weight:750;cursor:pointer;min-height:32px}.vgCustomerStatRow p{margin:10px 0;font-size:13px;line-height:1.5}.vgStatsContent h3{font-size:18px;margin:14px 0}.vgStatsContent h4{font-size:15px;margin:20px 0 10px}

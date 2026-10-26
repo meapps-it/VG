@@ -39,3 +39,5 @@ body.shop-checking #accessForm,body.shop-checking #accessTitle,body.shop-checkin
 @media(max-width:480px){.customer-entry span{display:none}.customer-entry{padding:10px}.header-actions{gap:6px}.logo{max-width:180px}}
 
 .customer-view.open{padding:0;overflow:auto;background:#fff;align-items:stretch}.customer-page{width:100%}
+
+.quality-filter-label{font-size:12px;font-weight:700;margin:12px 0 4px;color:#35312c}.quality-badge{font-weight:650;border:1px solid #4b453c;padding:4px 8px}.quality-original{background:#f5e8cc;color:#3b2c11;border-color:#ad8a42}.quality-standard{background:#f0f0ee;color:#333;border-color:#90908a}#productQualityInfo{display:inline-block;margin:12px 0 4px}.quality-filter button[aria-pressed=true]{box-shadow:inset 0 0 0 1.5px #332b22}

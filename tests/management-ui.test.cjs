@@ -32,16 +32,16 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
    assert.equal(route.request().method(),'GET');assert.equal(route.request().headers().authorization,'Bearer isolated-owner-fixture');requests++;
    if(forbidden)return route.fulfill({status:403,contentType:'application/json',body:'{"error":"forbidden"}'});
    const daily=Array.from({length:30},(_,i)=>({day:'2026-10-'+String(i+1).padStart(2,'0'),visits:i<23?0:[2,4,0,8,1,3,6][i-23]}));
-   return route.fulfill({contentType:'application/json',body:JSON.stringify({today:6,week:24,month:24,devicesMonth:9,daily,definition:'Una visita per dispositivo ogni 30 minuti.'})});
+   return route.fulfill({contentType:'application/json',body:JSON.stringify({today:6,week:24,month:24,devicesMonth:9,daily,customerStats:{summary:{registeredCustomers:2,catalogOrders:4,pendingOrders:1},customers:[{id:'c1',phone:'393330000000',profile:{name:'Cliente statistiche',address:'Via Roma 1',city:'Beinette',province:'CN',cap:'12081'},registeredAt:'2026-10-26T09:00:00Z',lastLoginAt:'2026-10-26T10:00:00Z',orders:1}],orders:[{number:'WEB-STATS',requestedAt:'2026-10-26T10:00:00Z',status:'in_lavorazione',total:140,customer:{nome:'Cliente statistiche',telefono:'3330000000'},items:[{name:'Scarpe',qty:1,price:140,size:'36',color:'Nero',quality:'Standard'}]}],hasMoreCustomers:false,hasMoreOrders:false},definition:'Una visita per dispositivo ogni 30 minuti.'})});
   });
   await page.goto('https://meapps-it.github.io/VG/');
-  assert.equal(await page.locator('#homeSpark .sparkBar').count(),6);
+  assert.equal(await page.locator('#homeSpark .sparkBar').count(),6);assert.equal(await page.locator('.stat').first().evaluate(e=>getComputedStyle(e).borderTopWidth),'3px');assert.equal(await page.locator('.stat').first().evaluate(e=>getComputedStyle(e).borderTopColor),'rgb(17, 17, 17)');
   assert(await page.locator('#homeSpark .sparkBar').evaluateAll(bars=>bars.every(b=>b.getBoundingClientRect().height>0)),'six-month sales columns remain visible');
   assert.equal(await page.locator('.vgNativeAction:not([hidden])').count(),hybrid?4:1);
   if(hybrid&&process.env.VG_UI_SCREENSHOTS){fs.mkdirSync(process.env.VG_UI_SCREENSHOTS,{recursive:true});await page.screenshot({path:path.join(process.env.VG_UI_SCREENSHOTS,'dashboard-'+width+'.png')});}
   await page.locator('#topMenuBtn').click();await page.locator('#vgCatalogStatsOpen').click();
   await page.locator('#vgStatsResults:not([hidden])').waitFor();assert.equal(await page.locator('#vgStatsBars li').count(),7);
-  assert.equal(await page.locator('#vgStatsSummary strong').allTextContents().then(x=>x.join(',')),'6,24,24,9');
+  assert.equal(await page.locator('#vgStatsSummary strong').allTextContents().then(x=>x.join(',')),'6,24,24,9');assert.equal(await page.locator('#vgCustomerStatsSummary strong').allTextContents().then(x=>x.join(',')),'2,4,1');await page.locator('#vgRegisteredCustomers summary').click();assert.match(await page.locator('#vgRegisteredCustomers').textContent(),/393330000000/);await page.locator('#vgCustomerOrders summary').click();assert.match(await page.locator('#vgCustomerOrders').textContent(),/Misura 36/);assert.match(await page.locator('#vgCustomerOrders').textContent(),/Nero/);
   assert.equal(await page.locator('#vgStatsBars li').nth(2).locator('.vgStatsBar').evaluate(b=>b.getBoundingClientRect().height),0,'zero visits have no false column');
   assert(await page.locator('#vgStatsBars .vgStatsBar').nth(3).evaluate(b=>b.getBoundingClientRect().height>100));
   assert(await page.locator('#vgStatsClose').isVisible());

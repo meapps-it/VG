@@ -1,7 +1,7 @@
-const VERSION = 'gestionale-vg-1.0.153-customer-variants';
+const VERSION = 'gestionale-vg-1.0.154-bold-customer-stats';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
-  './', './index.html', './manifest.json', './vg-quality-pricing.js',
+  './', './index.html', './manifest.json', './vg-quality-pricing.js', './vg-bold-theme.css?v=1.0.154', './vg-startup.js?v=1.0.154',
   './icon-v1-192.png', './icon-v1-512.png', './icon-v1-maskable-512.png',
   './apple-touch-icon-v1.png', './favicon-v1-32.png',
 ];
@@ -61,6 +61,8 @@ self.addEventListener('fetch', event => {
   if(url.origin===self.location.origin &&
      (url.pathname.endsWith('manifest.json') ||
       url.pathname.endsWith('supabaseClient.js') ||
+      url.pathname.endsWith('vg-startup.js') ||
+      url.pathname.endsWith('vg-bold-theme.css') ||
       url.pathname.endsWith('vg-catalog-stats.js') ||
       url.pathname.endsWith('vg-catalog-stats.css') ||
       url.pathname.endsWith('vg-font-settings.js') ||
