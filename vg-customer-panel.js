@@ -1,0 +1,42 @@
+(()=>{'use strict';
+ if(window.VG_CUSTOMERS)return;
+ const endpoint='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-shop-catalog',el=id=>document.getElementById(id);
+ const date=v=>v?new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',dateStyle:'short',timeStyle:'short'}).format(new Date(v)):'Mai';
+ const statusLabel=s=>({approved:'Autorizzato',pending:'In attesa',blocked:'Bloccato'})[s]||s;
+ const tile=document.createElement('button');tile.type='button';tile.className='vgCustomersTile';tile.id='vgCustomersTile';tile.innerHTML='<span><strong>Clienti catalogo</strong><span id="vgCustomerTileHint">Registrazioni e ultimi accessi</span></span><span id="vgCustomerBadge" role="status" aria-live="polite">Apri</span>';
+ el('sec_home')?.querySelector('.heroSpot')?.after(tile);
+ const opener=document.createElement('button');opener.type='button';opener.className='topMenuLink';opener.id='vgCustomerModuleOpen';opener.textContent='Clienti catalogo · registrazioni e accessi';el('vgCatalogStatsOpen')?.after(opener);
+ const dialog=document.createElement('dialog');dialog.className='vgStatsDialog vgCustomersPanel';dialog.id='vgCustomersPanel';dialog.setAttribute('aria-labelledby','vgCustomersTitle');
+ dialog.innerHTML='<header class="vgStatsHeader"><h2 id="vgCustomersTitle">Clienti catalogo</h2><button id="vgCustomersClose" type="button">Chiudi</button></header><div class="vgStatsContent"><p id="vgCustomerPanelStatus" role="status" aria-live="polite"></p><div class="vgCustomerTools"><button id="vgCustomerRefresh" type="button">Aggiorna</button><button id="vgCustomerRead" type="button">Segna avvisi come letti</button></div><div class="vgCustomerCounts" id="vgCustomerCounts"></div><section><h3>Nuove registrazioni</h3><div id="vgRegistrationAlerts"></div></section><label for="vgCustomerFilter">Mostra clienti</label><select id="vgCustomerFilter"><option value="">Tutti</option><option value="pending">In attesa</option><option value="approved">Autorizzati</option><option value="blocked">Bloccati</option></select><div id="vgCustomerList"></div><button id="vgCustomerNext" type="button" hidden>Mostra altri clienti</button><p class="vgStatsNote">Orari italiani. Le visite con accesso già ricordato sono registrate una volta ogni 30 minuti per sessione. I nuovi login sono registrati separatamente.</p></div>';
+ document.body.append(dialog);
+ let current=null,offset=0,refreshing=false,lastToken='',controller;
+ async function session(){const client=await window.VG_SUPABASE_READY;if(!client)return null;const r=await client.auth.getSession();return r.data?.session?.access_token||null}
+ async function request(action,body){const token=await session();if(!token)throw Error('Accedi al gestionale come amministratore.');const response=await fetch(endpoint+'?action='+action,{method:body===undefined?'GET':'POST',headers:{Authorization:'Bearer '+token,...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)}),cache:'no-store'});const data=await response.json();if(!response.ok)throw Error(data.error||'Operazione non riuscita');return data}
+ function line(root,text){const p=document.createElement('p');p.textContent=text;root.append(p);return p}
+ function button(root,text,handler){const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=async()=>{b.disabled=true;try{await handler(b)}catch(e){el('vgCustomerPanelStatus').textContent=e.message}finally{b.disabled=false}};root.append(b);return b}
+ function render(data,append,summaryOnly=false){
+  current=data;el('vgCustomerBadge').textContent=data.unread?data.unread+' nuove':data.pending?data.pending+' in attesa':'Apri';el('vgCustomerTileHint').textContent=data.pending+' da autorizzare · '+data.total+' registrati';tile.classList.toggle('has-unread',data.unread>0);
+  if(!dialog.open)return;
+  el('vgCustomerCounts').textContent=data.total+' clienti · '+data.pending+' in attesa · '+data.unread+' nuove registrazioni da leggere';
+  el('vgRegistrationAlerts').replaceChildren();const unread=data.notifications.filter(n=>!n.read_at);
+  if(!unread.length)line(el('vgRegistrationAlerts'),'Nessuna nuova registrazione da leggere.');
+  for(const n of unread){const card=document.createElement('p');card.className='vgCustomerAlert';card.textContent='Nuova registrazione · '+(n.vg_shop_customers?.phone?'+'+n.vg_shop_customers.phone:n.vg_shop_customers?.email||'Cliente')+' · '+date(n.created_at);el('vgRegistrationAlerts').append(card)}
+  el('vgCustomerRead').disabled=!unread.length;
+  if(summaryOnly)return;
+  if(!append)el('vgCustomerList').replaceChildren();
+  for(const c of data.customers){const card=document.createElement('article');card.className='vgCustomerCard';card.dataset.customer=c.id;const title=document.createElement('h3');title.textContent=c.name||c.email||(c.phone?'+'+c.phone:'Cliente');card.append(title);if(c.name)line(card,c.phone?'+'+c.phone:c.email||'Google');line(card,'Stato: '+statusLabel(c.status));line(card,'Registrazione: '+date(c.registeredAt));line(card,'Ultimo login: '+date(c.lastLoginAt));line(card,'Ultima visita: '+date(c.lastAccessAt));const actions=document.createElement('div');actions.className='vgCustomerTools';card.append(actions);
+   for(const [label,status] of [['Autorizza','approved'],['Blocca','blocked']])button(actions,label,async()=>{await request('customer-authorize',{id:c.id,status});await load(false)});
+   const history=document.createElement('div');history.className='vgCustomerHistory';history.hidden=true;card.append(history);
+   button(actions,'Ultimi accessi',async()=>{history.hidden=!history.hidden;if(history.hidden)return;history.replaceChildren();line(history,'Caricamento…');const result=await request('customer-access-history&id='+encodeURIComponent(c.id));history.replaceChildren();for(const event of result.events)line(history,(event.event_type==='login'?'Login':'Visita al catalogo')+' · '+date(event.occurred_at));if(!result.events.length)line(history,'Nessun accesso ancora registrato.');});
+   const confirm=document.createElement('div');confirm.className='vgCustomerDelete';confirm.hidden=true;card.append(confirm);line(confirm,'Eliminare questo account? Le sessioni e lo storico accessi saranno rimossi. Gli ordini già ricevuti resteranno nel gestionale.');button(confirm,'Conferma eliminazione',async()=>{await request('customer-delete',{id:c.id,confirm:true});await load(false)});button(confirm,'Annulla',()=>{confirm.hidden=true});button(actions,'Elimina account',()=>{confirm.hidden=!confirm.hidden});
+   el('vgCustomerList').append(card);
+  }
+  if(!el('vgCustomerList').children.length)line(el('vgCustomerList'),'Nessun cliente per questo filtro.');el('vgCustomerNext').hidden=!data.hasMore;offset=data.offset;
+ }
+ async function load(append=false){el('vgCustomerPanelStatus').textContent='Caricamento…';try{const data=await request('customer-admin&status='+encodeURIComponent(el('vgCustomerFilter').value)+'&offset='+(append?offset+50:0));render(data,append);el('vgCustomerPanelStatus').textContent=''}catch(e){el('vgCustomerPanelStatus').textContent=e.message}}
+ function open(){if(typeof setTopMenuOpen==='function')setTopMenuOpen(false);if(!dialog.open)dialog.showModal();load(false)}
+ tile.onclick=opener.onclick=open;el('vgCustomersClose').onclick=()=>dialog.close();el('vgCustomerRefresh').onclick=()=>load(false);el('vgCustomerFilter').onchange=()=>load(false);el('vgCustomerNext').onclick=()=>load(true);
+ el('vgCustomerRead').onclick=async()=>{try{await request('customer-admin-read',{ids:current.notifications.filter(n=>!n.read_at).map(n=>n.id)});await load(false)}catch(e){el('vgCustomerPanelStatus').textContent=e.message}};
+ async function poll(){if(refreshing||document.hidden)return;refreshing=true;try{const token=await session();if(!token){if(lastToken){if(dialog.open)dialog.close();current=null;el('vgCustomerBadge').textContent='Apri';el('vgCustomerTileHint').textContent='Registrazioni e ultimi accessi';el('vgCustomerList').replaceChildren();el('vgRegistrationAlerts').replaceChildren();tile.classList.remove('has-unread')}lastToken='';return}lastToken=token;render(await request('customer-admin'),false,true)}catch{}finally{refreshing=false}}
+ window.VG_CUSTOMERS={open,refresh:poll};Promise.resolve(window.VG_SUPABASE_READY).then(client=>client?.auth?.onAuthStateChange?.(()=>setTimeout(poll,0))).catch(()=>{});poll();setInterval(poll,30000);document.addEventListener('visibilitychange',poll);
+})();

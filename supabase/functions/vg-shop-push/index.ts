@@ -1,4 +1,5 @@
-import {createClient} from 'npm:@supabase/supabase-js@2';
+import {dispatchCustomerNotification} from './customer-notifications.ts';
+import {createClient} from 'npm:@supabase/supabase-js@2.57.4';
 import {JWT} from 'npm:google-auth-library@9.15.1';
 import {requireOwner} from './shop-access.ts';
 const project=Deno.env.get('SUPABASE_URL')!,key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -27,13 +28,14 @@ Deno.serve(async request=>{
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
  const action=new URL(request.url).searchParams.get('action');
  try{
-  if(request.method==='POST'&&request.headers.get('authorization')==='Bearer '+key){const body=await request.json();if(body.action!=='dispatch'||!/^[0-9a-f-]{36}$/i.test(body.orderId||''))return out({error:'Richiesta non valida'},400);return out(await dispatch(body.orderId));}
+  if(request.method==='POST'&&request.headers.get('authorization')==='Bearer '+key){const body=await request.json();if(body.action==='dispatch-customer'&&/^[0-9a-f-]{36}$/i.test(body.notificationId||''))return out(await dispatchCustomerNotification(db,owner,body.notificationId,Deno.env.get('FCM_SERVICE_ACCOUNT')));if(body.action!=='dispatch'||!/^[0-9a-f-]{36}$/i.test(body.orderId||''))return out({error:'Richiesta non valida'},400);return out(await dispatch(body.orderId));}
   if(!await requireOwner(db,request,owner))return out({error:'Accesso amministratore richiesto'},403);
   if(action==='config'&&request.method==='GET')return out({configured:Boolean(Deno.env.get('FCM_SERVICE_ACCOUNT')&&clientConfig()),client:clientConfig()});
   if(action==='register'&&request.method==='POST'){
    const body=await request.json();if(typeof body.token!=='string'||body.token.length<30||body.token.length>4096)return out({error:'Dispositivo non valido'},400);
    const result=await db.from('vg_shop_push_tokens').upsert({token:body.token,owner_id:owner,updated_at:new Date().toISOString()});if(result.error)throw result.error;
    if(Deno.env.get('FCM_SERVICE_ACCOUNT')){const pending=await db.from('vg_shop_notification_outbox').select('order_id').eq('owner_id',owner).is('sent_at',null).order('created_at').limit(20);if(pending.error)throw pending.error;for(const row of pending.data||[])await dispatch(row.order_id);}
+   if(Deno.env.get('FCM_SERVICE_ACCOUNT')){const pending=await db.from('vg_shop_customer_notifications').select('id').eq('owner_id',owner).is('sent_at',null).is('read_at',null).order('created_at').limit(20);if(pending.error)throw pending.error;for(const row of pending.data||[])await dispatchCustomerNotification(db,owner,row.id,Deno.env.get('FCM_SERVICE_ACCOUNT'));}
    return out({ok:true,configured:Boolean(Deno.env.get('FCM_SERVICE_ACCOUNT'))});
   }
   return out({error:'Operazione non valida'},404);

@@ -4,6 +4,7 @@ on:
     paths:
       - 'index.html'
       - 'vg-catalog-stats.*'
+      - 'vg-customer-panel.*'
       - 'vg-bold-theme.css'
       - 'vg-startup.js'
       - 'tests/management-*.test.cjs'
@@ -21,7 +22,7 @@ jobs:
         with:
           node-version: '24'
       - name: Install isolated browser tools
-        run: npm install --prefix "$RUNNER_TEMP/vg-tests" --no-audit --no-fund playwright@1.58.2
+        run: npm install --prefix "$RUNNER_TEMP/vg-tests" --no-audit --no-fund playwright@1.58.2 jsdom@26.1.0
       - name: Install Chromium
         run: node "$RUNNER_TEMP/vg-tests/node_modules/playwright/cli.js" install --with-deps chromium
       - name: Verify original dashboard and catalog statistics on mobile and desktop
@@ -30,7 +31,8 @@ jobs:
           VG_UI_SCREENSHOTS: '${{ runner.temp }}/vg-ui-screenshots'
         run: |
           node --test tests/article-photos.test.cjs tests/article-sync.test.cjs tests/management-cloud.test.cjs
-          node --test tests/management-order-roundtrip.test.cjs tests/management-customer-stats.test.cjs tests/management-startup.test.cjs
+          node --test tests/management-order-roundtrip.test.cjs tests/management-customer-stats.test.cjs tests/management-startup.test.cjs tests/management-customer-panel.test.cjs
+          node tests/management-customer-panel-ui.test.cjs
           node tests/management-ui.test.cjs
           node tests/management-actions.test.cjs
           node tests/management-boot-browser.test.cjs

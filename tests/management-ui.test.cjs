@@ -28,6 +28,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
    const file=path.join(root,name);return fs.existsSync(file)?route.fulfill({path:file}):route.abort();
   });
   await page.route('**/functions/v1/vg-shop-catalog**',route=>{
+   const action=new URL(route.request().url()).searchParams.get('action');if(action==='customer-admin')return route.fulfill({contentType:'application/json',body:JSON.stringify({total:1,pending:1,unread:1,customers:[{id:'11111111-1111-4111-8111-111111111111',phone:'393330000000',status:'pending'}],notifications:[],hasMore:false,offset:0})});
    if(route.request().method()==='POST'){assert.equal(new URL(route.request().url()).searchParams.get('action'),'customer-authorize');assert.equal(route.request().postDataJSON().status,'approved');return route.fulfill({contentType:'application/json',body:'{"ok":true}'});}
    assert.equal(route.request().method(),'GET');assert.equal(route.request().headers().authorization,'Bearer isolated-owner-fixture');requests++;
    if(forbidden)return route.fulfill({status:403,contentType:'application/json',body:'{"error":"forbidden"}'});
@@ -57,7 +58,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   forbidden=false;await page.locator('#vgStatsRetry').click();await page.locator('#vgStatsResults:not([hidden])').waitFor();assert.equal(requests,3);
   await page.locator('#vgStatsClose').click();
   await page.locator('#topMenuBtn').click();await page.locator('a[href="vgapp://password"]').click();
-  await page.locator('#vgStatsResults:not([hidden])').waitFor();await page.locator('#vgRegisteredCustomers summary').click();await page.getByRole('button',{name:'Autorizza',exact:true}).click();await page.getByText('Autorizzato',{exact:true}).waitFor();await page.locator('#vgStatsClose').click();
+  await page.locator('#vgCustomersPanel').waitFor({state:'visible'});await page.locator('#vgCustomerList').getByRole('button',{name:'Autorizza',exact:true}).click();await page.locator('#vgCustomersClose').click();
   assert.deepEqual(errors,[]);
   console.log('PASS management '+width+'px '+(hybrid?'APK':'PWA')+': original dashboard, sales bars, shared system font, 7/30-day visit columns, zero visits, owner errors, retry and close');
   await context.close();

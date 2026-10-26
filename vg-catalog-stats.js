@@ -1,5 +1,6 @@
 (function(){
  'use strict';
+ const customerStyle=document.createElement('link');customerStyle.rel='stylesheet';customerStyle.href='./vg-customer-panel.css?v=1';document.head.append(customerStyle);const customerScript=document.createElement('script');customerScript.src='./vg-customer-panel.js?v=1';document.head.append(customerScript);
  const endpoint='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-shop-catalog?action=stats';
  const opener=document.getElementById('vgCatalogStatsOpen');if(!opener)return;
  const hybrid=/\bVgHybrid\/\d/.test(navigator.userAgent);
@@ -13,7 +14,7 @@
  dialog.innerHTML='<header class="vgStatsHeader"><div id="vgStatsTitle" class="vgStatsHeading" role="heading" aria-level="2">Statistiche catalogo</div><button type="button" id="vgStatsClose">Chiudi ✕</button></header><div class="vgStatsContent"><p class="vgStatsStatus" id="vgStatsStatus" role="status" aria-live="polite"></p><button type="button" class="vgStatsRetry" id="vgStatsRetry" hidden>Riprova</button><div id="vgStatsResults" hidden><div class="vgStatsSummary" id="vgStatsSummary"></div><figure class="vgStatsFigure" style="margin-top:16px"><figcaption>Andamento degli accessi</figcaption><p>Visite giornaliere al catalogo clienti</p><div class="vgStatsRange" role="group" aria-label="Periodo del grafico"><button type="button" data-vg-days="7" aria-pressed="true">7 giorni</button><button type="button" data-vg-days="30" aria-pressed="false">30 giorni</button></div><div class="vgStatsChartScroll"><ol class="vgStatsBars" id="vgStatsBars" aria-label="Visite per giorno"></ol></div><p id="vgStatsEmpty" hidden>Nessuna visita nel periodo selezionato.</p></figure><section id="vgCustomerStats" hidden><h3>Clienti e ordini del catalogo</h3><div class="vgStatsSummary" id="vgCustomerStatsSummary"></div><h4>Clienti registrati</h4><div id="vgRegisteredCustomers"></div><button type="button" id="vgCustomersMore" class="vgStatsRetry" hidden>Altri clienti</button><h4>Richieste ricevute</h4><p class="vgStatsNote">Comprende anche le richieste del catalogo inviate senza account. Gli ordini precedenti non vengono attribuiti automaticamente ai nuovi account.</p><div id="vgCustomerOrders"></div><button type="button" id="vgOrdersMore" class="vgStatsRetry" hidden>Altri ordini</button><p id="vgCustomersStatus" role="status" aria-live="polite"></p></section><p class="vgStatsNote" id="vgStatsDefinition"></p><p class="vgStatsNote">I tuoi accessi tramite anteprima amministratore sono esclusi.</p></div></div>';
  document.body.append(dialog);
  const el=id=>document.getElementById(id),number=value=>Math.max(0,Math.trunc(Number(value)||0));
- function openCustomerAccess(){opener.click()}
+ function openCustomerAccess(){window.VG_CUSTOMERS?window.VG_CUSTOMERS.open():opener.click()}
  async function authorizeCustomer(id,status,button,label){
   button.disabled=true;try{
    const client=await window.VG_SUPABASE_READY,result=await client.auth.getSession();if(!result.data?.session?.access_token)throw Error('Accedi come amministratore.');

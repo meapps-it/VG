@@ -1,3 +1,4 @@
+import {customerAdminAction} from './shop-customer-admin.ts';
 import {articleOptions,requestedVariant,articleMetadata} from "./shop-variants.ts";
 import {customerAction,customerSession,shippingProfile} from "./shop-customers.ts";
 import {accessAction,catalogSession,trackVisit} from "./shop-access.ts";
@@ -20,6 +21,7 @@ Deno.serve(async(req)=>{
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
   const url=new URL(req.url);
   const action=url.searchParams.get("action")||"";
+  const adminHandled=await customerAdminAction(db,req,OWNER,action,out);if(adminHandled)return adminHandled;
   const handled=await accessAction(db,req,OWNER,action,out);if(handled)return handled;
   if(['customer-login','customer-register','customer-google','customer-me','customer-logout','customer-authorize'].includes(action)){const result=await customerAction(db,req,OWNER,action,out);if(result)return result;}
   const viewer=await catalogSession(db,req,OWNER);if(!viewer)return fail("Accedi con un account autorizzato dal negozio",401);

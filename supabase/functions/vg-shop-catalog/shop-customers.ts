@@ -1,3 +1,4 @@
+import {dispatchCustomerRegistration} from './shop-customer-admin.ts';
 import {digest,passwordHash,requireOwner} from './shop-access.ts';
 const hex=(a:Uint8Array)=>Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('');
 const text=(v:any,n:number)=>typeof v==='string'?v.trim().slice(0,n):'';
@@ -31,12 +32,14 @@ export async function customerAction(db:any,req:Request,owner:string,action:stri
   if(verified.error||!identity||!user.email||!user.email_confirmed_at)return out({error:'Accesso Google non valido'},401);
   let body:any;try{body=await req.json()}catch{return out({error:'Dati non validi'},400)}
   if(body.privacy!==true)return out({error:'Accetta il trattamento dei dati per continuare'},400);
-  let account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status').eq('owner_id',owner).eq('auth_user_id',user.id).maybeSingle();if(account.error)throw account.error;
+  let isNew=false;let account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status').eq('owner_id',owner).eq('auth_user_id',user.id).maybeSingle();if(account.error)throw account.error;
   if(!account.data){
    const salt=hex(crypto.getRandomValues(new Uint8Array(16)));
    account=await db.from('vg_shop_customers').insert({owner_id:owner,auth_user_id:user.id,email:user.email,phone:'',phone_hash:await digest(owner+':google:'+user.id),pin_salt:salt,pin_hash:await digest(hex(crypto.getRandomValues(new Uint8Array(32)))),profile:{},access_status:'pending',privacy_at:new Date().toISOString()}).select('id,phone,profile,email,access_status').single();
+   isNew=!account.error;
    if(account.error?.code==='23505')account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status').eq('owner_id',owner).eq('auth_user_id',user.id).single();if(account.error)throw account.error;
   }
+  if(isNew)await dispatchCustomerRegistration(db,owner,account.data.id);
   return out(await issue(db,owner,account.data));
  }
  if(['customer-register','customer-login'].includes(action)&&req.method==='POST'){
@@ -50,7 +53,7 @@ export async function customerAction(db:any,req:Request,owner:string,action:stri
   if(action==='customer-register'){
    const salt=hex(crypto.getRandomValues(new Uint8Array(16)));
    const inserted=await db.from('vg_shop_customers').insert({owner_id:owner,phone,phone_hash:phoneHash,pin_salt:salt,pin_hash:await passwordHash(pin,salt),profile:{},access_status:'pending',privacy_at:new Date().toISOString()}).select('id,phone,profile,email,access_status').single();
-   if(inserted.error?.code==='23505')return out({error:'Se hai già un account con questo numero, premi Accedi.'},409);if(inserted.error)throw inserted.error;return out(await issue(db,owner,inserted.data));
+   if(inserted.error?.code==='23505')return out({error:'Se hai già un account con questo numero, premi Accedi.'},409);if(inserted.error)throw inserted.error;await dispatchCustomerRegistration(db,owner,inserted.data.id);return out(await issue(db,owner,inserted.data));
   }
   const account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status,pin_salt,pin_hash').eq('owner_id',owner).eq('phone_hash',phoneHash).maybeSingle();if(account.error)throw account.error;
   // Use the same derivation even for an unknown number.
