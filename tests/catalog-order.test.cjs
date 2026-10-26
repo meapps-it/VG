@@ -4,7 +4,7 @@ const id='11111111-1111-4111-8111-111111111111';
 async function order(overrides={}){
  let handler;const writes=[],products=[{id,nome:'Borsa',sku:'B-1',fornitore:'Jayden',qualita:'ORIGINALE',prezzo_vendita:140,giacenza:0}];
  const db={from(table){let inserted;return {select(){return this},eq(){return this},gte(){return this},in(){return this},insert(data){inserted=data;writes.push({table,data});return this},async single(){return {data:table==='clienti'?{id:'client'}:{id:'order',numero_ordine:'WEB-SERVER',created_at:'2026-10-25T23:30:00Z'},error:null}},then(resolve,reject){return Promise.resolve({data:table==='prodotti'?products:null,count:0,error:null}).then(resolve,reject)}}}};
- vm.runInNewContext(source,{Deno:{env:{get:()=>''},serve:f=>handler=f},createClient:()=>db,Response,Request,URL,Date,Intl,crypto,TextEncoder,console,accessAction:async()=>null,catalogSession:async()=>({is_admin:true}),trackVisit:async()=>{}});
+ vm.runInNewContext(source,{Deno:{env:{get:()=>''},serve:f=>handler=f},createClient:()=>db,...require('./catalog-server-helpers.cjs'),Response,Request,URL,Date,Intl,crypto,TextEncoder,console,accessAction:async()=>null,catalogSession:async()=>({is_admin:true}),trackVisit:async()=>{}});
  const body={privacy:true,customer:{name:'Cliente prova',phone:'3330000000',address:'Via prova 1',province:'CN',city:'Beinette',cap:'12081'},items:[{id,qty:2,quality:'STANDARD',price:1}],...overrides};
  const response=await handler(new Request('https://test/',{method:'POST',body:JSON.stringify(body)}));return {response,writes,body:await response.json()};
 }

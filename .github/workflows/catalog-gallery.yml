@@ -31,12 +31,15 @@ jobs:
         env:
           NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
         run: |
-          node --test tests/catalog-api.test.cjs tests/catalog-access.test.cjs tests/catalog-order.test.cjs tests/catalog-push.test.cjs
+          node --test tests/catalog-customer.test.cjs tests/catalog-variants.test.cjs tests/catalog-api.test.cjs tests/catalog-access.test.cjs tests/catalog-order.test.cjs tests/catalog-push.test.cjs
           node tests/catalog-auto-access.test.cjs
           node tests/catalog-navigation.test.cjs
           SHOP_NAV_BROWSER=webkit node tests/catalog-navigation.test.cjs
           node tests/catalog-dom.test.cjs
           node tests/catalog-shipping.test.cjs
+          node tests/catalog-customer-ui.test.cjs
+          node tests/catalog-customer-browser.test.cjs
+          SHOP_NAV_BROWSER=webkit node tests/catalog-customer-browser.test.cjs
           node tests/catalog-gallery.test.cjs
           node tests/catalog-contact.test.cjs
       - name: Verify the published catalog (read only)

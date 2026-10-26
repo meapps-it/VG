@@ -1,3 +1,5 @@
+import {articleOptions,requestedVariant} from "./shop-variants.ts";
+import {customerAction,customerSession,shippingProfile} from "./shop-customers.ts";
 import {accessAction,catalogSession,trackVisit} from "./shop-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const PROJECT = Deno.env.get("SUPABASE_URL")!;
@@ -10,7 +12,7 @@ function valid(value:unknown,max:number){return typeof value==="string"?value.tr
 const published=(q:any)=>q.eq("user_id",OWNER).eq("attivo",true).eq("disponibile",true).eq("stato_pubblicazione","pubblicato").eq("is_demo",false);
 Deno.serve(async(req)=>{
  const origin=req.headers.get("origin");
- const cors={"Access-Control-Allow-Origin":origin&&ALLOWED_ORIGINS.has(origin)?origin:SITE,"Access-Control-Allow-Headers":"content-type,apikey,authorization","Access-Control-Allow-Methods":"GET,POST,OPTIONS","Vary":"Origin"};
+ const cors={"Access-Control-Allow-Origin":origin&&ALLOWED_ORIGINS.has(origin)?origin:SITE,"Access-Control-Allow-Headers":"content-type,apikey,authorization,x-vg-customer-token","Access-Control-Allow-Methods":"GET,POST,OPTIONS","Vary":"Origin"};
  function out(data:unknown,status=200){return new Response(JSON.stringify(data),{status,headers:{...cors,"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store"}})}
  function fail(message:string,status=400){return out({error:message},status)}
  try{
@@ -20,10 +22,11 @@ Deno.serve(async(req)=>{
   const action=url.searchParams.get("action")||"";
   const handled=await accessAction(db,req,OWNER,action,out);if(handled)return handled;
   const viewer=await catalogSession(db,req,OWNER);if(!viewer)return fail("Inserisci la password del catalogo",401);
+  const customerHandled=await customerAction(db,req,OWNER,action,out);if(customerHandled)return customerHandled;
 
   if(req.method==="GET"){
     if(url.searchParams.get("action")!=="catalog")return fail("Operazione non valida",404);
-    const {data,error}=await published(db.from("prodotti").select("id,sku,nome,descrizione,descrizione_app,marca,qualita,fornitore,prezzo_vendita,in_promozione,prezzo_promozionale,categoria_id,giacenza").order("nome",{ascending:true}).limit(400));
+    const {data,error}=await published(db.from("prodotti").select("id,sku,nome,descrizione,descrizione_app,marca,qualita,fornitore,prezzo_vendita,in_promozione,prezzo_promozionale,categoria_id,giacenza,colore,taglia,tipo_misura,valore_misura,dimensioni").order("nome",{ascending:true}).limit(400));
     if(error)throw error;
     const ids=(data||[]).map((x:any)=>x.id);
     // Page explicitly: PostgREST's row cap must not silently truncate galleries.
@@ -74,7 +77,7 @@ Deno.serve(async(req)=>{
       const supplier=String(p.fornitore||meta?.fornitore||"").trim().toLowerCase();
       const quality=supplier==="jayden"?"ORIGINALE":"STANDARD";
       const description=rawDescription.replace(/\[VGMETA\][\s\S]*?\[\/VGMETA\]/gi," ").replace(/\[VGMETA\][\s\S]*$/gi,"").trim();
-      return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||"",price:promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita),originalPrice:Number(p.prezzo_vendita),promotion:promo,image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
+      return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p),price:promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita),originalPrice:Number(p.prezzo_vendita),promotion:promo,image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
     });
     await trackVisit(db,OWNER,viewer);
     return out({items,imagesExpiresAt,administrator:viewer.is_admin});
@@ -84,6 +87,8 @@ Deno.serve(async(req)=>{
   if(length>12000)return fail("Richiesta troppo grande",413);
   let body:any;try{body=await req.json()}catch{return fail("Richiesta non valida")}
   if(body?.website)return out({ok:true,message:"Richiesta ricevuta"}); // honeypot
+  const account=await customerSession(db,req,OWNER);
+  if(req.headers.get('x-vg-customer-token')&&!account)return out({error:'Accedi di nuovo alla tua area clienti',code:'CUSTOMER_LOGIN_REQUIRED'},403);
   const customer=body?.customer||{};
   const name=valid(customer.name,100),phone=valid(customer.phone,40),address=valid(customer.address,200),city=valid(customer.city,100),cap=valid(customer.cap,12),province=valid(customer.province,100),notes=valid(customer.notes,500);
   if(body.privacy!==true)return fail("Il consenso privacy è obbligatorio");
@@ -104,16 +109,19 @@ Deno.serve(async(req)=>{
   const {error:attemptError}=await db.from("vg_catalog_order_rate").insert({source_hash:hash});
   if(attemptError)throw attemptError;
   const ids=[...selected.keys()];
-  const {data:products,error:productError}=await published(db.from("prodotti").select("id,nome,sku,qualita,fornitore,descrizione,prezzo_vendita,prezzo_promozionale,in_promozione,giacenza").in("id",ids));
+  const {data:products,error:productError}=await published(db.from("prodotti").select("id,nome,sku,qualita,fornitore,descrizione,descrizione_app,colore,taglia,tipo_misura,valore_misura,dimensioni,prezzo_vendita,prezzo_promozionale,in_promozione,giacenza").in("id",ids));
   if(productError)throw productError;
   if(!products||products.length!==ids.length)return fail("Uno o più articoli non sono disponibili");
-  const lines=products.map((p:any)=>{
+  const byId=new Map(products.map((p:any)=>[p.id,p]));
+  let lines:any[];
+  try{lines=raw.map((entry:any)=>{
+    const p:any=byId.get(entry.id);const variant=requestedVariant(p,entry);
     const promo=p.in_promozione&&Number(p.prezzo_promozionale)>0&&Number(p.prezzo_promozionale)<Number(p.prezzo_vendita);
     const price=promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita);
     let meta:any={};try{meta=JSON.parse(String(p.descrizione||"").match(/\[VGMETA\]([\s\S]*?)\[\/VGMETA\]/i)?.[1]||"{}")}catch{}
     const quality=String(p.fornitore||meta.fornitore||"").trim().toLowerCase()==="jayden"?"Originale":"Standard";
-    return {id:p.id,qty:selected.get(p.id)||1,price,name:p.nome,sku:p.sku,quality};
-  });
+    return {id:p.id,qty:Number(entry.qty),price,name:p.nome,sku:p.sku,quality,...variant};
+  })}catch(error){return fail(error instanceof Error?error.message:"Misura o colore non validi")}
   const total=Math.round(lines.reduce((v,x)=>v+x.qty*x.price,0)*100)/100;
   if(!(total>=0&&total<1000000))return fail("Totale ordine non valido");
   let clientId:string|undefined,orderId:string|undefined;
@@ -123,10 +131,14 @@ Deno.serve(async(req)=>{
     const orderPlacedAt=new Date();
     const orderTimestamp=new Intl.DateTimeFormat("it-IT",{timeZone:"Europe/Rome",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(orderPlacedAt);
     const number="WEB-"+orderPlacedAt.toISOString().replace(/[-:TZ.]/g,"").slice(0,14)+"-"+crypto.randomUUID().slice(0,6).toUpperCase();
-    const {data:order,error:oe}=await db.from("ordini").insert({user_id:OWNER,numero_ordine:number,cliente_id:clientId,data_ordine:new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Rome",year:"numeric",month:"2-digit",day:"2-digit"}).format(orderPlacedAt),stato:"in_lavorazione",totale:total,pagato:false,stato_pagamento:"da_pagare",note:"Richiesta da catalogo Shop & Parallelo. Data e ora richiesta (Italia): "+orderTimestamp+". Fuso: Europe/Rome. Consenso privacy ricevuto. Da confermare. "+notes+"\n"+lines.map(x=>x.qty+" × "+x.name+" ["+x.sku+"] · "+x.quality+" · EUR "+x.price.toFixed(2)).join("\n")}).select("id,numero_ordine,created_at").single();
+    const {data:order,error:oe}=await db.from("ordini").insert({user_id:OWNER,numero_ordine:number,cliente_id:clientId,data_ordine:new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Rome",year:"numeric",month:"2-digit",day:"2-digit"}).format(orderPlacedAt),stato:"in_lavorazione",totale:total,pagato:false,stato_pagamento:"da_pagare",note:"Richiesta da catalogo Shop & Parallelo. Data e ora richiesta (Italia): "+orderTimestamp+". Fuso: Europe/Rome. Consenso privacy ricevuto. Da confermare. "+notes+"\n"+lines.map(x=>x.qty+" × "+x.name+" ["+x.sku+"] · "+x.quality+(x.size?" · Misura: "+x.size:"")+(x.color?" · Colore: "+(x.colorNumber?x.colorNumber+" - ":"")+x.color:"")+" · EUR "+x.price.toFixed(2)).join("\n")}).select("id,numero_ordine,created_at").single();
     if(oe)throw oe;orderId=order.id;
-    const {error:re}=await db.from("righe_ordine").insert(lines.map(x=>({user_id:OWNER,ordine_id:orderId,prodotto_id:x.id,quantita:x.qty,prezzo_unitario:x.price,sconto:0,costo_unitario:0,guadagno_riga:0})));
+    const {error:re}=await db.from("righe_ordine").insert(lines.map(x=>({user_id:OWNER,ordine_id:orderId,prodotto_id:x.id,quantita:x.qty,prezzo_unitario:x.price,sconto:0,costo_unitario:0,guadagno_riga:0,...(x.size?{variante_misura:x.size}:{}),...(x.color?{variante_colore:x.color}:{}),...(x.colorNumber?{numero_colore:x.colorNumber}:{})})));
     if(re)throw re;
+    if(account){
+      const linked=await db.from('vg_shop_customer_orders').insert({order_id:order.id,owner_id:OWNER,customer_id:account.customer_id,items:lines});if(linked.error)throw linked.error;
+      if(body.rememberShipping===true){const profileSaved=await db.from('vg_shop_customers').update({profile:shippingProfile(customer),updated_at:new Date().toISOString()}).eq('id',account.customer_id).eq('owner_id',OWNER);if(profileSaved.error)console.error('VG customer profile save unavailable')}
+    }
     const queued=await db.from("vg_shop_notification_outbox").insert({order_id:order.id,owner_id:OWNER});
     if(queued.error)console.error("VG shop notification queue unavailable");
     else if(Deno.env.get("FCM_SERVICE_ACCOUNT")){
