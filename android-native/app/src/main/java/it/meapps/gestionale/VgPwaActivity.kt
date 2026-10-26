@@ -40,8 +40,21 @@ class VgPwaActivity : ComponentActivity() {
  private var fontRevision=0
  private var autoPushAttempted=false
  private val io=CoroutineScope(kotlinx.coroutines.SupervisorJob()+Dispatchers.IO)
+ private var photoPickerActive=false
  private var fileCallback:ValueCallback<Array<Uri>>?=null
- private val filePicker=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){result->fileCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result.resultCode,result.data));fileCallback=null}
+ private val filePicker=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){result->
+  val callback=fileCallback;val importingPhotos=photoPickerActive;fileCallback=null
+  if(callback!=null){
+   if(result.resultCode!=RESULT_OK) callback.onReceiveValue(null)
+   else io.launch {
+    runCatching { if(importingPhotos) VgPhotoImport.prepare(this@VgPwaActivity,result.data) else WebChromeClient.FileChooserParams.parseResult(result.resultCode,result.data) }.onSuccess { uris->
+     withContext(Dispatchers.Main){callback.onReceiveValue(uris)}
+    }.onFailure { error->
+     withContext(Dispatchers.Main){callback.onReceiveValue(null);message("Foto non aggiunte",error.message?:"Impossibile leggere le foto selezionate. Riprova dal selettore File.")}
+    }
+   }
+  }
+ }
  private val notificationPermission=registerForActivityResult(ActivityResultContracts.RequestPermission()){allowed->if(allowed)registerPush()else message("Notifiche disattivate","Puoi abilitarle nelle impostazioni Android.")}
  private val client=OkHttpClient()
  private fun trusted(url:String?):Boolean {val uri=Uri.parse(url?:return false);return uri.scheme=="https"&&uri.host=="meapps-it.github.io"&&(uri.path=="/VG"||uri.path?.startsWith("/VG/")==true)}
@@ -96,7 +109,13 @@ class VgPwaActivity : ComponentActivity() {
     io.launch{runCatching{val token=getSharedPreferences("vg_push",MODE_PRIVATE).getString("token",null);if(token!=null)VgPush.request(jwt,"register",JSONObject().put("token",token))}}
    }}}
   }
-  web.webChromeClient=object:WebChromeClient(){override fun onShowFileChooser(view:WebView,callback:ValueCallback<Array<Uri>>,params:FileChooserParams):Boolean {fileCallback?.onReceiveValue(null);fileCallback=callback;return runCatching{filePicker.launch(params.createIntent());true}.getOrElse{fileCallback=null;false}}}
+  web.webChromeClient=object:WebChromeClient(){override fun onShowFileChooser(view:WebView,callback:ValueCallback<Array<Uri>>,params:FileChooserParams):Boolean {fileCallback?.onReceiveValue(null);fileCallback=callback;return runCatching{val imagePicker=params.acceptTypes.any{it.startsWith("image/")};photoPickerActive=imagePicker
+   val intent=if(imagePicker) Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+    addCategory(Intent.CATEGORY_OPENABLE);type="image/*"
+    putExtra(Intent.EXTRA_ALLOW_MULTIPLE,params.mode==FileChooserParams.MODE_OPEN_MULTIPLE)
+    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+   } else params.createIntent()
+   filePicker.launch(intent);true}.getOrElse{fileCallback?.onReceiveValue(null);fileCallback=null;message("Selettore foto non disponibile","Apri le foto dal selettore File di Android e riprova.");true}}}
   web.setDownloadListener{url,_,_,_,_->runCatching{startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))}}
   onBackPressedDispatcher.addCallback(this,object:OnBackPressedCallback(true){override fun handleOnBackPressed(){if(web.canGoBack())web.goBack()else finish()}})
   if(savedInstanceState!=null)web.restoreState(savedInstanceState)else web.loadUrl("https://meapps-it.github.io/VG/")
@@ -157,8 +176,9 @@ class VgPwaActivity : ComponentActivity() {
   if(body!=null)req.post(body.toString().toRequestBody("application/json".toMediaType()))
   return client.newCall(req.build()).execute().use{response->val result=JSONObject(response.body?.string().orEmpty().ifBlank{"{}"});if(!response.isSuccessful)error(result.optString("error","Servizio non disponibile"));result}
  }
- private fun openAdminPreview(){captureSession{jwt->io.launch{runCatching{catalog(jwt,"admin-session",JSONObject()).getString("token")}.onSuccess{token->withContext(Dispatchers.Main){startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://simplexapp.it/shop/#admin_token="+token)))}}.onFailure{message("Anteprima non disponibile",it.message?:"Riprova")}}}}
+ private fun openAdminPreview(){captureSession{jwt->io.launch{runCatching{catalog(jwt,"admin-session",JSONObject()).getString("token")}.onSuccess{token->withContext(Dispatchers.Main){startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://meapps-it.github.io/VG/catalogo-nuovo.html#admin_token="+token)))}}.onFailure{message("Anteprima non disponibile",it.message?:"Riprova")}}}}
  private fun passwordDialog(){val input=EditText(appearance.dialogContext()).apply{inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD;hint="Almeno 6 caratteri"};AlertDialog.Builder(appearance.dialogContext()).setTitle("Password del catalogo clienti").setMessage("Imposta una password unica. Dopo la modifica i clienti dovranno reinserirla.").setView(input).setNegativeButton("Annulla",null).setPositiveButton("Imposta"){_,_->val password=input.text.toString();if(password.length<6)message("Password troppo breve","Usa almeno 6 caratteri.")else captureSession{jwt->io.launch{runCatching{catalog(jwt,"set-password",JSONObject().put("password",password))}.onSuccess{message("Password aggiornata","La nuova password è attiva per il catalogo clienti.")}.onFailure{message("Errore",it.message?:"Riprova")}}}}.show()}
  private fun configurePush(){captureSession{jwt->io.launch{runCatching{VgPush.request(jwt,"config")}.onSuccess{result->withContext(Dispatchers.Main){val config=result.optJSONObject("client");if(!VgPush.initialize(this@VgPwaActivity,config)){message("Configurazione non valida","Verifica il progetto Firebase.");return@withContext};if(Build.VERSION.SDK_INT>=33&&ContextCompat.checkSelfPermission(this@VgPwaActivity,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)else registerPush()}}.onFailure{message("Notifiche non disponibili",it.message?:"Riprova")}}}}
  private fun registerPush(){if(!VgPush.initialize(this)){message("Configurazione mancante","Collega prima il progetto Firebase.");return};FirebaseMessaging.getInstance().token.addOnSuccessListener{token->getSharedPreferences("vg_push",MODE_PRIVATE).edit().putString("token",token).apply();captureSession{jwt->io.launch{runCatching{VgPush.request(jwt,"register",JSONObject().put("token",token))}.onSuccess{message("Dispositivo registrato",if(it.optBoolean("configured")) "Le notifiche dei nuovi ordini sono abilitate su questo telefono." else "Il telefono è collegato a Firebase. Per ricevere gli ordini manca ancora l’attivazione FCM sul server Supabase.")}.onFailure{message("Registrazione non riuscita",it.message?:"Riprova")}}}}.addOnFailureListener{message("Notifiche non disponibili",it.message?:"Riprova")}}
 }
+

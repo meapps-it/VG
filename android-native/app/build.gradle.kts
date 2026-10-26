@@ -12,8 +12,8 @@ android {
         applicationId = "it.meapps.gestionale"
         minSdk = 26
         targetSdk = 36
-        versionCode = 25
-        versionName = "0.8.9"
+        versionCode = 26
+        versionName = "0.8.10"
 
         buildConfigField("String", "SUPABASE_URL", "\"https://qfjwtawsqfwmsmrrgqfi.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_-EUVjwsk3txKk2Opqrc7Kw_xFNa9Hw1\"")
@@ -84,3 +84,4 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 }
+

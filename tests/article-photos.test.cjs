@@ -46,3 +46,22 @@ test('APK image load errors renew the signed URL once instead of reusing an expi
  const c=context({articleThumbSelector:(id,attr)=>attr,document:{querySelector:selector=>selector.includes('placeholder')?placeholder:image,body:{contains:()=>true}},normalizeFotoStoragePath:()=> 'SKU/1.jpg',getSignedFotoUrl:async(path,seconds,force)=>{assert.equal(force,true);signed++;return 'https://private.test/SKU/1.jpg?token=fresh'}},slice('function setArticleThumbState(','async function hydrateOneArticleThumb('));
  c.setArticleThumbState('p','https://private.test/SKU/1.jpg?token=expired');await image.onerror();assert.equal(signed,1);assert.match(image.src,/token=fresh/);image.onload();assert.equal(image.style.visibility,'visible');image.onerror();assert.equal(signed,1);assert.equal(placeholder.style.display,'flex');
 });
+
+test('Android photos with missing or generic MIME types are identified from bytes before preview and save',async()=>{
+ const released=[];
+ class DecodableImage { set src(url){this.naturalWidth=24;queueMicrotask(()=>this.onload())} }
+ const c=context({Uint8Array,Image:DecodableImage,URL:{createObjectURL:()=> 'blob:preview',revokeObjectURL:u=>released.push(u)}},slice('async function normalizeArticlePhotoFile(','async function filesToObjectUrls('));
+ for(const type of ['', 'application/octet-stream']){
+  const file=new File([new Uint8Array([255,216,255,224,0,16])],'photo',{type});
+  const normalized=await c.normalizeArticlePhotoFile(file);assert.equal(normalized.type,'image/jpeg');assert.equal(normalized.size,file.size);
+ }
+ assert.equal(released.length,2);
+ await assert.rejects(c.normalizeArticlePhotoFile(new File(['text'],'fake.jpg')),/non è una foto/);
+ await assert.rejects(c.normalizeArticlePhotoFile(new File([],'empty.jpg',{type:'image/jpeg'})),/vuota/);
+});
+test('unreadable photo formats produce an explicit error and release preview resources',async()=>{
+ let revoked=0;
+ class InvalidImage { set src(url){queueMicrotask(()=>this.onerror())} }
+ const c=context({Image:InvalidImage,URL:{createObjectURL:()=> 'blob:bad',revokeObjectURL:()=>revoked++}},slice('async function normalizeArticlePhotoFile(','async function filesToObjectUrls('));
+ await assert.rejects(c.normalizeArticlePhotoFile(new File(['bad'],'bad.heic',{type:'image/heic'})),/JPG o PNG/);assert.equal(revoked,1);
+});

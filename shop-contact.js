@@ -1,6 +1,6 @@
 (function(){
  'use strict';
- const phone='393351604686',catalog='https://simplexapp.it/shop/';
+ const phone='393351604686',catalog='https://meapps-it.github.io/VG/catalogo-nuovo.html';
  function message(kind){
   if(kind==='product'){
    const name=document.getElementById('productTitle')?.textContent?.trim()||'questo articolo';
@@ -15,3 +15,4 @@
   update(link);link.addEventListener('click',()=>update(link));link.addEventListener('focus',()=>update(link));
  });
 })();
+

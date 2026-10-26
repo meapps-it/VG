@@ -74,7 +74,7 @@ jobs:
           NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
         run: |
           node tests/quality-pricing.test.cjs
-          node --test tests/article-sync.test.cjs
+          node --test tests/article-sync.test.cjs tests/article-photos.test.cjs
           node tests/article-autofill.test.cjs
           node tests/android-appearance.test.cjs
           node tests/management-ui.test.cjs
@@ -105,13 +105,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: VG-0.8.9-test-reports
+          name: VG-0.8.10-test-reports
           path: |
             android-native/app/build/reports/
             android-native/app/build/outputs/androidTest-results/
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: VG-CI-0.8.9-test-signed
+          name: VG-CI-0.8.10-test-signed
           path: android-native/app/build/outputs/apk/vg/debug/app-vg-debug.apk
           if-no-files-found: error
+
