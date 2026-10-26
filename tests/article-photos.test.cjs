@@ -38,3 +38,5 @@ test('unchanged photographs avoid delete/insert churn; new upload appends after 
  const {c,changes}=syncHarness();await c.syncArticlePhotosToCloud('p','SKU',['SKU/1.jpg','SKU/2.jpg']);assert.deepEqual(changes,[]);
  const result=await c.syncArticlePhotosToCloud('p','SKU',['SKU/1.jpg','SKU/2.jpg','blob:new']);assert.deepEqual(Array.from(result),['SKU/1.jpg','SKU/2.jpg','SKU/3.jpg']);assert.equal(changes[0],'delete');assert.equal(changes[1].insert[2].ordine,2);
 });
+
+test('an unavailable local gallery never erases existing server links',async()=>{const {c,changes}=syncHarness();assert.deepEqual(Array.from(await c.syncArticlePhotosToCloud('p','SKU',[])),['SKU/1.jpg','SKU/2.jpg']);assert.deepEqual(changes,[])});

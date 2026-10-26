@@ -4753,6 +4753,8 @@ async function syncArticlePhotosToCloud(artId, codice, pics){
       uploadErrors.push(err);
     }
   }
+  // An empty or unavailable device archive is not an instruction to erase server photos.
+  if(!normalized.length && existingPaths.length) return existingPaths;
   const finalPaths=normalized.length===0 ? [] : normalizeCloudPhotoPathList(savedPaths.length ? savedPaths : existingPaths);
   if(uploadErrors.length) throw new Error('Foto non sincronizzate: riprova il salvataggio. Le fotografie precedenti sono conservate.');
   if(finalPaths.length===existingPaths.length && finalPaths.every((path,i)=>path===existingPaths[i])) return finalPaths;
