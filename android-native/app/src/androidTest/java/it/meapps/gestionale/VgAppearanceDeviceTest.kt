@@ -137,10 +137,12 @@ class VgAppearanceDeviceTest {
                 ctx.getSystemService(android.content.ClipboardManager::class.java)
                     .setPrimaryClip(android.content.ClipData.newPlainText("test",copied))
             }
-            eval(view,"window.vgReceiveArticleClipboard=text=>window.testClip=text;const b=document.createElement('button');b.id='native-paste';b.textContent='Incolla';b.onclick=()=>location.href='vgapp://clipboard';document.body.appendChild(b);location.href='vgapp://clipboard';'ok'")
+            eval(view,"window.vgReceiveArticleClipboard=text=>window.testClip=text;const b=document.createElement('button');b.id='native-paste';b.textContent='Incolla';b.style.cssText='position:fixed;top:12px;right:12px;z-index:999999;background:white;padding:8px';b.onclick=()=>location.href='vgapp://clipboard';document.body.appendChild(b);location.href='vgapp://clipboard';'ok'")
             Thread.sleep(250)
             assertEquals("undefined",eval(view,"typeof window.testClip"))
             eval(view,"document.getElementById('native-paste').scrollIntoView({block:'center'});'ok'")
+            // Android 13+ shows a system clipboard preview at the bottom. Keep the
+            // real tap target at the top so sendPointerSync still targets our window.
             val point=org.json.JSONObject(eval(view,"JSON.stringify((()=>{const r=document.getElementById('native-paste').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2,width:innerWidth}})())"))
             val origin=IntArray(2)
             var scale=1f
@@ -163,3 +165,4 @@ class VgAppearanceDeviceTest {
         }
     }
 }
+
