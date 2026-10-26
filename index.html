@@ -3437,26 +3437,36 @@ function normalizeFotoStoragePath(src){
   return raw.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
 }
 
-async function getSignedFotoUrl(path, seconds=5400){
+const FOTO_SIGNED_URL_INFLIGHT=new Map();
+async function getSignedFotoUrl(path, seconds=5400, force=false){
   const src=String(path||'').trim();
   if(!src) return '';
   if(/^data:|^blob:/i.test(src)) return src;
   if(isTemporaryLocalPhotoRef(src)) return '';
   const clean=normalizeFotoStoragePath(src);
   if(!clean) return src;
-  const now=Date.now();
+  if(force) FOTO_SIGNED_URL_CACHE.delete(clean);
   const cached=FOTO_SIGNED_URL_CACHE.get(clean);
-  if(cached && cached.url && cached.expireAt>now) return cached.url;
-  const sb=await ensureCloud();
-  if(!sb || !cloudSession) return '';
-  const {data,error}=await sb.storage.from(SUPABASE_BUCKET).createSignedUrl(clean, seconds);
-  if(error){
-    console.warn('URL firmato foto articolo fallito:', error);
-    return '';
-  }
-  const url=data?.signedUrl||'';
-  if(url) FOTO_SIGNED_URL_CACHE.set(clean,{url,expireAt:now+Math.max(30,(Number(seconds)||5400)-60)*1000});
-  return url;
+  if(cached && cached.expireAt>Date.now()) return cached.url||'';
+  if(FOTO_SIGNED_URL_INFLIGHT.has(clean)) return FOTO_SIGNED_URL_INFLIGHT.get(clean);
+  const job=(async()=>{
+    const sb=await ensureCloud();
+    if(!sb || !cloudSession) return '';
+    try{
+      const {data,error}=await sb.storage.from(SUPABASE_BUCKET).createSignedUrl(clean, seconds);
+      if(error) throw error;
+      const url=data?.signedUrl||'';
+      if(url) FOTO_SIGNED_URL_CACHE.set(clean,{url,expireAt:Date.now()+Math.max(30,(Number(seconds)||5400)-60)*1000});
+      return url;
+    }catch(error){
+      // A missing legacy file must not flood Storage on every card render.
+      FOTO_SIGNED_URL_CACHE.set(clean,{url:'',expireAt:Date.now()+60000});
+      console.warn('URL firmato foto articolo fallito:',error);
+      return '';
+    }
+  })();
+  FOTO_SIGNED_URL_INFLIGHT.set(clean,job);
+  try{return await job;}finally{FOTO_SIGNED_URL_INFLIGHT.delete(clean);}
 }
 
 // Nome mantenuto per compatibilità con tutto il codice esistente.
@@ -3507,7 +3517,7 @@ async function prefetchCloudPhotoPathsForArticles(articles){
     const sb=await ensureCloud();
     if(!sb) return;
     const ids=[...new Set(missing)].slice(0,500);
-    ids.forEach(id=>{ if(!ARTICLE_CLOUD_PHOTO_PATH_CACHE.has(id)) ARTICLE_CLOUD_PHOTO_PATH_CACHE.set(id, []); });
+    // Cache only successful reads; a network failure is not an empty gallery.
     for(let i=0;i<ids.length;i+=80){
       const chunk=ids.slice(i,i+80);
       try{
@@ -3637,11 +3647,12 @@ async function getArticleCloudSourcePaths(a, opts={}){
       if(!(id && out.length)){
         const sb=await ensureCloud();
         if(sb && id){
-          const { data:rows } = await sb
+          const { data:rows,error } = await sb
             .from('prodotti_foto')
             .select('path,ordine')
             .eq('prodotto_id', id)
             .order('ordine',{ascending:true});
+          if(error) throw error;
           const paths=[];
           for(const row of (rows||[])){
             if(row?.path) paths.push(row.path);
@@ -3687,7 +3698,7 @@ async function getPreferredArticlePhotoSources(a){
   }
 
   const cloud=await getArticleCloudSourcePaths(a);
-  if(cloud.length) return dedupePhotoSources(cloud, MAX_ARTICLE_PHOTOS);
+  if(cloud.length) return dedupePhotoSources([...cloud,...local], MAX_ARTICLE_PHOTOS);
   return dedupePhotoSources(local, MAX_ARTICLE_PHOTOS);
 }
 function articleThumbCacheKeyFromSource(src, prefix='src'){
@@ -3916,6 +3927,12 @@ async function getArticleCloudSyncSources(a){
   const cloud=await getArticleCloudSourcePaths(a, {allowCodeFallback:false});
   const localCount=local.length;
   const cloudCount=cloud.length;
+  const expectedLocal=Array.isArray(a.photoIds)?a.photoIds.filter(Boolean).length:0;
+  // On another device, some historical IndexedDB IDs may be unavailable.
+  // Preserve cloud pictures and append genuinely available local additions.
+  if(localCount>0 && expectedLocal>localCount){
+    return dedupePhotoSources([...cloud,...local],MAX_ARTICLE_PHOTOS);
+  }
 
   // Se locale e cloud hanno già lo stesso numero di foto, usa i path cloud esistenti:
   // evita upload duplicati ad ogni semplice modifica dell'articolo.
@@ -4705,7 +4722,8 @@ async function syncArticlePhotosToCloud(artId, codice, pics){
   if(!sb||!cloudSession||!artId) return [];
   const cleanCode=String(codice||artId||'art').trim() || String(artId);
   const normalized=(pics||[]).filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS);
-  const { data:existingRows } = await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id', artId).order('ordine',{ascending:true});
+  const { data:existingRows,error:readError } = await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id', artId).order('ordine',{ascending:true});
+  if(readError) throw readError;
   const existingPaths=(existingRows||[]).map(r=>String(r?.path||'').trim()).filter(Boolean);
   const savedPaths=[];
   const uploadErrors=[];
@@ -4736,9 +4754,12 @@ async function syncArticlePhotosToCloud(artId, codice, pics){
     }
   }
   const finalPaths=normalized.length===0 ? [] : normalizeCloudPhotoPathList(savedPaths.length ? savedPaths : existingPaths);
+  if(uploadErrors.length) throw new Error('Foto non sincronizzate: riprova il salvataggio. Le fotografie precedenti sono conservate.');
+  if(finalPaths.length===existingPaths.length && finalPaths.every((path,i)=>path===existingPaths[i])) return finalPaths;
   let deleted=false;
   try{
-    await sb.from('prodotti_foto').delete().eq('prodotto_id', artId);
+    const {error:deleteError}=await sb.from('prodotti_foto').delete().eq('prodotto_id', artId);
+    if(deleteError) throw deleteError;
     deleted=true;
     if(finalPaths.length){
       const rows=finalPaths.map((path,idx)=>({user_id:cloudSession.user.id, prodotto_id: artId, path, ordine: idx}));
@@ -4754,7 +4775,8 @@ async function syncArticlePhotosToCloud(artId, codice, pics){
     }
     throw err;
   }
-  if(uploadErrors.length) console.warn('Sync foto cloud parziale', uploadErrors);
+  ARTICLE_CLOUD_PHOTO_PATH_CACHE.delete(String(artId));
+  ARTICLE_CODE_PHOTO_PATH_CACHE.delete(cleanCode);
   return finalPaths;
 }
 async function getCloudArticlePhotoUrls(artId){
@@ -9837,16 +9859,16 @@ function setArticleThumbState(id, url){
   el.loading='lazy';
   el.decoding='async';
   el.onload=showImg;
-  el.onerror=()=>{
-    const canRetry=/^https?:\/\//i.test(clean);
-    if(!canRetry){ showPlaceholder(); return; }
-    const retry=clean + (clean.includes('?') ? '&' : '?') + 'vgretry=' + Date.now();
-    setTimeout(()=>{
-      if(!document.body.contains(el)) return;
-      el.onload=showImg;
-      el.onerror=showPlaceholder;
-      el.src=retry;
-    }, 450);
+  let renewed=false;
+  el.onerror=async()=>{
+    const path=normalizeFotoStoragePath(clean);
+    if(renewed || !path || !/^https?:\/\//i.test(clean)){showPlaceholder();return;}
+    renewed=true;
+    const fresh=await getSignedFotoUrl(path,5400,true);
+    if(!document.body.contains(el)) return;
+    if(!fresh){showPlaceholder();return;}
+    el.onerror=showPlaceholder;
+    el.src=fresh;
   };
   if(el.getAttribute('src')===clean && el.complete && el.naturalWidth>0){ showImg(); return; }
   // Placeholder visibile fino al vero onload: niente schermo nero durante il caricamento.
@@ -11818,7 +11840,7 @@ async function saveArt(){
         saveDBLocal(db);
       }catch(cloudErr){
         console.error('Sync cloud articolo fallita', cloudErr);
-        toast('Articolo salvato, ma cloud non aggiornato');
+        toast(cloudErr?.message?.includes('Foto non sincronizzate')?cloudErr.message:'Articolo salvato, ma cloud non aggiornato');
       }
     }else if(isSimplexDemoSavedArticle){
       saveDBLocal(db);
@@ -14299,6 +14321,7 @@ async function upsertCloudArticle(art){
     cloudFoto=await syncArticlePhotosToCloud(data.id, art.codice||data.sku||data.id, pics);
   }catch(err){
     console.warn('Sync foto cloud fallita', err);
+    throw new Error('Foto non sincronizzate: '+(err?.message||'riprova il salvataggio'));
   }
   const finalFoto=normalizeCloudPhotoPathList(cloudFoto.length?cloudFoto:(art.foto||[]));
   try{

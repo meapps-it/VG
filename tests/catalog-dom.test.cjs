@@ -54,6 +54,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images?.[0],price:25,
  $('resetAll').click();$('sort').value='price-asc';$('sort').dispatchEvent(new w.Event('change'));assert.match(doc.querySelector('.item .name').textContent,/Portafoglio/);
  $('search').value='zzzzimpossibile';$('search').dispatchEvent(new w.Event('input'));assert.match($('catalog').textContent,/Nessun articolo/);doc.querySelector('[data-reset]').click();assert.equal(doc.querySelectorAll('.item').length,3);
  $('toggleFilters').click();assert.equal($('filterPanel').hidden,false);$('toggleFilters').click();assert.equal($('filterPanel').hidden,true);
+ const beforeRefresh=requests;w.eval('imagesExpiresAt=Date.now()-1');await w.eval('refreshGallery()');assert.equal(requests,beforeRefresh+1,'expired catalogue photos renew even with no detail dialog open');
  console.log('PASS DOM: thumbnails, arrows, bidirectional swipe, vertical scroll, zoom/close, broken/empty/single/legacy images, signed URL renewal, description, cart and order review');
  }finally{w.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

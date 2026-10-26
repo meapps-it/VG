@@ -65,7 +65,14 @@ el('toggleFilters').onclick=()=>{const open=el('filterPanel').hidden;el('filterP
 el('resetFilters').onclick=()=>resetFilters();el('resetAll').onclick=()=>resetFilters(true);el('clearSearch').onclick=()=>{el('search').value='';render();el('search').focus()};
 for(const id of ['brand','sort','category'])el(id).onchange=render;
 for(const id of ['minPrice','maxPrice'])el(id).oninput=render;
-el('catalog').addEventListener('error',e=>{const img=e.target;if(img.tagName!=='IMG'||!img.closest('.photo'))return;const note=document.createElement('span');note.className='missing-photo';note.textContent='Foto non disponibile';img.replaceWith(note)},true);
+el('catalog').addEventListener('error',async e=>{
+ const img=e.target,card=img.closest?.('.photo');if(img.tagName!=='IMG'||!card)return;
+ if(imagesExpiresAt&&Date.now()>=imagesExpiresAt-60000){await refreshGallery();if(!img.isConnected)return;}
+ const product=products.find(p=>p.id===card.dataset.detail),photos=galleryImages(product||{});
+ const next=Number(img.dataset.photoAttempt||0)+1;
+ if(next<photos.length){img.dataset.photoAttempt=String(next);img.src=photos[next];return;}
+ const note=document.createElement('span');note.className='missing-photo';note.textContent='Foto non disponibile';img.replaceWith(note);
+},true);
 el('catalog').addEventListener('click',e=>{if(e.target.closest('[data-reset]'))resetFilters(true)});
 function renderCart(){const entries=Object.entries(cart).filter(([id,qty])=>products.some(p=>p.id===id)&&qty>0);
 el('cartLines').innerHTML=entries.length?entries.map(([id,qty])=>{let p=products.find(p=>p.id===id);return '<div class="cart-row"><strong>'+escapeHtml(p.name)+'<div class="muted">Qualità: '+escapeHtml(qualityLabel(p.quality))+' · '+euro(p.price)+'</div></strong><div class="qty"><button data-minus="'+id+'" aria-label="Riduci">−</button><b>'+qty+'</b><button data-plus="'+id+'" aria-label="Aumenta">+</button></div></div>'}).join(''):'<p class="empty">Carrello vuoto.</p>';
@@ -148,15 +155,16 @@ document.addEventListener('keydown',e=>{
 });
 // Renew signed URLs after a long visit without touching the cart or customer form.
 async function refreshGallery(){
- if(!activeProduct||Date.now()<imagesExpiresAt-60000)return;
- const id=activeProduct.id,index=activeImageIndex;
+ if(!imagesExpiresAt||document.hidden||Date.now()<imagesExpiresAt-60000)return;
+ const id=activeProduct?.id,index=activeImageIndex;
  try{if(!catalogRequest)catalogRequest=load().finally(()=>{catalogRequest=null});await catalogRequest;
-   if(activeProduct?.id!==id)return;
+   if(!id||activeProduct?.id!==id)return;
    const fresh=products.find(p=>p.id===id);if(!fresh)return;
    activeProduct=fresh;setupGallery(fresh);activeImageIndex=Math.min(index,Math.max(0,activeImages.length-1));renderGallery();
  }catch{console.error('Impossibile aggiornare le fotografie')}
 }
 setInterval(refreshGallery,30000);
+window.addEventListener('online',()=>refreshGallery());
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshGallery()});
 function publicDescription(raw){
  let text=String(raw||'');
