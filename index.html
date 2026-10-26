@@ -604,9 +604,9 @@ window.addEventListener('error',e=>{
 #simplexLicenseLoading{position:fixed;inset:0;z-index:2147483500;background:var(--bg,#f5f7fb);display:none}
 #simplexLicenseLoading.show{display:block}
 </style>
-<link rel="stylesheet" href="./vg-bold-theme.css?v=1.0.155">
-<link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.155">
-<script src="./vg-catalog-stats.js?v=1.0.155" defer></script>
+<link rel="stylesheet" href="./vg-bold-theme.css?v=1.0.156">
+<link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.156">
+<script src="./vg-catalog-stats.js?v=1.0.156" defer></script>
 </head>
 <body class="auth-locked">
 <script>window.SimplexClientConfig={status:'active',modules:{clienti:true,ordini:true,magazzino:true,statistiche:true}};window.SimplexLicense={refresh:()=>{},clear:()=>{},getKey:()=>''};</script>
@@ -644,7 +644,7 @@ window.addEventListener('error',e=>{
   </div>
 </div>
 
-<script src="./vg-startup.js?v=1.0.155" defer></script>
+<script src="./vg-startup.js?v=1.0.156" defer></script>
 <div class="top">
   <div class="topRow">
     <div class="topMain">
@@ -904,7 +904,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.155</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.156</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -7737,7 +7737,12 @@ function unpackCloudArticleDescription(text){
   const match=raw.match(/\[VGMETA\]([\s\S]*?)\[\/VGMETA\]/i);
   let meta={};
   if(match?.[1]){
-    try{ meta=JSON.parse(match[1]); }catch(_e){}
+    let value=match[1];
+    for(let i=0;i<4;i++){
+      try{const parsed=JSON.parse(value);if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed)){meta=parsed;break}if(typeof parsed!=='string')break;value=parsed;continue}catch(_e){}
+      if(!/^\s*\{\\"/.test(value))break;
+      try{value=JSON.parse('"'+value.replace(/\r/g,'\\r').replace(/\n/g,'\\n').replace(/\t/g,'\\t')+'"')}catch(_e){break}
+    }
   }
   const plain=raw.replace(/\s*\[VGMETA\][\s\S]*?\[\/VGMETA\]\s*/gi,' ').replace(/\s{3,}/g,'\n\n').trim();
   return { plain, meta: (meta && typeof meta==='object') ? meta : {} };
@@ -12595,7 +12600,7 @@ function updateOrderShoeSizeState(){
   const hint=document.getElementById('o_mis_hint');
   if(!sel) return false;
   const db=loadDB();
-  const needed=orderNeedsMeasure(ordRows, db);
+  const needed=ordRows.some(row=>orderRowNeedsMeasure(row,db)&&!String(row?.misura||'').trim());
   const hasShoe=orderNeedsShoeSize(ordRows, db);
   const hasBelt=orderNeedsBeltSize(ordRows, db);
   const current=String(sel.value||'').trim();
@@ -12603,7 +12608,8 @@ function updateOrderShoeSizeState(){
   rebuildOrderMeasureOptions(sel, allowed, needed, current);
   sel.required=needed;
   if(hint){
-    if(hasShoe && hasBelt) hint.textContent='Scarpe: misura 34-45 oppure DA DEFINIRE. Cinture: lunghezze da 70 a 130 cm con incremento di 5 cm.';
+    if(!needed&&orderNeedsMeasure(ordRows,db))hint.textContent='Misure già indicate nelle singole righe dell’ordine.';
+    else if(hasShoe && hasBelt) hint.textContent='Scarpe: misura 34-45 oppure DA DEFINIRE. Cinture: lunghezze da 70 a 130 cm con incremento di 5 cm.';
     else if(hasBelt) hint.textContent='Per le cinture scegli una lunghezza da 70 a 130 cm, con incremento di 5 cm.';
     else if(hasShoe) hint.textContent='Per le scarpe scegli una misura da 34 a 45 oppure DA DEFINIRE.';
     else hint.textContent='Misura non necessaria se non ci sono scarpe o cinture.';
@@ -13091,9 +13097,10 @@ function renderOrdRows(){
     if(r?.codice) badges.push(`<span class="orderBadge">Cod. ${esc(r.codice)}</span>`);
     badges.push(`<span class="orderBadge">€ ${money(r.prezzo||0)}</span>`);
     if(r?.colore) badges.push(`<span class="orderBadge">Colore ${esc(r.colore)}</span>`);
-    if(needsMeasure) badges.push(`<span class="orderBadge">Misura ${esc(globalSize||'da scegliere')}</span>`);
+    const rowSize=String(r?.misura||globalSize||'').trim();
+    if(needsMeasure) badges.push(`<span class="orderBadge">Misura ${esc(rowSize||'da scegliere')}</span>`);
     const colorUi=needsColor ? `<div class="orderInlineField"><label>Colore</label><select data-role="rowColorNum" data-i="${i}">${buildOrderColorOptions(r.colorCount, r.numeroColore||'', r.colorLabels||[])}</select></div>` : '';
-    const measureWarningUi=needsMeasure && orderMeasureIsUndefined(globalSize) ? `<div class="orderMeasureWarning">⚠️ MISURA DA DEFINIRE</div>` : '';
+    const measureWarningUi=needsMeasure && orderMeasureIsUndefined(rowSize) ? `<div class="orderMeasureWarning">⚠️ MISURA DA DEFINIRE</div>` : '';
     const snap=normalizeOrderArticleSnapshot(r?.articoloSnapshot||{});
     const meta=[art?.brand||r?.brand||snap.brand, displayCategoryValue(art?.categoria||r?.categoria||snap.categoria||''), art?.qualita||r?.qualita||snap.qualita, r?.articoloStorico?'storico':''].filter(Boolean).map(v=>esc(v)).join(' • ');
     return `<div class="orderCard"><div><div class="title">${esc(r.modello||art?.modello||snap.modello||'Articolo selezionato')}</div><div class="meta">${meta || 'Riga ordine'}</div><div class="orderBadges">${badges.join('')}</div>${measureWarningUi}<div class="orderRowControls">${colorUi}</div></div><button class="orderRemoveBtn" type="button" aria-label="Rimuovi articolo" title="Rimuovi articolo" data-action="delRow" data-i="${i}">Rimuovi</button></div>`;
@@ -14194,7 +14201,7 @@ let cloudBusy=false;
 let catalogPublicationWrites=0;
 let catalogPublicationRevision=0;
 
-const VG_BUILD='1.0.155-2026-10-26';
+const VG_BUILD='1.0.156-2026-10-26';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -14626,7 +14633,7 @@ async function upsertCloudOrder(ord, db){
     const prezzoUnitario=Math.max(0, Number(r.prezzo||0));
     const lineDiscount=Math.min(remainingDiscount, prezzoUnitario);
     remainingDiscount=Math.max(0, remainingDiscount-lineDiscount);
-    righe.push({user_id:cloudSession.user.id, ordine_id:ordineId, prodotto_id:prodottoId, quantita:1, prezzo_unitario:prezzoUnitario, sconto:Number(lineDiscount.toFixed(2)),variante_misura:r.misura||null,variante_colore:r.colore||null,numero_colore:Number(r.numeroColore)||null});
+    righe.push({user_id:cloudSession.user.id, ordine_id:ordineId, prodotto_id:prodottoId, quantita:1, prezzo_unitario:prezzoUnitario, sconto:Number(lineDiscount.toFixed(2)),variante_misura:r.misura||ord.mis||null,variante_colore:r.colore||null,numero_colore:Number(r.numeroColore)||null});
   }
   if(righe.length){
     const {error:righeErr}=await sb.from('righe_ordine').insert(righe);
@@ -14668,6 +14675,13 @@ async function deleteCloudOrder(ord){
     }
   }
   if(error) throw error;
+}
+function cloudOrderUnitRows(r, product={}){
+  const quantity=Number(r.quantita??1);
+  if(!Number.isSafeInteger(quantity)||quantity<1)throw new Error('Quantità ordine cloud non valida');
+  const discount=Math.round(Math.max(0,Number(r.sconto||0))*100);
+  const unit={articoloId:r.prodotto_id,codice:r.prodotti?.sku||product.sku||'',modello:r.prodotti?.nome||product.nome||'',misura:r.variante_misura||'',colore:r.variante_colore||'',numeroColore:r.numero_colore?String(r.numero_colore):'',quantita:1,prezzo:Number(r.prezzo_unitario||0)};
+  return Array.from({length:quantity},(_,i)=>({...unit,sconto:(Math.floor(discount/quantity)+(i<discount%quantity?1:0))/100}));
 }
 async function pullCloudToLocal(opts={}){
   const sb=await ensureCloud();
@@ -14723,7 +14737,7 @@ async function pullCloudToLocal(opts={}){
     const righeByOrd=new Map();
     (righe||[]).forEach(r=>{
       const arr=righeByOrd.get(r.ordine_id)||[];
-      arr.push({articoloId:r.prodotto_id,codice:r.prodotti?.sku||prodMap.get(r.prodotto_id)?.sku||'',modello:r.prodotti?.nome||prodMap.get(r.prodotto_id)?.nome||'',misura:r.variante_misura||'',colore:r.variante_colore||'',numeroColore:r.numero_colore?String(r.numero_colore):'',quantita:Number(r.quantita||1),prezzo:Number(r.prezzo_unitario||0),sconto:Number(r.sconto||0)});
+      arr.push(...cloudOrderUnitRows(r,prodMap.get(r.prodotto_id)||{}));
       righeByOrd.set(r.ordine_id,arr);
     });
     const localDb=loadDB();

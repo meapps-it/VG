@@ -1,6 +1,16 @@
 const clean=(value:any,max=100)=>typeof value==='string'?value.trim().slice(0,max):'';
+export function decodeArticleMeta(raw:any){
+ let value=typeof raw==='string'?raw:'';
+ for(let i=0;i<4;i++){
+  try{const parsed=JSON.parse(value);if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))return parsed;if(typeof parsed!=='string')return {};value=parsed;continue}catch{}
+  if(!/^\s*\{\\"/.test(value))return {};
+  try{value=JSON.parse('"'+value.replace(/\r/g,'\\r').replace(/\n/g,'\\n').replace(/\t/g,'\\t')+'"')}catch{return {}}
+ }
+ return {};
+}
+export function articleMetadata(p:any){let meta:any={};for(const raw of [p.descrizione,p.descrizione_app]){const body=String(raw||'').match(/\[VGMETA\]([\s\S]*?)\[\/VGMETA\]/i)?.[1]||'{}';meta={...meta,...decodeArticleMeta(body)}}return meta}
 export function articleOptions(p:any){
- let meta:any={};for(const raw of [p.descrizione,p.descrizione_app])try{const value=JSON.parse(String(raw||'').match(/\[VGMETA\]([\s\S]*?)\[\/VGMETA\]/i)?.[1]||'{}');meta={...meta,...value}}catch{}
+ const meta=articleMetadata(p);
  const raw=meta.taglie||meta.misure||p.valore_misura||meta.misura||p.taglia||p.dimensioni||'';
  let sizes:string[]=[];const fixed=clean(raw,160);
  if(Array.isArray(raw))sizes=raw.map(x=>clean(String(x),40)).filter(Boolean);

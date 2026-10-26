@@ -9,12 +9,12 @@ async function dispatch(orderId:string){
  const pending=await db.from('vg_shop_notification_outbox').select('order_id,sent_at').eq('owner_id',owner).eq('order_id',orderId).single();if(pending.error)throw pending.error;if(pending.data.sent_at)return {sent:true};
  const service=JSON.parse(Deno.env.get('FCM_SERVICE_ACCOUNT')||'null');if(!service)return {sent:false,configured:false};
  if(typeof service.client_email!=='string'||typeof service.private_key!=='string'||typeof service.project_id!=='string')throw Error('Invalid server push configuration');
- const order=await db.from('ordini').select('id,numero_ordine').eq('user_id',owner).eq('id',orderId).single();if(order.error)throw order.error;
+ const order=await db.from('ordini').select('id,numero_ordine,note').eq('user_id',owner).eq('id',orderId).single();if(order.error)throw order.error;
  const devices=await db.from('vg_shop_push_tokens').select('token').eq('owner_id',owner);if(devices.error)throw devices.error;if(!devices.data?.length)return {sent:false,registeredDevices:0};
  const auth=new JWT({email:service.client_email,key:service.private_key,scopes:['https://www.googleapis.com/auth/firebase.messaging']});const access=await auth.getAccessToken();if(!access.token)throw Error('Push authorization unavailable');
  let sent=0;
  for(const device of devices.data){
-  const response=await fetch('https://fcm.googleapis.com/v1/projects/'+encodeURIComponent(service.project_id)+'/messages:send',{method:'POST',headers:{Authorization:'Bearer '+access.token,'Content-Type':'application/json'},body:JSON.stringify({message:{token:device.token,notification:{title:'Nuovo ordine Shop & Parallelo',body:'Richiesta '+order.data.numero_ordine},data:{orderId:orderId},android:{priority:'high',collapse_key:orderId,notification:{channel_id:'vg_orders',tag:orderId}}}})});
+  const response=await fetch('https://fcm.googleapis.com/v1/projects/'+encodeURIComponent(service.project_id)+'/messages:send',{method:'POST',headers:{Authorization:'Bearer '+access.token,'Content-Type':'application/json'},body:JSON.stringify({message:{token:device.token,notification:{title:/modificata dal cliente/i.test(order.data.note||'')?'Ordine aggiornato Shop & Parallelo':'Nuovo ordine Shop & Parallelo',body:(/modificata dal cliente/i.test(order.data.note||'')?'Modifica richiesta ':'Richiesta ')+order.data.numero_ordine},data:{orderId:orderId},android:{priority:'high',collapse_key:orderId,notification:{channel_id:'vg_orders',tag:orderId}}}})});
   if(response.ok)sent++;else{const result=await response.json().catch(()=>({}));const invalid=result.error?.details?.some((d:any)=>d.errorCode==='UNREGISTERED');if(invalid)await db.from('vg_shop_push_tokens').delete().eq('owner_id',owner).eq('token',device.token);}
  }
  if(sent){const update=await db.from('vg_shop_notification_outbox').update({sent_at:new Date().toISOString(),last_error:null}).eq('owner_id',owner).eq('order_id',orderId);if(update.error)throw update.error;}

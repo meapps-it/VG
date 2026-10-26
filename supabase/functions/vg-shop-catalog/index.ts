@@ -1,4 +1,4 @@
-import {articleOptions,requestedVariant} from "./shop-variants.ts";
+import {articleOptions,requestedVariant,articleMetadata} from "./shop-variants.ts";
 import {customerAction,customerSession,shippingProfile} from "./shop-customers.ts";
 import {accessAction,catalogSession,trackVisit} from "./shop-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -51,7 +51,7 @@ Deno.serve(async(req)=>{
     // Some legacy articles only retain their original Storage paths in VGMETA.
     // Merge those associated references after the ordered photo rows; never guess files.
     for(const p of data||[]){
-      let meta:any={};try{meta=JSON.parse(String(p.descrizione||"").match(/\[VGMETA\]([\s\S]*?)\[\/VGMETA\]/i)?.[1]||"{}")}catch{}
+      const meta=articleMetadata(p);
       const legacy=Array.isArray(meta.foto)?meta.foto:Array.isArray(meta.fotoCloud)?meta.fotoCloud:[];
       const associated=legacy.filter((path:unknown)=>typeof path==="string"&&!path.includes("..")&&!path.includes("://")&&(path.startsWith(String(p.sku)+"/")||path.startsWith(OWNER+"/")));
       photoMap.set(p.id,[...new Set([...(photoMap.get(p.id)||[]),...associated])]);
@@ -72,11 +72,12 @@ Deno.serve(async(req)=>{
       const image=images[0]||"";
       const promo=Boolean(p.in_promozione)&&Number(p.prezzo_promozionale)>0&&Number(p.prezzo_promozionale)<Number(p.prezzo_vendita);
       const rawDescription=String(p.descrizione_app||p.descrizione||"");
-      let meta:any={};try{meta=JSON.parse(rawDescription.match(/\[VGMETA\]([\s\S]*?)\[\/VGMETA\]/i)?.[1]||"{}")}catch{}
+      const meta=articleMetadata(p);
       const brand=valid(p.marca||meta?.brand||"",100);
       const supplier=String(p.fornitore||meta?.fornitore||"").trim().toLowerCase();
       const quality=supplier==="jayden"?"ORIGINALE":"STANDARD";
-      const description=rawDescription.replace(/\[VGMETA\][\s\S]*?\[\/VGMETA\]/gi," ").replace(/\[VGMETA\][\s\S]*$/gi,"").trim();
+      const publicRaw=String(p.descrizione_app||((typeof meta.descrizione==='string'&&meta.descrizione)?meta.descrizione:rawDescription));
+      const description=publicRaw.replace(/\[VGMETA\][\s\S]*?\[\/VGMETA\]/gi,' ').replace(/\[VGMETA\][\s\S]*$/gi,'').replace(/\\n/g,'\n').split(/\r?\n/).filter(line=>!/(?:costo|prezzo).*?(?:\busd\b|fornitor|jayden)/i.test(line)).join('\n').trim();
       return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p),price:promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita),originalPrice:Number(p.prezzo_vendita),promotion:promo,image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
     });
     await trackVisit(db,OWNER,viewer);
@@ -118,7 +119,7 @@ Deno.serve(async(req)=>{
     const p:any=byId.get(entry.id);const variant=requestedVariant(p,entry);
     const promo=p.in_promozione&&Number(p.prezzo_promozionale)>0&&Number(p.prezzo_promozionale)<Number(p.prezzo_vendita);
     const price=promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita);
-    let meta:any={};try{meta=JSON.parse(String(p.descrizione||"").match(/\[VGMETA\]([\s\S]*?)\[\/VGMETA\]/i)?.[1]||"{}")}catch{}
+    const meta=articleMetadata(p);
     const quality=String(p.fornitore||meta.fornitore||"").trim().toLowerCase()==="jayden"?"Originale":"Standard";
     return {id:p.id,qty:Number(entry.qty),price,name:p.nome,sku:p.sku,quality,...variant};
   })}catch(error){return fail(error instanceof Error?error.message:"Misura o colore non validi")}
