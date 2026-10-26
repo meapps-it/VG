@@ -8,3 +8,11 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color])
 .topMenuBtn{border:3px solid var(--vg-outline)!important}
 @media(max-width:380px){.card,.stat,.artCard,.row{border-radius:18px!important}}
 @media print{.card,.stat,.artCard,.row{box-shadow:none!important}}
+/* 1.0.155: lighter outlines, bounded grids and all navigation destinations visible. */
+:root{--vg-radius:20px}
+.card,.stat,.artCard,.socialCard,.row,.socialFolder,.socialSuggestItem,.socialCatManageRow,.socialMoveInfo,.socialCategoryHeader,.topMenuPanel,.modal,.vgStatsDialog,.vgStatsCard,.vgStatsFigure,.vgCustomerStatRow{border-width:2px!important;box-shadow:0 1px 0 #111!important;min-width:0;max-width:100%;overflow-wrap:anywhere}
+button:not(.sparkBar),.btn,.btnBig,.tab,.topMenuLink,.artCrumb,.vgStatsRange button,.vgStatsRetry,.vgStatsHeader button,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=hidden]),select,textarea{border-width:1.5px!important;min-width:0;max-width:100%}
+.vgStatsHeader{border-bottom-width:2px!important}.topMenuBtn{border-width:2px!important}
+.app,.cards,.grid2,.artGrid,.heroSpot,.sparkBars,.sparkCol{min-width:0}.cards,.grid2,.artGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.stat .v{font-size:clamp(18px,5.1vw,22px);overflow-wrap:anywhere}.k{overflow-wrap:anywhere}
+.navBottom{padding:8px 8px calc(8px + env(safe-area-inset-bottom))}.navBottom .inner{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));overflow:visible;gap:5px;width:100%;max-width:560px}.navBottom button{min-width:0;padding:10px 2px;font-size:clamp(9px,2.5vw,12px);white-space:normal;overflow-wrap:anywhere;border-radius:12px!important;line-height:1.2}
+.sparkBarBtn{border:0!important;border-radius:0!important;box-shadow:none!important}.sparkBars{grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}.sparkBarWrap{overflow:hidden;border-radius:12px}

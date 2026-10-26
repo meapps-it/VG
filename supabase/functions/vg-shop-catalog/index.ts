@@ -124,6 +124,17 @@ Deno.serve(async(req)=>{
   })}catch(error){return fail(error instanceof Error?error.message:"Misura o colore non validi")}
   const total=Math.round(lines.reduce((v,x)=>v+x.qty*x.price,0)*100)/100;
   if(!(total>=0&&total<1000000))return fail("Totale ordine non valido");
+  if(body.amendOrderId){
+    if(!account)return fail('Accedi al tuo account per modificare una richiesta',403);
+    const orderId=valid(body.amendOrderId,36);if(!/^[0-9a-f-]{36}$/i.test(orderId)||!body.expectedUpdatedAt)return fail('Riapri l’ordine prima di modificarlo',400);
+    const timestamp=new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',dateStyle:'short',timeStyle:'short'}).format(new Date());
+    const note='Richiesta da catalogo Shop & Parallelo modificata dal cliente il '+timestamp+' (Europe/Rome). Consenso privacy ricevuto. Da confermare. '+notes+'\n'+lines.map(x=>x.qty+' × '+x.name+' ['+x.sku+'] · '+x.quality+(x.size?' · Misura: '+x.size:'')+(x.color?' · Colore: '+x.color:'')+' · EUR '+x.price.toFixed(2)).join('\n');
+    const amended=await db.rpc('vg_shop_amend_order',{p_owner:OWNER,p_customer:account.customer_id,p_order:orderId,p_expected:body.expectedUpdatedAt,p_address:shippingProfile(customer),p_lines:lines,p_total:total,p_note:note});
+    if(amended.error)return fail(amended.error.code==='P0001'?amended.error.message:'Modifica non salvata. Riprova.',409);
+    const dispatch=Deno.env.get('FCM_SERVICE_ACCOUNT')?fetch(PROJECT+'/functions/v1/vg-shop-push',{method:'POST',headers:{Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify({action:'dispatch',orderId})}).catch(()=>console.error('VG modified order notification pending')):Promise.resolve();
+    const runtime=(globalThis as any).EdgeRuntime;if(runtime?.waitUntil)runtime.waitUntil(dispatch);else await dispatch;
+    return out(amended.data);
+  }
   let clientId:string|undefined,orderId:string|undefined;
   try{
     const {data:client,error:ce}=await db.from("clienti").insert({user_id:OWNER,nome:name,telefono:phone,indirizzo:address,citta:city,provincia:province,cap,note:"Richiesta da Shop & Parallelo"}).select("id").single();
@@ -145,7 +156,7 @@ Deno.serve(async(req)=>{
       const dispatch=fetch(PROJECT+"/functions/v1/vg-shop-push",{method:"POST",headers:{"Authorization":"Bearer "+KEY,"Content-Type":"application/json"},body:JSON.stringify({action:"dispatch",orderId:order.id})}).catch(()=>console.error("VG shop push delivery pending"));
       if(typeof EdgeRuntime!=="undefined")EdgeRuntime.waitUntil(dispatch);else await dispatch;
     }
-    return out({ok:true,number:order.numero_ordine,requestedAt:order.created_at||orderPlacedAt.toISOString(),timeZone:"Europe/Rome"});
+    return out({ok:true,id:order.id,number:order.numero_ordine,requestedAt:order.created_at||orderPlacedAt.toISOString(),timeZone:"Europe/Rome"});
   }catch(e){
     if(orderId)await db.from("ordini").delete().eq("id",orderId).eq("user_id",OWNER);
     if(clientId)await db.from("clienti").delete().eq("id",clientId).eq("user_id",OWNER);

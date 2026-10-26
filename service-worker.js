@@ -1,7 +1,7 @@
-const VERSION = 'gestionale-vg-1.0.154-bold-customer-stats';
+const VERSION = 'gestionale-vg-1.0.155-cartoon-orders';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
-  './', './index.html', './manifest.json', './vg-quality-pricing.js', './vg-bold-theme.css?v=1.0.154', './vg-startup.js?v=1.0.154',
+  './', './index.html', './manifest.json', './vg-quality-pricing.js', './vg-bold-theme.css?v=1.0.155', './vg-startup.js?v=1.0.155',
   './icon-v1-192.png', './icon-v1-512.png', './icon-v1-maskable-512.png',
   './apple-touch-icon-v1.png', './favicon-v1-32.png',
 ];

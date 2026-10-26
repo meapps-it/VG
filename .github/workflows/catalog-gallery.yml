@@ -30,6 +30,7 @@ jobs:
       - name: API, DOM and responsive browser checks
         env:
           NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
+          VG_CATALOG_SCREENSHOTS: '${{ runner.temp }}/vg-catalog-screenshots'
         run: |
           node --test tests/catalog-customer.test.cjs tests/catalog-variants.test.cjs tests/catalog-api.test.cjs tests/catalog-access.test.cjs tests/catalog-order.test.cjs tests/catalog-push.test.cjs
           node tests/catalog-auto-access.test.cjs
@@ -37,6 +38,9 @@ jobs:
           SHOP_NAV_BROWSER=webkit node tests/catalog-navigation.test.cjs
           node tests/catalog-dom.test.cjs
           node tests/catalog-shipping.test.cjs
+          node tests/catalog-feedback.test.cjs
+          node tests/catalog-editing.test.cjs
+          SHOP_NAV_BROWSER=webkit node tests/catalog-editing.test.cjs
           node tests/catalog-customer-ui.test.cjs
           node tests/catalog-customer-browser.test.cjs
           SHOP_NAV_BROWSER=webkit node tests/catalog-customer-browser.test.cjs
@@ -49,3 +53,11 @@ jobs:
         run: |
           node tests/catalog-live.test.cjs
           # The source-owned deployment for this repository is GitHub Pages.
+
+      - name: Save catalogue screenshots (isolated QA orders)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VG-catalogo-cartoon
+          path: '${{ runner.temp }}/vg-catalog-screenshots/*.png'
+          if-no-files-found: ignore
