@@ -604,9 +604,9 @@ window.addEventListener('error',e=>{
 #simplexLicenseLoading{position:fixed;inset:0;z-index:2147483500;background:var(--bg,#f5f7fb);display:none}
 #simplexLicenseLoading.show{display:block}
 </style>
-<link rel="stylesheet" href="./vg-bold-theme.css?v=1.0.156">
-<link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.156">
-<script src="./vg-catalog-stats.js?v=1.0.156" defer></script>
+<link rel="stylesheet" href="./vg-bold-theme.css?v=1.0.157">
+<link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.157">
+<script src="./vg-catalog-stats.js?v=1.0.157" defer></script>
 </head>
 <body class="auth-locked">
 <script>window.SimplexClientConfig={status:'active',modules:{clienti:true,ordini:true,magazzino:true,statistiche:true}};window.SimplexLicense={refresh:()=>{},clear:()=>{},getKey:()=>''};</script>
@@ -644,7 +644,7 @@ window.addEventListener('error',e=>{
   </div>
 </div>
 
-<script src="./vg-startup.js?v=1.0.156" defer></script>
+<script src="./vg-startup.js?v=1.0.157" defer></script>
 <div class="top">
   <div class="topRow">
     <div class="topMain">
@@ -752,7 +752,7 @@ window.addEventListener('error',e=>{
     <div class="card artToolbarCard">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
       <div style="margin-top:10px">
-        <div class="searchWrap"><input id="qArt" placeholder="Cerca per codice, marca, modello, categoria, colore, materiale, variante..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
+        <div class="searchWrap"><input id="qArt" placeholder="Cerca articolo, marca o codice" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
         <div style="display:none!important">
           <input id="visualSearchFile" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif"/>
           <div id="visualSearchStatus"></div>
@@ -763,8 +763,7 @@ window.addEventListener('error',e=>{
         <div><select id="qArtBrand"><option value="">Tutte le marche</option></select></div>
 
       </div>
-      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn" type="button" data-action="clearArtFilters">Mostra prodotti</button>
+      <div class="artModeSwitch" role="group" aria-label="Visualizza articoli" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
         <button id="btnArtAllMixed" class="btn artAllBtn" type="button" data-action="openAllArticlesMixed">Tutto</button>
         <button id="btnArtPromoOnly" class="btn promoOnlyBtn" type="button" data-action="openPromoArticles">🔥 Solo promo</button>
       </div>
@@ -904,7 +903,7 @@ window.addEventListener('error',e=>{
           <button id="btnInstallPwa" class="btn primary" type="button" style="display:none">Installa Gestionale</button>
           <button id="btnUpdatePwa" class="btn" type="button">Controlla aggiornamenti</button>
         </div>
-        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.156</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
+        <div class="small" style="margin-top:8px">Versione app: <strong>1.0.157</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
       <div class="card" style="margin-top:12px">
@@ -9338,18 +9337,18 @@ function renderArtBreadcrumbs(){
   const box=document.getElementById('artBreadcrumbs');
   if(!box) return;
   if(artBrowseState.level==='promo'){
-    box.innerHTML=`<span class="artCrumb active">Promozioni attive</span><button class="artCrumb" type="button" data-action="openAllArticles">Tutti gli articoli</button>`;
+    box.innerHTML=`<span class="artCrumb active">Promozioni attive</span>`;
     box.style.display='flex';
     return;
   }
   if(artBrowseState.level==='noPhoto'){
-    box.innerHTML=`<span class="artCrumb active">Articoli senza foto</span><button class="artCrumb" type="button" data-action="openAllArticles">Tutti gli articoli</button>`;
+    box.innerHTML=`<span class="artCrumb active">Articoli senza foto</span>`;
     box.style.display='flex';
     return;
   }
   if(artBrowseState.level==='mixed'){
-    box.innerHTML=`<span class="artCrumb active">Tutti gli articoli</span><button class="artCrumb" type="button" data-action="clearArtFilters">Mostra prodotti</button>`;
-    box.style.display='flex';
+    box.innerHTML='';
+    box.style.display='none';
     return;
   }
   box.innerHTML='';
@@ -14201,7 +14200,7 @@ let cloudBusy=false;
 let catalogPublicationWrites=0;
 let catalogPublicationRevision=0;
 
-const VG_BUILD='1.0.156-2026-10-26';
+const VG_BUILD='1.0.157-2026-10-26';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
