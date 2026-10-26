@@ -60,3 +60,15 @@ body{background:var(--bg);font-family:inherit}.brand-stage{background:#e6eefb;bo
 #overlay.open{display:block;background:#f2f5fa;overflow:auto}#overlay .drawer{width:100%;max-width:760px;margin:0 auto;height:auto;min-height:100dvh;max-height:none;overflow:visible;box-shadow:none}.drawer-head{top:0;z-index:3}.drawer-head h2{font-weight:750;color:#1c2e49}
 .shop-notice-inline{position:static;inset:auto;z-index:auto;width:100%;max-width:none;margin:0 0 14px;box-shadow:none;scroll-margin-top:16px}.shop-notice-inline strong{font-size:14px}.shop-notice-inline p{font-size:13px}.shop-notice-inline>button{width:28px;height:28px;flex-basis:28px}.shop-notice-inline[data-kind=info]{background:#e9f1ff;color:#234873;border-color:#6087bd}
 .shop-notice[data-kind=success]{top:max(16px,env(safe-area-inset-top));box-shadow:0 4px 0 #254e3230}
+
+/* Personal access gate */
+#accessGate{overflow:auto;padding:24px 16px;align-items:flex-start}
+.access-card{margin:auto;max-width:480px}
+#accessTabs{display:flex;gap:8px;margin:18px 0 12px}
+#accessTabs button{flex:1;padding:12px 8px;font-size:14px}
+#accessGate .google-signin{width:100%;background:#fff;color:#23334d;border:2px solid #23334d;margin-top:8px}
+#accessGate .access-consent{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.5;margin:12px 0;text-align:left;font-weight:400}
+#accessGate .access-consent input{width:18px;min-width:18px;height:18px;margin:2px 0;padding:0}
+#accessError{color:#9b2020;font-weight:650;line-height:1.5}
+#accessCheck,#accessSignout{width:100%;margin:6px 0}
+#accessGate [hidden]{display:none!important}

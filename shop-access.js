@@ -1,103 +1,59 @@
 (function(){
  'use strict';
  const endpoint='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-shop-catalog';
- const key='vg-shop-session-v1',logoutKey='vg-shop-signed-out-v1';
+ const key='vg-shop-customer-v1',adminKey='vg-shop-session-v1',get=id=>document.getElementById(id);
  const valid=value=>/^[a-f0-9]{64}$/.test(value||'');
- const get=id=>document.getElementById(id);
- const stores=[];for(const name of ['localStorage','sessionStorage'])try{stores.push(window[name])}catch{}
- const read=name=>{for(const store of stores)try{const value=store.getItem(name);if(value)return value}catch{}return ''};
- let token=read(key),reloadCatalog=null,ownerRecovery=null,restored=false;
- if(!valid(token))token='';
- let database=null;
- function deviceToken(write,value=''){
-  const operation=new Promise(resolve=>{
-   try{
-    if(!window.indexedDB){resolve('');return}
-    if(!database)database=new Promise(done=>{
-     const request=indexedDB.open('vg-shop-access',1);
-     request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains('session'))request.result.createObjectStore('session')};
-     request.onsuccess=()=>done(request.result);request.onerror=()=>done(null);request.onblocked=()=>done(null);
-    });
-    database.then(db=>{
-     if(!db){resolve('');return}
-     try{
-      const tx=db.transaction('session',write?'readwrite':'readonly'),store=tx.objectStore('session');
-      const request=write?(value?store.put(value,key):store.delete(key)):store.get(key);
-      let result='';request.onsuccess=()=>{result=write?value:(request.result||'')};
-      tx.oncomplete=()=>resolve(result);tx.onerror=tx.onabort=()=>resolve('');
-     }catch{resolve('')}
-    });
-   }catch{resolve('')}
-  });
-  return new Promise(resolve=>{const timer=setTimeout(()=>resolve(''),1000);operation.then(value=>{clearTimeout(timer);resolve(value)})});
- }
- function saveToken(value,explicitLogout=false){
-  token=valid(value)?value:'';
-  for(const store of stores)try{
-   token?store.setItem(key,token):store.removeItem(key);
-  }catch{}
-  for(const store of stores)try{if(explicitLogout)store.setItem(logoutKey,'1');else if(token)store.removeItem(logoutKey)}catch{}
-  return deviceToken(true,token);
- }
- function setShellBusy(busy){document.querySelectorAll('body>.brand-stage,body>main,body>.footer,body>.view,body>.overlay,body>.zoom-view').forEach(el=>{el.inert=busy});get('catalog').setAttribute('aria-busy',String(busy))}
- function showShell(){document.body.classList.remove('shop-locked');document.body.classList.add('shop-checking');setShellBusy(true)}
- function unlock(){document.body.classList.remove('shop-locked','shop-checking');setShellBusy(false)}
- function lock(message=''){
-  document.body.classList.remove('shop-checking');document.body.classList.add('shop-locked');
-  get('accessError').textContent=message;get('accessPassword').focus();
+ const read=name=>{try{return localStorage.getItem(name)||''}catch{return ''}};
+ let token=read(key),adminToken=read(adminKey),profile=null,reloadCatalog=null,register=false,googleClient;
+ const store=(name,value)=>{try{value?localStorage.setItem(name,value):localStorage.removeItem(name)}catch{}};
+ if(!valid(token))token='';if(!valid(adminToken))adminToken='';
+ function busy(value){document.querySelectorAll('body>.brand-stage,body>main,body>.footer,body>.view,body>.overlay,body>.zoom-view').forEach(el=>el.inert=value);get('catalog').setAttribute('aria-busy',String(value))}
+ function lock(message='') {document.body.classList.remove('shop-checking');document.body.classList.add('shop-locked');busy(true);get('accessError').textContent=message;get('accessCheck').hidden=!token;get('accessSignout').hidden=!token;get('accessForm').hidden=!!token;get('accessGoogle').hidden=!!token;get('accessPrivacyLabel').hidden=!!token||!register;get('accessTabs').hidden=!!token;get('accessGooglePrivacyLabel').hidden=!!token;}
+ function checking(){document.body.classList.remove('shop-locked');document.body.classList.add('shop-checking');busy(true)}
+ function unlock(){document.body.classList.remove('shop-locked','shop-checking');busy(false)}
+ const pendingMessage=()=>profile?.accessStatus==='blocked'?'Accesso sospeso dal negozio. Contattaci per informazioni.':'Account registrato. Il negozio deve autorizzarti prima di mostrarti il catalogo.';
+ async function rawAction(action,body,headers={}){
+  const response=await fetch(endpoint+'?action='+action,{method:body===undefined?'GET':'POST',headers:{...(body===undefined?{}:{'Content-Type':'application/json'}),...(token?{'x-vg-customer-token':token}:{}),...headers},...(body===undefined?{}:{body:JSON.stringify(body)}),cache:'no-store'});
+  const data=await response.json();if(!response.ok)throw Object.assign(Error(data.error||'Operazione non riuscita'),{status:response.status});return data;
  }
  async function ownerSession(){
-  if(ownerRecovery)return ownerRecovery;
-  ownerRecovery=(async()=>{
-   try{const raw=JSON.parse(read('sb-qfjwtawsqfwmsmrrgqfi-auth-token')||'null');const jwt=raw?.access_token||raw?.currentSession?.access_token;if(!jwt)return false;
-    const r=await fetch(endpoint+'?action=admin-session',{method:'POST',headers:{Authorization:'Bearer '+jwt,'Content-Type':'application/json'},body:'{}'});if(!r.ok)return false;
-    const value=(await r.json()).token;if(!valid(value))return false;saveToken(value);return true;
-   }catch{return false}
-  })();
-  try{return await ownerRecovery}finally{ownerRecovery=null}
+  try{const raw=JSON.parse(read('sb-qfjwtawsqfwmsmrrgqfi-auth-token')||'null'),jwt=raw?.access_token||raw?.currentSession?.access_token;if(!jwt)return false;
+   const data=await rawAction('admin-session',{}, {Authorization:'Bearer '+jwt});if(!valid(data.token))return false;adminToken=data.token;store(adminKey,adminToken);return true;
+  }catch{return false}
+ }
+ async function restore(){
+  if(token){try{profile=await rawAction('customer-me')}catch(error){if(error.status===403){token='';profile=null;store(key,'')}else throw error}}
+  return profile;
+ }
+ async function open(){
+  checking();try{await restore();if(profile&&profile.accessStatus!=='approved'){lock(pendingMessage());return}if(!token&&!adminToken&&!await ownerSession()){lock();return}await reloadCatalog();if(document.body.classList.contains('shop-locked'))return;unlock();window.dispatchEvent(new Event('vg-customer-ready'))}catch(error){lock(error.message||'Connessione non disponibile. Riprova.')}
+ }
+ async function accept(data){if(!valid(data.token))throw Error('Risposta di accesso non valida');token=data.token;profile=data;adminToken='';store(adminKey,'');store(key,token);get('accessPassword').value='';await open()}
+ async function google(){
+  if(!googleClient)googleClient=(async()=>{
+   if(!window.supabase?.createClient)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js';script.onload=resolve;script.onerror=()=>reject(Error('Impossibile caricare l’accesso Google. Riprova.'));document.head.append(script)});
+   return window.supabase.createClient('https://qfjwtawsqfwmsmrrgqfi.supabase.co','sb_publishable_-EUVjwsk3txKk2Opqrc7Kw_xFNa9Hw1',{auth:{storageKey:'vg-shop-google-auth',flowType:'pkce',persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});
+  })().catch(error=>{googleClient=null;throw error});return googleClient;
  }
  window.shopAccess={
+  customer:()=>profile,
   async fetch(url,options={}){
-   const request=()=>{const headers=new Headers(options.headers||{});if(token)headers.set('Authorization','Bearer '+token);return fetch(url,{...options,headers})};
-   let response=await request();
-   if(response.status===401){
-    if(await ownerSession())response=await request();
-    if(response.status===401){saveToken('');lock('Inserisci la password del catalogo.')}
-   }
-   return response;
+   const headers=new Headers(options.headers||{});if(token){headers.set('x-vg-customer-token',token);headers.set('Authorization','Bearer '+token)}else if(adminToken)headers.set('Authorization','Bearer '+adminToken);
+   const response=await fetch(url,{...options,headers});if(response.status===401||(response.status===403&&(await response.clone().json().catch(()=>({}))).code==='CUSTOMER_LOGIN_REQUIRED')){lock('Accedi con un account autorizzato dal negozio.');restore().then(()=>{if(!profile){adminToken='';store(adminKey,'')}lock(profile?pendingMessage():'Accedi con il tuo account personale.')}).catch(()=>{})}return response;
   },
   viewer(administrator){get('adminPreviewNotice').hidden=!administrator},
-  async start(load){
-   reloadCatalog=load;
-   const fragment=new URLSearchParams(location.hash.replace(/^#/,'')),adminToken=fragment.get('admin_token');
-   if(valid(adminToken)){
-    const previousToken=token;saveToken(adminToken);history.replaceState(null,'',location.pathname+location.search);
-    if(previousToken&&previousToken!==adminToken)fetch(endpoint+'?action=claim-admin',{method:'POST',headers:{Authorization:'Bearer '+adminToken,'Content-Type':'application/json'},body:JSON.stringify({previousToken})}).catch(()=>{});
-   }
-   if(!token&&!restored&&!read(logoutKey)){
-    const recovered=await deviceToken(false);if(valid(recovered))saveToken(recovered);
-   }
-   restored=true;
-   if(!token&&!read(logoutKey))await ownerSession();
-   if(token){
-    // Show the catalog shell immediately; protected products still require the server.
-    saveToken(token);showShell();
-    try{await load();unlock()}catch{if(!token)lock('Inserisci la password del catalogo.')}
-    return;
-   }
-   lock();
-  }
+  async start(load){reloadCatalog=load;
+   const fragment=new URLSearchParams(location.hash.replace(/^#/,'')),preview=fragment.get('admin_token'),params=new URLSearchParams(location.search);
+   if(valid(preview)){adminToken=preview;token='';store(adminKey,preview);store(key,'');history.replaceState(null,'',location.pathname+location.search)}
+   if(params.has('error')||fragment.has('error')){history.replaceState(null,'',location.pathname);lock('Accesso Google annullato o non riuscito. Riprova.');return}
+   if(params.has('code')){try{const code=params.get('code');history.replaceState(null,'',location.pathname);const client=await google(),result=await client.auth.exchangeCodeForSession(code);if(result.error)throw result.error;await accept(await rawAction('customer-google',{privacy:true},{Authorization:'Bearer '+result.data.session.access_token}));await client.auth.signOut({scope:'local'});return}catch(error){lock('Accesso Google non riuscito. '+error.message);return}}
+   await open();
+  },
+  async logout(){try{if(token)await rawAction('customer-logout',{})}catch{}token='';adminToken='';profile=null;store(key,'');store(adminKey,'');store('vg-shop-shipping-v1','');get('orderForm').reset();document.body.style.overflow='';document.querySelectorAll('.view.open,.overlay.open,.zoom-view.open').forEach(el=>{el.classList.remove('open');el.setAttribute('aria-hidden','true')});history.replaceState(null,'',location.pathname);window.dispatchEvent(new Event('vg-shop-logout'));lock('Accesso terminato su questo dispositivo.')}
  };
- get('accessForm').addEventListener('submit',async event=>{
-  event.preventDefault();const button=get('accessSubmit');button.disabled=true;get('accessError').textContent='Verifica…';
-  try{
-   const response=await fetch(endpoint+'?action=login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:get('accessPassword').value})});
-   const data=await response.json();if(!response.ok)throw Error(data.error||'Accesso non riuscito');if(!valid(data.token))throw Error('Risposta di accesso non valida');
-   saveToken(data.token);get('accessPassword').value='';get('accessError').textContent='';showShell();await reloadCatalog();unlock();
-  }catch(error){get('accessError').textContent=error.message||'Impossibile accedere. Riprova.'}finally{button.disabled=false}
- });
- get('shopLogout').onclick=async()=>{
-  const clearing=saveToken('',true);try{localStorage.removeItem('vg-shop-shipping-v1')}catch{}
-  get('orderForm').reset();window.dispatchEvent(new Event('vg-shop-logout'));lock('Accesso terminato su questo dispositivo.');await clearing;
- };
+ function mode(value){register=value;get('accessSubmit').textContent=value?'Registrati':'Accedi';get('accessPassword').autocomplete=value?'new-password':'current-password';get('accessPrivacy').required=value;get('accessPrivacyLabel').hidden=!value;get('accessLoginTab').setAttribute('aria-pressed',String(!value));get('accessRegisterTab').setAttribute('aria-pressed',String(value));get('accessError').textContent=''}
+ get('accessLoginTab').onclick=()=>mode(false);get('accessRegisterTab').onclick=()=>mode(true);
+ get('accessForm').addEventListener('submit',async event=>{event.preventDefault();const button=get('accessSubmit');button.disabled=true;get('accessError').textContent='Verifica…';try{await accept(await rawAction(register?'customer-register':'customer-login',{phone:get('accessPhone').value,password:get('accessPassword').value,privacy:get('accessPrivacy').checked}))}catch(error){get('accessError').textContent=error.message}finally{button.disabled=false}});
+ get('accessGoogle').onclick=async()=>{if(!get('accessGooglePrivacy').checked){get('accessError').textContent='Accetta il trattamento dei dati per continuare con Google.';get('accessGooglePrivacy').focus();return}const button=get('accessGoogle');button.disabled=true;try{const client=await google(),result=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{prompt:'select_account'}}});if(result.error)throw result.error}catch(error){get('accessError').textContent=error.message;button.disabled=false}};
+ get('accessCheck').onclick=()=>open();get('accessSignout').onclick=()=>window.shopAccess.logout();get('shopLogout').onclick=()=>window.shopAccess.logout();mode(false);
 })();

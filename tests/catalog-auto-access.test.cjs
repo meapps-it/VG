@@ -1,44 +1,21 @@
-const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-const root=path.resolve(__dirname,'..'),token='b'.repeat(64),password='isolated-login-password';
-const address='https://meapps-it.github.io/VG/catalogo-nuovo.html';
-(async()=>{const browser=await chromium.launch({headless:true,args:['--no-sandbox']});try{
- for(const width of [360,412]){
-  const context=await browser.newContext({viewport:{width,height:844},isMobile:true,hasTouch:true});
-  let logins=0,catalogs=0,status=200,delay=0;
-  await context.addInitScript(()=>{
-   window.passwordFrames=0;
-   const inspect=()=>{const f=document.getElementById('accessForm');if(f&&f.getBoundingClientRect().height>0&&getComputedStyle(f).display!=='none'&&getComputedStyle(document.getElementById('accessGate')).display!=='none')window.passwordFrames++;requestAnimationFrame(inspect)};requestAnimationFrame(inspect);
-  });
-  await context.route('https://meapps-it.github.io/VG/**',r=>{const name=new URL(r.request().url()).pathname.replace('/VG/','');const file=path.join(root,name);return fs.existsSync(file)&&fs.statSync(file).isFile()?r.fulfill({path:file}):r.abort()});
-  await context.route('**/functions/v1/vg-shop-catalog**',async r=>{
-   const action=new URL(r.request().url()).searchParams.get('action');
-   if(action==='login'){
-    logins++;assert.equal(r.request().postDataJSON().password,password);
-    return r.fulfill({contentType:'application/json',body:JSON.stringify({token,expiresAt:new Date(Date.now()+365*86400000).toISOString()})});
-   }
-   assert.equal(action,'catalog');catalogs++;assert.equal(r.request().headers().authorization,'Bearer '+token);
-   if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
-   return r.fulfill({status,contentType:'application/json',body:status===200?JSON.stringify({items:[{id:'article',name:'Borsa di prova',sku:'SKU',brand:'Gucci',category:'Borse',quality:'STANDARD',price:140,images:[]}],imagesExpiresAt:Date.now()+3600000}):JSON.stringify({error:status===401?'Accesso richiesto':'Temporaneamente non disponibile'})});
-  });
-  let page=await context.newPage();await page.goto(address);await page.locator('#accessPassword').waitFor({state:'visible'});
-  await page.locator('#accessPassword').fill(password);await page.locator('#accessSubmit').click();await page.locator('.item').waitFor();assert.equal(logins,1);
-  // Ensure the fallback database transaction has committed before closing the page.
-  await page.waitForFunction(async()=>new Promise(resolve=>{const r=indexedDB.open('vg-shop-access',1);r.onsuccess=()=>{const db=r.result,q=db.transaction('session').objectStore('session').get('vg-shop-session-v1');q.onsuccess=()=>{db.close();resolve(Boolean(q.result))}}}));
-  const stored=await page.evaluate(()=>JSON.stringify({...localStorage})+JSON.stringify({...sessionStorage}));assert(!stored.includes(password),'password must never be persisted');
-  await page.close();delay=800;page=await context.newPage();await page.goto(address,{waitUntil:'domcontentloaded'});
-  assert.equal(await page.locator('#accessForm').isVisible(),false,'no password screen during a slow catalog request');
-  await page.locator('.item').waitFor();assert.equal(await page.evaluate(()=>passwordFrames),0);assert.equal(logins,1,'return visits never POST the password again');
-  // Recover a remembered token from IndexedDB when the primary stores are unavailable/cleared.
-  await page.evaluate(()=>{localStorage.removeItem('vg-shop-session-v1');sessionStorage.removeItem('vg-shop-session-v1')});
-  await page.reload();await page.locator('.item').waitFor();assert.equal(logins,1);assert.equal(await page.evaluate(()=>passwordFrames),0);
-  // A temporary server failure must not turn into a password request or delete the session.
-  status=503;await page.reload();await page.getByText('Impossibile caricare il catalogo. Aggiorna la pagina e riprova.').waitFor();
-  assert.equal(await page.locator('#accessForm').isVisible(),false);assert.equal(await page.evaluate(()=>localStorage.getItem('vg-shop-session-v1')),token);
-  status=200;delay=0;await page.reload();await page.locator('.item').waitFor();
-  await page.locator('#shopLogout').click();await page.locator('#accessPassword').waitFor({state:'visible'});await page.reload();await page.locator('#accessPassword').waitFor({state:'visible'});assert.equal(logins,1);
-  // Revocation is still enforced by the real access controller, not hidden by the loading screen.
-  await page.locator('#accessPassword').fill(password);await page.locator('#accessSubmit').click();await page.locator('.item').waitFor();status=401;await page.reload();await page.locator('#accessPassword').waitFor({state:'visible'});assert.equal(await page.evaluate(()=>localStorage.getItem('vg-shop-session-v1')),null);
-  console.log('PASS automatic access '+width+'px: first login, reopened page with zero password frames, IndexedDB recovery, offline session retained, explicit logout and revoked session');
-  await context.close();
- }
-}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
+// Personal authentication integration, with isolated API and OAuth fixtures.
+const {JSDOM,ResourceLoader}=require('jsdom'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),html=fs.readFileSync(root+'/catalogo-nuovo.html','utf8'),token='b'.repeat(64);
+class LocalResources extends ResourceLoader{fetch(url){const u=new URL(url),name=u.pathname.replace('/VG/','');if(u.origin==='https://meapps-it.github.io'&&fs.existsSync(path.join(root,name)))return Promise.resolve(fs.readFileSync(path.join(root,name)));return null}}
+const until=async test=>{for(let i=0;i<100;i++){if(await test())return;await new Promise(r=>setTimeout(r,20))}throw Error('Timed out waiting for expected state')};
+(async()=>{let authorized=false,identity=false,logins=0,catalogs=0,googleCalls=0,googleJwt='',captured;const dom=new JSDOM(html,{url:'https://meapps-it.github.io/VG/catalogo-nuovo.html',resources:new LocalResources(),runScripts:'dangerously',pretendToBeVisual:true,beforeParse(w){
+ w.Headers=Headers;w.HTMLElement.prototype.scrollIntoView=()=>{};w.scrollTo=()=>{};
+ w.supabase={createClient:()=>({auth:{signInWithOAuth:async args=>{googleCalls++;captured=args;return {error:null}}}})};
+ w.fetch=async(url,options={})=>{if(url.includes('shop-data'))return {ok:true,json:async()=>({provinces:[]})};const action=new URL(url).searchParams.get('action');let data,status=200;
+ if(action==='customer-register'||action==='customer-login'){logins++;const body=JSON.parse(options.body);assert.equal(body.phone,'3331234567');assert.equal(body.password,'Password personale!');identity=true;data={token,phone:'393331234567',profile:{},accessStatus:'pending'}}
+ else if(action==='customer-me'){if(!identity){status=403;data={error:'Accesso richiesto'}}else data={phone:'393331234567',profile:{},accessStatus:authorized?'approved':'pending'}}
+ else if(action==='catalog'){assert(authorized,'pending accounts must never request catalog');catalogs++;assert.equal(new Headers(options.headers).get('x-vg-customer-token'),token);data={items:[{id:'article',name:'Borsa di prova',sku:'SKU',price:140,quality:'STANDARD',category:'Borse',images:[]}],imagesExpiresAt:Date.now()+3600000}}
+ else if(action==='customer-orders')data={orders:[],hasMore:false};else if(action==='customer-logout'){identity=false;data={ok:true}}else throw Error('Unexpected action '+action);
+ return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
+ };}});const w=dom.window,$=id=>w.document.getElementById(id);try{
+ await until(()=>w.shopAccess&&!w.document.body.classList.contains('shop-checking'));assert.equal($('accessGoogle').textContent,'Accedi con Google');assert(!$('accessPhone').hidden);assert(!html.includes('Password del catalogo'));
+ $('accessGoogle').click();await until(()=>$('accessError').textContent.includes('Accetta'));assert.equal(googleCalls,0);$('accessGooglePrivacy').checked=true;$('accessGoogle').click();await until(()=>googleCalls===1);assert.equal(captured.provider,'google');assert.equal(captured.options.redirectTo,'https://meapps-it.github.io/VG/catalogo-nuovo.html');$('accessGoogle').disabled=false;
+ $('accessRegisterTab').click();$('accessPhone').value='3331234567';$('accessPassword').value='Password personale!';$('accessPrivacy').checked=true;$('accessForm').dispatchEvent(new w.Event('submit',{cancelable:true}));await until(()=>$('accessError').textContent.includes('deve autorizzarti'));assert.equal(catalogs,0);assert.equal(w.localStorage.getItem('vg-shop-customer-v1'),token);assert(!JSON.stringify({...w.localStorage}).includes('Password personale!'));
+ authorized=true;$('accessCheck').click();await until(()=>!w.document.body.classList.contains('shop-locked')&&!w.document.body.classList.contains('shop-checking'));assert.equal(w.document.querySelectorAll('.item').length,1);assert.equal(catalogs,1);await w.shopAccess.start(()=>w.shopAccess.fetch('https://test/?action=catalog'));assert.equal(logins,1,'remembered access does not send the password again');
+ authorized=false;await w.shopAccess.start(()=>{throw Error('must not load')});assert(w.document.body.classList.contains('shop-locked'));await w.shopAccess.logout();assert.equal(w.localStorage.getItem('vg-shop-customer-v1'),null);assert.equal($('accessForm').hidden,false);console.log('PASS personal gate: Google consent and redirect, phone registration, pending/approved/revoked access, remembered token, logout, no password storage');
+ }finally{w.close()}})().catch(e=>{console.error(e);process.exitCode=1});

@@ -28,7 +28,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
    const file=path.join(root,name);return fs.existsSync(file)?route.fulfill({path:file}):route.abort();
   });
   await page.route('**/functions/v1/vg-shop-catalog**',route=>{
-   if(route.request().method()==='POST'){assert.equal(new URL(route.request().url()).searchParams.get('action'),'set-password');assert.deepEqual(route.request().postDataJSON(),{password:'test-6'});return route.fulfill({contentType:'application/json',body:'{"ok":true}'});}
+   if(route.request().method()==='POST'){assert.equal(new URL(route.request().url()).searchParams.get('action'),'customer-authorize');assert.equal(route.request().postDataJSON().status,'approved');return route.fulfill({contentType:'application/json',body:'{"ok":true}'});}
    assert.equal(route.request().method(),'GET');assert.equal(route.request().headers().authorization,'Bearer isolated-owner-fixture');requests++;
    if(forbidden)return route.fulfill({status:403,contentType:'application/json',body:'{"error":"forbidden"}'});
    const daily=Array.from({length:30},(_,i)=>({day:'2026-10-'+String(i+1).padStart(2,'0'),visits:i<23?0:[2,4,0,8,1,3,6][i-23]}));
@@ -57,12 +57,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   forbidden=false;await page.locator('#vgStatsRetry').click();await page.locator('#vgStatsResults:not([hidden])').waitFor();assert.equal(requests,3);
   await page.locator('#vgStatsClose').click();
   await page.locator('#topMenuBtn').click();await page.locator('a[href="vgapp://password"]').click();
-  assert(await page.locator('#vgOwnerPassword').isVisible());
-  await page.locator('#vgOwnerPasswordValue').fill('12345');await page.locator('#vgOwnerPasswordConfirm').fill('12345');await page.locator('#vgOwnerPasswordSave').click();
-  assert.equal(await page.locator('#vgOwnerPasswordValue').evaluate(e=>e.validity.tooShort),true);
-  await page.locator('#vgOwnerPasswordValue').fill('test-6');await page.locator('#vgOwnerPasswordConfirm').fill('test-6');await page.locator('#vgOwnerPasswordSave').click();
-  await page.getByText('Password aggiornata. I clienti dovranno reinserirla.',{exact:true}).waitFor();
-  assert.equal(await page.locator('#vgOwnerPasswordValue').inputValue(),'');await page.locator('#vgOwnerPasswordClose').click();
+  await page.locator('#vgStatsResults:not([hidden])').waitFor();await page.locator('#vgRegisteredCustomers summary').click();await page.getByRole('button',{name:'Autorizza',exact:true}).click();await page.getByText('Autorizzato',{exact:true}).waitFor();await page.locator('#vgStatsClose').click();
   assert.deepEqual(errors,[]);
   console.log('PASS management '+width+'px '+(hybrid?'APK':'PWA')+': original dashboard, sales bars, shared system font, 7/30-day visit columns, zero visits, owner errors, retry and close');
   await context.close();

@@ -20,20 +20,7 @@ async function createSession(db:any,owner:string,administrator=false){
  return {token,expiresAt,administrator};
 }
 export async function accessAction(db:any,req:Request,owner:string,action:string,out:any){
- if(action==='login'&&req.method==='POST'){
-  const ip=(req.headers.get('cf-connecting-ip')||req.headers.get('x-forwarded-for')||'unknown').split(',')[0].trim();
-  const ipHash=await digest('vg-shop-login:'+ip),since=new Date(Date.now()-15*60000).toISOString();
-  const rate=await db.from('vg_shop_login_attempts').select('id',{count:'exact',head:true}).eq('ip_hash',ipHash).gte('attempted_at',since);if(rate.error)throw rate.error;
-  if((rate.count||0)>=8)return out({error:'Troppi tentativi. Riprova tra 15 minuti.'},429);
-  let body:any;try{body=await req.json()}catch{return out({error:'Richiesta non valida'},400)}
-  const password=typeof body.password==='string'?body.password:'';
-  if(!password||password.length>128)return out({error:'Password non valida'},401);
-  const attempt=await db.from('vg_shop_login_attempts').insert({ip_hash:ipHash});if(attempt.error)throw attempt.error;
-  const setting=await db.from('vg_shop_password').select('salt,password_hash,iterations').eq('owner_id',owner).single();if(setting.error)throw setting.error;
-  const hash=await passwordHash(password,setting.data.salt,setting.data.iterations);
-  if(!constantEqual(hash,setting.data.password_hash))return out({error:'Password non valida'},401);
-  return out(await createSession(db,owner));
- }
+ if(['login','set-password'].includes(action))return out({error:'La password comune è stata disattivata. Accedi con il tuo account personale.'},410);
  if(action==='claim-admin'&&req.method==='POST'){
   const admin=await catalogSession(db,req,owner);if(!admin?.is_admin)return out({error:'Anteprima amministratore richiesta'},403);
   let body:any;try{body=await req.json()}catch{return out({error:'Richiesta non valida'},400)}
@@ -44,14 +31,6 @@ export async function accessAction(db:any,req:Request,owner:string,action:string
  if(['admin-session','set-password','stats','customer-stats'].includes(action)){
   if(!await requireOwner(db,req,owner))return out({error:'Accesso amministratore richiesto'},403);
   if(action==='admin-session'&&req.method==='POST')return out(await createSession(db,owner,true));
-  if(action==='set-password'&&req.method==='POST'){
-   let body:any;try{body=await req.json()}catch{return out({error:'Richiesta non valida'},400)}
-   const password=typeof body.password==='string'?body.password:'';
-   if(password.length<6||password.length>128)return out({error:'Usa una password di almeno 6 caratteri'},400);
-   const salt=hex(crypto.getRandomValues(new Uint8Array(16)));
-   const result=await db.from('vg_shop_password').upsert({owner_id:owner,salt,password_hash:await passwordHash(password,salt),iterations:200000,updated_at:new Date().toISOString()});if(result.error)throw result.error;
-   return out({ok:true});
-  }
   if(action==='stats'&&req.method==='GET')return out({...await statistics(db,owner),customerStats:await customerStatistics(db,owner)});
   if(action==='customer-stats'&&req.method==='GET'){const url=new URL(req.url);return out(await customerStatistics(db,owner,Number(url.searchParams.get('customers')||0),Number(url.searchParams.get('orders')||0)))}
   return out({error:'Metodo non consentito'},405);
@@ -59,12 +38,12 @@ export async function accessAction(db:any,req:Request,owner:string,action:string
  return null;
 }
 export async function catalogSession(db:any,req:Request,owner:string){
- const token=(req.headers.get('authorization')||'').replace(/^Bearer\s+/i,'');
+ const token=req.headers.get('x-vg-customer-token')||(req.headers.get('authorization')||'').replace(/^Bearer\s+/i,'');
  if(!/^[a-f0-9]{64}$/.test(token))return null;
  const tokenHash=await digest(token);
- const session=await db.from('vg_shop_sessions').select('token_hash,is_admin,created_at,expires_at').eq('token_hash',tokenHash).eq('owner_id',owner).gt('expires_at',new Date().toISOString()).maybeSingle();if(session.error)throw session.error;
+ const session=await db.from('vg_shop_sessions').select('token_hash,is_admin,customer_id,created_at,expires_at').eq('token_hash',tokenHash).eq('owner_id',owner).gt('expires_at',new Date().toISOString()).maybeSingle();if(session.error)throw session.error;
  if(!session.data)return null;
- if(!session.data.is_admin){const setting=await db.from('vg_shop_password').select('updated_at').eq('owner_id',owner).single();if(setting.error)throw setting.error;if(new Date(session.data.created_at).getTime()<new Date(setting.data.updated_at).getTime())return null;}
+ if(!session.data.is_admin){if(!session.data.customer_id)return null;const account=await db.from('vg_shop_customers').select('access_status').eq('owner_id',owner).eq('id',session.data.customer_id).maybeSingle();if(account.error)throw account.error;if(account.data?.access_status!=='approved')return null;}
  return session.data;
 }
 export async function trackVisit(db:any,owner:string,session:any){

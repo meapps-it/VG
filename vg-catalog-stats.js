@@ -4,34 +4,22 @@
  const opener=document.getElementById('vgCatalogStatsOpen');if(!opener)return;
  const hybrid=/\bVgHybrid\/\d/.test(navigator.userAgent);
  document.querySelectorAll('.vgNativeAction').forEach(link=>{
-  const password=link.getAttribute('href')==='vgapp://password';
+  const password=link.getAttribute('href')==='vgapp://password';if(password){const title=link.querySelector('.topMenuTitle');if(title)title.textContent='Autorizza clienti';}
   link.hidden=!hybrid&&!password;
   link.addEventListener('click',()=>{if(typeof setTopMenuOpen==='function')setTopMenuOpen(false)});
-  if(password)link.addEventListener('click',event=>{event.preventDefault();openPasswordDialog()});
+  if(password)link.addEventListener('click',event=>{event.preventDefault();openCustomerAccess()});
  });
  const dialog=document.createElement('dialog');dialog.id='vgCatalogStats';dialog.className='vgStatsDialog';dialog.setAttribute('aria-labelledby','vgStatsTitle');
  dialog.innerHTML='<header class="vgStatsHeader"><div id="vgStatsTitle" class="vgStatsHeading" role="heading" aria-level="2">Statistiche catalogo</div><button type="button" id="vgStatsClose">Chiudi ✕</button></header><div class="vgStatsContent"><p class="vgStatsStatus" id="vgStatsStatus" role="status" aria-live="polite"></p><button type="button" class="vgStatsRetry" id="vgStatsRetry" hidden>Riprova</button><div id="vgStatsResults" hidden><div class="vgStatsSummary" id="vgStatsSummary"></div><figure class="vgStatsFigure" style="margin-top:16px"><figcaption>Andamento degli accessi</figcaption><p>Visite giornaliere al catalogo clienti</p><div class="vgStatsRange" role="group" aria-label="Periodo del grafico"><button type="button" data-vg-days="7" aria-pressed="true">7 giorni</button><button type="button" data-vg-days="30" aria-pressed="false">30 giorni</button></div><div class="vgStatsChartScroll"><ol class="vgStatsBars" id="vgStatsBars" aria-label="Visite per giorno"></ol></div><p id="vgStatsEmpty" hidden>Nessuna visita nel periodo selezionato.</p></figure><section id="vgCustomerStats" hidden><h3>Clienti e ordini del catalogo</h3><div class="vgStatsSummary" id="vgCustomerStatsSummary"></div><h4>Clienti registrati</h4><div id="vgRegisteredCustomers"></div><button type="button" id="vgCustomersMore" class="vgStatsRetry" hidden>Altri clienti</button><h4>Richieste ricevute</h4><p class="vgStatsNote">Comprende anche le richieste del catalogo inviate senza account. Gli ordini precedenti non vengono attribuiti automaticamente ai nuovi account.</p><div id="vgCustomerOrders"></div><button type="button" id="vgOrdersMore" class="vgStatsRetry" hidden>Altri ordini</button><p id="vgCustomersStatus" role="status" aria-live="polite"></p></section><p class="vgStatsNote" id="vgStatsDefinition"></p><p class="vgStatsNote">I tuoi accessi tramite anteprima amministratore sono esclusi.</p></div></div>';
  document.body.append(dialog);
  const el=id=>document.getElementById(id),number=value=>Math.max(0,Math.trunc(Number(value)||0));
- const passwordDialog=document.createElement('dialog');passwordDialog.id='vgOwnerPassword';passwordDialog.className='vgStatsDialog';passwordDialog.setAttribute('aria-labelledby','vgOwnerPasswordTitle');
- passwordDialog.innerHTML='<header class="vgStatsHeader"><div id="vgOwnerPasswordTitle" class="vgStatsHeading" role="heading" aria-level="2">Password clienti</div><button type="button" id="vgOwnerPasswordClose">Chiudi ✕</button></header><form id="vgOwnerPasswordForm" class="vgStatsContent vgPasswordForm"><p class="vgStatsNote">Imposta la password del catalogo, di almeno 6 caratteri. Dopo la modifica i clienti dovranno reinserirla.</p><label for="vgOwnerPasswordValue">Nuova password<input id="vgOwnerPasswordValue" type="password" minlength="6" maxlength="128" required autocomplete="new-password"></label><label for="vgOwnerPasswordConfirm">Ripeti password<input id="vgOwnerPasswordConfirm" type="password" minlength="6" maxlength="128" required autocomplete="new-password"></label><button class="vgStatsRetry" id="vgOwnerPasswordSave" type="submit">Salva password</button><p id="vgOwnerPasswordStatus" class="vgStatsStatus" role="status" aria-live="polite"></p></form>';
- document.body.append(passwordDialog);
- function openPasswordDialog(){el('vgOwnerPasswordForm').reset();el('vgOwnerPasswordStatus').textContent='';if(!passwordDialog.open)passwordDialog.showModal()}
- el('vgOwnerPasswordClose').addEventListener('click',()=>passwordDialog.close());
- passwordDialog.addEventListener('close',()=>{el('vgOwnerPasswordForm').reset()});
- el('vgOwnerPasswordForm').addEventListener('submit',async event=>{
-  event.preventDefault();const password=el('vgOwnerPasswordValue').value,status=el('vgOwnerPasswordStatus'),button=el('vgOwnerPasswordSave');
-  if(password.length<6){status.textContent='Usa almeno 6 caratteri.';return}
-  if(password!==el('vgOwnerPasswordConfirm').value){status.textContent='Le due password non coincidono.';return}
-  button.disabled=true;status.textContent='Salvataggio…';
-  try{
-   const client=await window.VG_SUPABASE_READY;if(!client)throw Error('Connessione al gestionale non disponibile.');
-   const result=await client.auth.getSession();if(result.error||!result.data?.session?.access_token)throw Error('Accedi con il tuo account amministratore.');
-   const response=await fetch(endpoint.replace('action=stats','action=set-password'),{method:'POST',headers:{Authorization:'Bearer '+result.data.session.access_token,'Content-Type':'application/json'},body:JSON.stringify({password})});
-   const data=await response.json();if(!response.ok)throw Error(response.status===403?'Operazione riservata al titolare del catalogo.':data.error||'Salvataggio non riuscito.');
-   el('vgOwnerPasswordForm').reset();status.textContent='Password aggiornata. I clienti dovranno reinserirla.';
-  }catch(error){status.textContent=error.message||'Salvataggio non riuscito. Riprova.'}finally{button.disabled=false}
- });
+ function openCustomerAccess(){opener.click()}
+ async function authorizeCustomer(id,status,button,label){
+  button.disabled=true;try{
+   const client=await window.VG_SUPABASE_READY,result=await client.auth.getSession();if(!result.data?.session?.access_token)throw Error('Accedi come amministratore.');
+   const response=await fetch(endpoint.replace('action=stats','action=customer-authorize'),{method:'POST',headers:{Authorization:'Bearer '+result.data.session.access_token,'Content-Type':'application/json'},body:JSON.stringify({id,status})});const data=await response.json();if(!response.ok)throw Error(data.error||'Operazione non riuscita');label.textContent=status==='approved'?'Autorizzato':status==='blocked'?'Bloccato':'In attesa';
+  }catch(error){label.textContent=error.message}finally{button.disabled=false}
+ }
  let daily=[],days=7,controller=null,customerOffset=0,orderOffset=0;
  const statusName=value=>({in_lavorazione:'In lavorazione / da confermare',spedito:'Spedito',consegnato:'Consegnato',annullato:'Annullato'})[value]||value||'Da confermare';
  const date=value=>{const d=new Date(value);return value&&!Number.isNaN(d.getTime())?new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',dateStyle:'short',timeStyle:'short'}).format(d)+' (Italia)':'—'};
@@ -41,7 +29,7 @@
   el('vgCustomerStats').hidden=!data;if(!data)return;
   if(!append){customerOffset=0;orderOffset=0;el('vgRegisteredCustomers').replaceChildren();el('vgCustomerOrders').replaceChildren();const root=el('vgCustomerStatsSummary');root.replaceChildren();for(const [label,value] of [['Clienti registrati',data.summary?.registeredCustomers],['Ordini dal catalogo',data.summary?.catalogOrders],['Ordini aperti',data.summary?.pendingOrders]]){const card=document.createElement('div');card.className='vgStatsCard';const title=document.createElement('span'),count=document.createElement('strong');title.textContent=label;count.textContent=number(value).toLocaleString('it-IT');card.append(title,count);root.append(card)}}
   if(append!=='orders'){
-   for(const c of data.customers||[]){const card=document.createElement('details');card.className='vgCustomerStatRow';const heading=document.createElement('summary');heading.textContent=(c.profile?.name||'Cliente registrato')+' · +'+c.phone;card.append(heading);line(card,'Registrazione: '+date(c.registeredAt));line(card,'Ultima autenticazione: '+date(c.lastLoginAt));line(card,'Richieste dell’account: '+number(c.orders));line(card,['Indirizzo:',c.profile?.address,c.profile?.city,c.profile?.province,c.profile?.cap].filter(Boolean).join(' '));el('vgRegisteredCustomers').append(card)}
+   for(const c of data.customers||[]){const card=document.createElement('details');card.className='vgCustomerStatRow';const heading=document.createElement('summary');heading.textContent=(c.profile?.name||'Cliente registrato')+' · '+(c.phone?'+'+c.phone:c.email||'Google');card.append(heading);const accessLabel=document.createElement('p');accessLabel.textContent=({approved:'Autorizzato',blocked:'Bloccato',pending:'In attesa di autorizzazione'})[c.accessStatus]||'In attesa di autorizzazione';card.append(accessLabel);for(const [title,status] of [['Autorizza','approved'],['Blocca','blocked']]){const button=document.createElement('button');button.type='button';button.className='vgStatsRetry';button.textContent=title;button.onclick=()=>authorizeCustomer(c.id,status,button,accessLabel);card.append(button)}line(card,'Registrazione: '+date(c.registeredAt));line(card,'Ultima autenticazione: '+date(c.lastLoginAt));line(card,'Richieste dell’account: '+number(c.orders));line(card,['Indirizzo:',c.profile?.address,c.profile?.city,c.profile?.province,c.profile?.cap].filter(Boolean).join(' '));el('vgRegisteredCustomers').append(card)}
    customerOffset=data.customerOffset||0;el('vgCustomersMore').hidden=!data.hasMoreCustomers;if(!el('vgRegisteredCustomers').children.length)el('vgRegisteredCustomers').textContent='Nessun cliente ancora registrato.';
   }
   if(append!=='customers'){

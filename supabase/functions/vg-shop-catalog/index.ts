@@ -1,7 +1,7 @@
 import {articleOptions,requestedVariant,articleMetadata} from "./shop-variants.ts";
 import {customerAction,customerSession,shippingProfile} from "./shop-customers.ts";
 import {accessAction,catalogSession,trackVisit} from "./shop-access.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 const PROJECT = Deno.env.get("SUPABASE_URL")!;
 const KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(PROJECT, KEY, { auth:{persistSession:false} });
@@ -21,7 +21,8 @@ Deno.serve(async(req)=>{
   const url=new URL(req.url);
   const action=url.searchParams.get("action")||"";
   const handled=await accessAction(db,req,OWNER,action,out);if(handled)return handled;
-  const viewer=await catalogSession(db,req,OWNER);if(!viewer)return fail("Inserisci la password del catalogo",401);
+  if(['customer-login','customer-register','customer-google','customer-me','customer-logout','customer-authorize'].includes(action)){const result=await customerAction(db,req,OWNER,action,out);if(result)return result;}
+  const viewer=await catalogSession(db,req,OWNER);if(!viewer)return fail("Accedi con un account autorizzato dal negozio",401);
   const customerHandled=await customerAction(db,req,OWNER,action,out);if(customerHandled)return customerHandled;
 
   if(req.method==="GET"){
