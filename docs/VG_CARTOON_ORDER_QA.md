@@ -2,7 +2,7 @@
 
 The same repository, Pages catalogue, Android WebView and Supabase project are retained.
 
-- Management outlines reduced to 2px with a 1px lower shadow; controls use 1.5px. The six bottom destinations share the available width. Graph buttons retain no frame. Grid contents can shrink and wrap.
+- Management outlines reduced to 2px with a 1px lower shadow; controls use 1.5px. The six bottom destinations share the available width. Chart controls remain compact. Grid contents can shrink and wrap.
 - Catalogue uses cream, pale blue and warm yellow, lightly illustrated cards and a sibling vector logo based on the existing mark. Existing photos are unchanged. Originale/Standard remains visible and filterable. The mobile heading and navigation are compact.
 - Article choices are remembered while visiting the catalogue. Legacy cart rows missing required choices are explicitly rejected before checkout; Modifica replaces that row rather than adding a duplicate. Quantity and variants can be changed per cart line.
 - Prominent persistent notices show the first missing field, request failures and successful order number. Browser validation and explicit privacy consent remain mandatory.

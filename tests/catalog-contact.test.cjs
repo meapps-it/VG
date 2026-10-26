@@ -19,7 +19,7 @@ const root=path.resolve(__dirname,'..'),html=fs.readFileSync(root+'/catalogo-nuo
   await page.locator('#productQty').fill('2');await page.locator('#productAdd').click();
   for(const [field,value] of Object.entries({name:'Cliente isolato',phone:'3330000000',address:'Via del test 1'}))await page.locator('[name='+field+']').fill(value);
   await page.locator('[name=province]').selectOption('manual');await page.locator('#shippingProvinceManual').fill('Cuneo');await page.locator('#shippingCityManual').fill('Beinette');await page.locator('[name=cap]').fill('12081');await page.locator('[name=privacy]').check();
-  await page.locator('#checkoutNext').click();assert.match(await page.locator('#checkoutReview').textContent(),/2 × Borsa & Pelle/);assert.equal(sent.length,0);await page.locator('#sendOrder').click();await page.getByText(/Richiesta inviata! Numero: ISOLATED-ORDER-1/).waitFor();
+  await page.locator('#checkoutNext').click();assert.match(await page.locator('#checkoutReview').textContent(),/2 × Borsa & Pelle/);assert.equal(sent.length,0);await page.locator('#sendOrder').click();await page.locator('#orderStatus').filter({hasText:'Richiesta inviata! Numero: ISOLATED-ORDER-1'}).waitFor();assert.match(await page.locator('#shopNotice[data-kind=success]').textContent(),/ISOLATED-ORDER-1/);
   assert.equal(sent.length,1);assert.deepEqual(sent[0].items,[{id,qty:2}]);assert.equal(sent[0].customer.cap,'12081');assert.equal(await page.locator('#cartCount').textContent(),'0');assert.deepEqual(errors,[]);
   console.log('PASS contacts + checkout '+width+'px: five WhatsApp links including account assistance, correct number, article/SKU message, no admin-token leak, chooser-only chat and one isolated order submission');await context.close();
  }
