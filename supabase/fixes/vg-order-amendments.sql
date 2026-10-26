@@ -3,7 +3,7 @@ create table if not exists public.vg_shop_order_revisions (
  id uuid primary key default gen_random_uuid(),
  owner_id uuid not null references auth.users(id),
  customer_id uuid not null references public.vg_shop_customers(id),
- order_id uuid not null references public.ordini(id),
+ order_id uuid references public.ordini(id) on delete set null,
  previous_order jsonb not null,previous_lines jsonb not null,previous_customer jsonb not null,
  revised_at timestamptz not null default now()
 );
@@ -40,3 +40,6 @@ end $$;
 revoke all on function public.vg_shop_amend_order(uuid,uuid,uuid,timestamptz,jsonb,jsonb,numeric,text) from public,anon,authenticated;
 grant execute on function public.vg_shop_amend_order(uuid,uuid,uuid,timestamptz,jsonb,jsonb,numeric,text) to service_role;
 notify pgrst,'reload schema';
+-- Keep the administrator's existing delete workflow usable; preserve revision audit separately.
+alter table public.vg_shop_notification_outbox drop constraint vg_shop_notification_outbox_order_id_fkey;
+alter table public.vg_shop_notification_outbox add constraint vg_shop_notification_outbox_order_id_fkey foreign key(order_id) references public.ordini(id) on delete cascade;

@@ -13,3 +13,5 @@ The same repository, Pages catalogue, Android WebView and Supabase project are r
 Validation: Node/DOM checks; real rollback-only SQL under service_role (ownership, stale version, revision history and administrator guard); Chromium and WebKit at 360/412/1280px (legacy-size repair, prominent errors/success and in-place amendment surviving reload). Management checks include overflow and all six navigation destinations, plus full authenticated boot. Existing gallery, shipping, catalogue authentication, personal sessions, WhatsApp no-link and FCM tests remain enabled.
 
 Screenshots in the catalogue test artifact use existing repository photographs and isolated demonstration orders; they are not production customer records. Real SQL test records and notification outbox rows were rolled back.
+
+Administrator deletion remains usable: deleting an order removes its transient notification queue entry and leaves the revision audit intact with a null live-order reference. The rollback SQL also verifies this path.

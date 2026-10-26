@@ -18,6 +18,9 @@ begin
  rejected:=false;begin perform public.vg_shop_amend_order(own,cust,ord,v,'{}','[]',0,'');exception when sqlstate 'P0001' then rejected:=true;end;if not rejected then raise exception 'QA stale version accepted';end if;
  update public.ordini set note='[STATO:Richiesto]' where id=ord returning coalesce(updated_at,created_at) into newv;
  rejected:=false;begin perform public.vg_shop_amend_order(own,cust,ord,newv,'{}','[]',0,'');exception when sqlstate 'P0001' then rejected:=true;end;if not rejected then raise exception 'QA admin order accepted';end if;
+delete from public.righe_ordine where ordine_id=ord;
+ delete from public.ordini where id=ord;
+ if not exists(select 1 from public.vg_shop_order_revisions where customer_id=cust and order_id is null) then raise exception 'QA admin deletion failed to retain revision history';end if;
 end $$;
 rollback;
 select 'PASS atomic amendment, identity, revision history, stale version and administrator guard; all QA data rolled back' as result;

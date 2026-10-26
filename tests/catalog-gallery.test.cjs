@@ -27,7 +27,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
   await page.goto(base);await page.locator('.item').first().waitFor();
   assert.equal(await page.locator('.intro').count(),0,'selected product-first design has no hero');
   assert.ok(await page.locator('.header-whatsapp').isVisible(),'WhatsApp remains in the compact header');
-  if(width<650){const box=await page.locator('.catalog').boundingBox();assert.ok(box.y<270,'products start in the first 270px');assert.equal(await page.locator('.catalog').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),2,'two mobile product columns')}
+  if(width<650){const box=await page.locator('.catalog').boundingBox();assert.ok(box.y<440,'the cartoon header and filters must leave products visible in the first screen');const price=await page.locator('.item .price').first().boundingBox();assert.ok(price.y+price.height<800,'the first product price must remain inside the initial mobile viewport');assert.equal(await page.locator('.catalog').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),2,'two mobile product columns')}
 
   assert.ok(await page.locator('.intro h1,.item .name').evaluateAll(nodes=>nodes.every(n=>getComputedStyle(n).fontFamily.includes('system-ui'))),'catalog headings use the system font');
   await page.locator('[data-detail="many"]').first().click();
@@ -70,3 +70,4 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
  }
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
+
