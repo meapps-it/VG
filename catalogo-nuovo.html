@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Shop &amp; Parallelo | Collezione</title><meta name="description" content="Borse, pelletteria e accessori. Sfoglia il catalogo e invia una richiesta d'ordine."><link rel="stylesheet" href="./shop-catalog.css?v=20261026-2.2"></head>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Shop &amp; Parallelo | Collezione</title><meta name="description" content="Borse, pelletteria e accessori. Sfoglia il catalogo e invia una richiesta d'ordine."><link rel="stylesheet" href="./shop-catalog.css?v=20261026-2.3"></head>
 <body class="shop-locked shop-checking"><section id="accessGate" aria-labelledby="accessTitle"><div class="access-card"><img src="./shop-parallelo-logo.svg" alt="Shop &amp; Parallelo"><h1 id="accessTitle">Catalogo riservato</h1><p>Inserisci la password ricevuta dal negozio. L’accesso resterà ricordato su questo dispositivo.</p><p id="accessPending" role="status" aria-live="polite">Apertura del catalogo…</p><form id="accessForm"><label for="accessPassword">Password del catalogo</label><input id="accessPassword" type="password" required maxlength="128" autocomplete="current-password"><button id="accessSubmit" type="submit">Entra nel catalogo</button><p id="accessError" role="status" aria-live="polite"></p></form></div></section><div id="adminPreviewNotice" hidden>Anteprima amministratore · i tuoi accessi sono esclusi dalle statistiche</div><div class="brand-stage"><header class="top"><div class="top-inner">
 <a href="#" aria-label="Shop &amp; Parallelo, catalogo"><img class="logo" src="./shop-parallelo-logo.svg" alt="Shop &amp; Parallelo"></a>
 <div class="header-actions"><a class="header-whatsapp" data-whatsapp="general" href="https://wa.me/393351604686" target="_blank" rel="noopener noreferrer" aria-label="Contattaci su WhatsApp"><img src="./shop-icons/whatsapp.svg" alt=""></a><button class="cart-action" id="openCart" aria-label="Apri carrello"><img src="./shop-icons/shopping-bag.svg" alt=""><span class="sr-only">Carrello</span><span id="cartCount">0</span></button></div>
@@ -10,11 +10,11 @@
 <nav id="categoryQuick" class="group-tabs" aria-label="Categorie del catalogo"><button type="button" data-category-quick="" aria-pressed="true">Tutte</button></nav>
 <section id="filterPanel" class="filters-panel" aria-label="Filtra articoli" hidden><label>Categoria<select id="category" aria-label="Categoria"><option value="">Tutte le categorie</option></select></label><label>Marca<select id="brand" aria-label="Marca"><option value="">Tutte le marche</option></select></label><label>Prezzo minimo (€)<input id="minPrice" type="number" min="0" step="1" inputmode="decimal" placeholder="Da"></label><label>Prezzo massimo (€)<input id="maxPrice" type="number" min="0" step="1" inputmode="decimal" placeholder="A"></label><button id="resetFilters" type="button">Azzera filtri</button></section>
 <div class="results-row"><p id="resultCount" role="status" aria-live="polite">Caricamento articoli…</p><button type="button" id="resetAll" hidden>Azzera ricerca e filtri</button><label class="sort-label"><span class="sr-only">Ordina</span><select id="sort" aria-label="Ordina articoli"><option value="relevance">Consigliati</option><option value="price-asc">Prezzo crescente</option><option value="price-desc">Prezzo decrescente</option><option value="name">Nome A–Z</option></select></label></div></div>
-<div id="catalog" class="catalog"><div class="empty">Caricamento del catalogo…</div></div></main>
+<div id="catalog" class="catalog"><div class="catalog-loading" role="status" aria-live="polite"><span class="loading-ring" aria-hidden="true"></span><strong>Caricamento catalogo</strong><span>Per favore attendi…</span></div></div></main>
 <footer class="footer"><strong>Shop &amp; Parallelo</strong><p>Scegli gli articoli. Ti contattiamo per confermare disponibilità e ordine.</p><span>Nessun pagamento anticipato.</span><p><a class="shop-whatsapp" data-whatsapp="general" href="https://wa.me/393351604686" target="_blank" rel="noopener noreferrer"><img src="./shop-icons/whatsapp.svg" alt="" aria-hidden="true">Contattaci su WhatsApp</a></p><p><button type="button" id="shopLogout">Esci da questo dispositivo</button></p></footer>
 
 <section id="productView" class="view" role="dialog" aria-modal="true" aria-labelledby="productTitle" aria-hidden="true">
-<div class="product-dialog"><div class="topline"><strong>Dettaglio articolo</strong><button type="button" id="closeProduct" class="close">Chiudi ✕</button></div>
+<div class="product-dialog"><div class="topline"><button type="button" id="closeProduct" class="product-back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h12"/></svg>Indietro</button><strong>Dettaglio articolo</strong></div>
 <div class="product-layout"><div class="gallery"><div class="gallery-stage"><button type="button" id="productHero" class="product-hero" aria-label="Ingrandisci fotografia"></button><button type="button" id="galleryPrev" class="gallery-arrow gallery-prev" aria-label="Fotografia precedente">‹</button><button type="button" id="galleryNext" class="gallery-arrow gallery-next" aria-label="Fotografia successiva">›</button></div><div id="galleryCount" class="gallery-count" role="status" aria-live="polite"></div><div id="galleryThumbs" class="gallery-thumbs" aria-label="Fotografie articolo"></div></div><div>
 <div id="productCategory" class="category"></div><h2 id="productTitle"></h2>
 <div id="productSku" class="muted"></div><div id="productPrice" class="price"></div>
@@ -79,7 +79,17 @@ el('cartLines').innerHTML=entries.length?entries.map(([id,qty])=>{let p=products
 el('total').textContent='Totale indicativo: '+euro(entries.reduce((s,[id,qty])=>s+products.find(p=>p.id===id).price*qty,0));
 el('sendOrder').disabled=!entries.length;
 render();}
-function openCart(open){if(open){setCheckout(2);shopShipping.load()}document.body.style.overflow=open?'hidden':'';el('overlay').classList.toggle('open',open);el('overlay').setAttribute('aria-hidden',String(!open));renderCart()}
+function shopState(){return history.state?.vgShop||{view:'catalog',scrollY:window.scrollY}}
+function writeShopState(state,replace=false){history[replace?'replaceState':'pushState']({...history.state,vgShop:state},'',location.href)}
+function beginShopView(view,extra={},replace=false){
+ if(shopState().view==='catalog')writeShopState({view:'catalog',scrollY:window.scrollY},true);
+ writeShopState({view,...extra},replace);
+}
+function openCart(open,mode='push'){
+ if(!open&&mode!=='none'&&shopState().view==='cart'){history.back();return}
+ if(open){if(mode!=='none')beginShopView('cart',{},mode==='replace');setCheckout(2);shopShipping.load()}
+ document.body.style.overflow=open?'hidden':(activeProduct?'hidden':'');el('overlay').classList.toggle('open',open);el('overlay').setAttribute('aria-hidden',String(!open));renderCart();
+}
 el('openCart').onclick=()=>openCart(true);el('closeCart').onclick=()=>openCart(false);
 el('overlay').addEventListener('click',e=>{if(e.target===el('overlay'))openCart(false)});
 el('catalog').addEventListener('click',e=>{
@@ -125,9 +135,10 @@ function setupGallery(p){
    b.onclick=()=>{activeImageIndex=i;renderGallery()};el('galleryThumbs').append(b);
  });renderGallery();
 }
-function closeZoom(){el('photoZoom').classList.remove('open');el('photoZoom').setAttribute('aria-hidden','true');el('productView').inert=false;el('productHero').focus()}
-el('productHero').onclick=()=>{if(!activeImages.length)return;el('photoZoom').classList.add('open');el('photoZoom').setAttribute('aria-hidden','false');el('productView').inert=true;renderGallery();el('closeZoom').focus()};
-el('closeZoom').onclick=closeZoom;
+function closeZoom(navigate=true){if(navigate&&shopState().view==='zoom'){history.back();return}el('photoZoom').classList.remove('open');el('photoZoom').setAttribute('aria-hidden','true');el('productView').inert=false;if(activeProduct)el('productHero').focus({preventScroll:true})}
+function showZoom(navigate=true){if(!activeImages.length)return;if(navigate)beginShopView('zoom',{id:activeProduct.id});el('photoZoom').classList.add('open');el('photoZoom').setAttribute('aria-hidden','false');el('productView').inert=true;renderGallery();el('closeZoom').focus()}
+el('productHero').onclick=()=>showZoom();
+el('closeZoom').onclick=()=>closeZoom();
 el('zoomImage').onerror=()=>{el('zoomImage').hidden=true;el('zoomError').hidden=false};
 for(const id of ['galleryPrev','zoomPrev'])el(id).onclick=()=>movePhoto(-1);
 for(const id of ['galleryNext','zoomNext'])el(id).onclick=()=>movePhoto(1);
@@ -173,8 +184,9 @@ function publicDescription(raw){
  text=text.replace(/\\n/g,'\n').replace(/\s{3,}/g,' ').trim();
  return text;
 }
-function showProduct(id){
+function showProduct(id,navigate=true){
  const p=products.find(x=>x.id===id);if(!p)return;
+ if(navigate)beginShopView('product',{id});
  activeProduct=p;
  el('productCategory').textContent=p.category||'';
  el('productTitle').textContent=p.name||'';
@@ -185,15 +197,29 @@ function showProduct(id){
  productOpener=document.activeElement;setupGallery(p);
  document.body.style.overflow='hidden';
  el('productQty').value='1';el('productQualityInfo').textContent='Qualità: '+qualityLabel(p.quality);
- el('productView').classList.add('open');el('productView').setAttribute('aria-hidden','false');el('closeProduct').focus();refreshGallery();
+ el('productView').classList.add('open');el('productView').setAttribute('aria-hidden','false');el('productView').scrollTop=0;el('closeProduct').focus({preventScroll:true});refreshGallery();
 }
-function hideProduct(){if(el('photoZoom').classList.contains('open'))closeZoom();document.body.style.overflow='';el('productView').classList.remove('open');el('productView').setAttribute('aria-hidden','true');activeProduct=null;productOpener?.focus()}
-el('closeProduct').onclick=hideProduct;
+function hideProduct(navigate=true){
+ if(navigate&&['product','zoom'].includes(shopState().view)){history.go(shopState().view==='zoom'?-2:-1);return}
+ if(el('photoZoom').classList.contains('open'))closeZoom(false);document.body.style.overflow='';el('productView').classList.remove('open');el('productView').setAttribute('aria-hidden','true');activeProduct=null;productOpener?.focus({preventScroll:true});
+}
+window.addEventListener('popstate',event=>{
+ const state=event.state?.vgShop||{view:'catalog',scrollY:window.scrollY};
+ if(state.view==='product'||state.view==='zoom'){
+  openCart(false,'none');
+  if(activeProduct?.id!==state.id)showProduct(state.id,false);else if(el('photoZoom').classList.contains('open'))closeZoom(false);
+  if(state.view==='zoom')showZoom(false);
+ }else{
+  hideProduct(false);openCart(state.view==='cart','none');
+  if(state.view==='catalog')requestAnimationFrame(()=>window.scrollTo(0,Number(state.scrollY)||0));
+ }
+});
+el('closeProduct').onclick=()=>hideProduct();
 el('productView').addEventListener('click',e=>{if(e.target===el('productView'))hideProduct()});
 el('productAdd').onclick=()=>{
  if(!activeProduct)return;const q=Number(el('productQty').value);
  if(!Number.isInteger(q)||q<1||q>20){el('productQty').focus();return}
- cart[activeProduct.id]=Math.min(20,(cart[activeProduct.id]||0)+q);save();hideProduct();openCart(true)
+ cart[activeProduct.id]=Math.min(20,(cart[activeProduct.id]||0)+q);save();hideProduct(false);openCart(true,'replace')
 };
 
 

@@ -48,7 +48,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
   assert.equal(await page.locator('#photoZoom').getAttribute('aria-hidden'),'false');
   const close=await page.locator('#closeZoom').boundingBox();console.log('ZOOM BOUNDS',width,close,await page.evaluate(()=>({innerWidth,innerHeight,scrollWidth:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>360&&getComputedStyle(e).position!=='fixed').slice(0,8).map(e=>({tag:e.tagName,id:e.id,cls:e.className,right:e.getBoundingClientRect().right}))})));assert.ok(close.x>=0&&close.y>=0&&close.x+close.width<=width&&close.y+close.height<800);
   await page.locator('#zoomNext').click();assert.equal(await page.locator('#zoomCount').textContent(),'1 / 3');
-  await page.locator('#closeZoom').click();assert.equal(await page.locator('#photoZoom').getAttribute('aria-hidden'),'true');
+  await page.locator('#closeZoom').click();await page.locator('#photoZoom').waitFor({state:'hidden'});assert.equal(await page.locator('#photoZoom').getAttribute('aria-hidden'),'true');
   assert.ok(requests>=2,'expired signed URLs must refresh');
   const desc=await page.locator('#productDescription').textContent();assert.match(desc,/Pelle vera/);assert.match(desc,/Misure/);assert.doesNotMatch(desc,/VGMETA|privato/);
   assert.equal(await page.locator('#productHero img').evaluate(e=>getComputedStyle(e).objectFit),'contain');
@@ -57,13 +57,13 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
   await page.locator('input[name=name]').fill('Cliente di prova');await page.locator('input[name=phone]').fill('3330000000');await page.locator('input[name=address]').fill('Via di prova 1');await page.locator('input[name=privacy]').check();await page.locator('select[name=province]').selectOption('manual');await page.locator('#shippingProvinceManual').fill('Torino');await page.locator('#shippingCityManual').fill('Torino');await page.locator('input[name=cap]').fill('10100');
   
   await page.locator('#checkoutNext').click();assert.match(await page.locator('#checkoutReview').textContent(),/2 × Borsa many/);assert.ok(await page.locator('#sendOrder').isVisible());
-  await page.locator('#checkoutBack').click();await page.locator('#closeCart').click();
+  await page.locator('#checkoutBack').click();await page.locator('#closeCart').click();await page.locator('#overlay').waitFor({state:'hidden'});
   for(const [id,counter] of [['single','1 / 1'],['none','Nessuna fotografia'],['broken','1 / 2']]){
    await page.locator('[data-detail="'+id+'"]').first().click();assert.equal(await page.locator('#galleryCount').textContent(),counter);
    if(id==='single'){assert.equal(await page.locator('#galleryNext').isVisible(),false);assert.equal(await page.locator('#galleryThumbs button').count(),0)}
    if(id==='none')assert.equal(await page.locator('#productHero').isDisabled(),true);
    if(id==='broken'){await page.locator('#productHero .photo-error').waitFor();await page.locator('#galleryNext').click();await page.waitForFunction(()=>document.querySelector('#productHero img')?.naturalWidth>0)}
-   await page.locator('#closeProduct').click();
+   await page.locator('#closeProduct').click();await page.locator('#productView').waitFor({state:'hidden'});
   }
   assert.deepEqual(errors,[]);console.log('PASS gallery + swipe + zoom + missing photos + URL renewal + checkout at '+width+'px');
   await context.close();

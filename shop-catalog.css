@@ -17,3 +17,19 @@
 #accessPending{display:none}
 body.shop-checking #accessPending{display:block}
 body.shop-checking #accessForm,body.shop-checking #accessTitle,body.shop-checking #accessGate .access-card>p:not(#accessPending){display:none}
+
+/* Product detail is a full page, with its own scroll and native browser history. */
+#productView.open{display:block;padding:0;background:var(--paper);overflow-y:auto;overscroll-behavior:contain}
+#productView .product-dialog{max-width:none;max-height:none;min-height:100%;width:100%;overflow:visible;border-radius:0;padding:0 24px 40px}
+#productView .product-dialog>.topline{top:0;margin:0 -24px;padding:12px 24px;padding-top:max(12px,env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--paper);z-index:3}
+.product-back{display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:8px 12px;border:1px solid var(--line);border-radius:5px;background:var(--paper);color:var(--ink);font-weight:600;font-size:14px}
+.product-back svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#productView .product-layout{max-width:1120px;margin:18px auto 0}
+#productView .product-hero{height:clamp(260px,58dvh,600px);max-height:none}
+.catalog-loading{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:190px;padding:28px 18px;border:1px solid var(--line);border-radius:7px;background:var(--paper);text-align:center;color:var(--muted)}
+.catalog-loading strong{font-size:18px;font-weight:600;color:var(--ink)}
+.catalog-loading>span:last-child{font-size:14px}
+.loading-ring{width:30px;height:30px;margin-bottom:4px;border:3px solid #eee6db;border-top-color:var(--accent);border-radius:50%;animation:catalog-spin .9s linear infinite}
+@keyframes catalog-spin{to{transform:rotate(360deg)}}
+@media(max-width:650px){#productView .product-dialog{padding:0 14px 32px}#productView .product-dialog>.topline{margin:0 -14px;padding-left:14px;padding-right:14px}#productView .product-hero{height:clamp(250px,48dvh,480px)}}
+@media(prefers-reduced-motion:reduce){.loading-ring{animation:none}}
