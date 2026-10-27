@@ -2,7 +2,7 @@
 create table if not exists public.vg_shop_order_revisions (
  id uuid primary key default gen_random_uuid(),
  owner_id uuid not null references auth.users(id),
- customer_id uuid not null references public.vg_shop_customers(id),
+ customer_id uuid references public.vg_shop_customers(id) on delete set null,
  order_id uuid references public.ordini(id) on delete set null,
  previous_order jsonb not null,previous_lines jsonb not null,previous_customer jsonb not null,
  revised_at timestamptz not null default now()
