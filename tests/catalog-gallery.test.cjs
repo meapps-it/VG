@@ -25,11 +25,10 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
   await page.route(API+'**',r=>{assert.equal(r.request().method(),'GET');requests++;return r.fulfill({contentType:'application/json',body:JSON.stringify({items:[item('many',[photo(1),photo(2),photo(3)]),item('single',[photo(4)]),item('none',[]),item('broken',[photo('broken'),photo(5)])],imagesExpiresAt:Date.now()+(requests===1?1000:3600000)})})});
   await page.addInitScript(()=>localStorage.setItem('vg-shop-session-v1','a'.repeat(64)));
   await page.goto(base);await page.locator('.item').first().waitFor();
-  assert.equal(await page.locator('.intro').count(),0,'selected product-first design has no hero');
+  assert.equal(await page.locator('.collection-heading').count(),1,'boutique selection introduces the catalogue');
   assert.ok(await page.locator('.header-whatsapp').isVisible(),'WhatsApp remains in the compact header');
-  if(width<650){const box=await page.locator('.catalog').boundingBox();assert.ok(box.y<440,'the cartoon header and filters must leave products visible in the first screen');const price=await page.locator('.item .price').first().boundingBox();assert.ok(price.y+price.height<800,'the first product price must remain inside the initial mobile viewport');assert.equal(await page.locator('.catalog').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),2,'two mobile product columns')}
-
-  assert.ok(await page.locator('.intro h1,.item .name').evaluateAll(nodes=>nodes.every(n=>getComputedStyle(n).fontFamily.includes('system-ui'))),'catalog headings use the system font');
+  if(width<650){const browse=await page.locator('#browseCollection').boundingBox();assert.ok(browse.y+browse.height<800,'browse catalogue action is visible in the first mobile screen');assert.equal(await page.locator('.catalog').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),2,'two mobile product columns')}
+  assert.ok(await page.locator('.item .name').evaluateAll(nodes=>nodes.every(n=>getComputedStyle(n).fontFamily.includes('Arial'))),'catalog headings use the boutique typeface');
   await page.locator('[data-detail="many"]').first().click();
   await page.waitForFunction(()=>document.querySelector('#galleryCount').textContent==='1 / 3');
   await page.waitForFunction(()=>document.querySelector('#productHero img')?.naturalWidth>0);
@@ -54,7 +53,7 @@ const item=(id,images)=>({id,name:'Borsa '+id,images,image:images[0]||'',price:2
   assert.equal(await page.locator('#productHero img').evaluate(e=>getComputedStyle(e).objectFit),'contain');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow');
   await page.locator('#productQty').fill('2');await page.locator('#productAdd').click();assert.match(await page.locator('#total').textContent(),/50,00/);
-  await page.locator('input[name=name]').fill('Cliente di prova');await page.locator('input[name=phone]').fill('3330000000');await page.locator('input[name=address]').fill('Via di prova 1');await page.locator('input[name=privacy]').check();await page.locator('select[name=province]').selectOption('manual');await page.locator('#shippingProvinceManual').fill('Torino');await page.locator('#shippingCityManual').fill('Torino');await page.locator('input[name=cap]').fill('10100');
+  await page.locator('input[name=name]').fill('Cliente di prova');await page.locator('#orderForm input[name=phone]').fill('3330000000');await page.locator('input[name=address]').fill('Via di prova 1');await page.locator('input[name=privacy]').check();await page.locator('select[name=province]').selectOption('manual');await page.locator('#shippingProvinceManual').fill('Torino');await page.locator('#shippingCityManual').fill('Torino');await page.locator('input[name=cap]').fill('10100');
   
   await page.locator('#checkoutNext').click();assert.match(await page.locator('#checkoutReview').textContent(),/2 × Borsa many/);assert.ok(await page.locator('#sendOrder').isVisible());
   await page.locator('#checkoutBack').click();await page.locator('#closeCart').click();await page.locator('#overlay').waitFor({state:'hidden'});
