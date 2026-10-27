@@ -11,7 +11,7 @@ const root=path.resolve(__dirname,'..'),html=fs.readFileSync(root+'/catalogo-nuo
    return r.fulfill({contentType:'application/json',body:JSON.stringify({items:[{id,name:'Borsa & Pelle',sku:'BORSA-123',images:[],image:'',price:49,category:'Borse',description:'Pelle vera',availability:'disponibile'}],imagesExpiresAt:Date.now()+3600000})});
   });
   await page.addInitScript(()=>localStorage.setItem('vg-shop-session-v1','a'.repeat(64)));
-  await page.goto('https://meapps-it.github.io/VG/catalogo-nuovo.html');await page.locator('.item').waitFor();assert.equal(await page.locator('[data-whatsapp]').count(),5);
+  await page.goto('https://meapps-it.github.io/VG/catalogo-nuovo.html');await page.locator('.item').waitFor();assert.equal(await page.locator('[data-whatsapp]').count(),4);
   for(const href of await page.locator('[data-whatsapp]').evaluateAll(links=>links.map(a=>a.href))){const u=new URL(href);assert.equal(u.pathname,'/393351604686');assert(!/https?:\/\/|www\./i.test(u.searchParams.get('text')||''))};
   await page.locator('[data-detail]').first().click();await page.evaluate(()=>history.replaceState(null,'','#admin_token=DO_NOT_LEAK'));
   const contact=page.locator('[data-whatsapp=product]');await contact.focus();const href=await contact.getAttribute('href'),url=new URL(href),text=url.searchParams.get('text');assert.match(text,/Borsa & Pelle/);assert.match(text,/BORSA-123/);assert(!/https?:\/\/|www\.|simplexapp\.it|github\.io/i.test(text),'WhatsApp message must contain no link');assert(!text.includes('simplexapp.it/shop')); assert(!text.includes('admin_token')&&!text.includes('DO_NOT_LEAK'));
@@ -21,7 +21,7 @@ const root=path.resolve(__dirname,'..'),html=fs.readFileSync(root+'/catalogo-nuo
   await page.locator('[name=province]').selectOption('manual');await page.locator('#shippingProvinceManual').fill('Cuneo');await page.locator('#shippingCityManual').fill('Beinette');await page.locator('[name=cap]').fill('12081');await page.locator('[name=privacy]').check();
   await page.locator('#checkoutNext').click();assert.match(await page.locator('#checkoutReview').textContent(),/2 × Borsa & Pelle/);assert.equal(sent.length,0);await page.locator('#sendOrder').click();await page.locator('#orderStatus').filter({hasText:'Richiesta inviata! Numero: ISOLATED-ORDER-1'}).waitFor();assert.match(await page.locator('#shopNotice[data-kind=success]').textContent(),/ISOLATED-ORDER-1/);
   assert.equal(sent.length,1);assert.deepEqual(sent[0].items,[{id,qty:2}]);assert.equal(sent[0].customer.cap,'12081');assert.equal(await page.locator('#cartCount').textContent(),'0');assert.deepEqual(errors,[]);
-  console.log('PASS contacts + checkout '+width+'px: five WhatsApp links including account assistance, correct number, article/SKU message, no admin-token leak, chooser-only chat and one isolated order submission');await context.close();
+  console.log('PASS contacts + checkout '+width+'px: four WhatsApp links including account assistance, correct number, article/SKU message, no admin-token leak, chooser-only chat and one isolated order submission');await context.close();
  }
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
 
