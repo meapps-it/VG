@@ -692,7 +692,7 @@ window.addEventListener('error',e=>{
     <div class="cards dashMain">
       <div class="stat" data-action="openCurrentOrders" role="button" tabindex="0"><div class="k">Ordini in corso</div><div id="c_open_orders" class="v big">0</div><div class="sub">non ancora consegnati</div></div>
       <div class="stat" data-go="finanze"><div class="k">Guadagno mese</div><div id="c_profit_month" class="v big">0</div><div class="sub">margine del mese corrente</div></div>
-      <div class="stat" data-go="ordini"><div class="k">Media ordini</div><div id="c_avg_order" class="v big">0</div><div class="sub">valore medio per ordine</div></div>
+      <div class="stat" id="catalogCustomersStat" role="button" tabindex="0" aria-label="Apri clienti registrati al catalogo"><div class="k">Clienti catalogo</div><div id="c_catalog_customers" class="v big">…</div><div id="c_catalog_last_access" class="sub">Caricamento ultimo accesso…</div></div>
       <div class="stat" data-go="finanze"><div class="k">Guadagno totale</div><div id="c_profit_total" class="v big">0</div><div class="sub">margine complessivo</div></div>
     </div>
 
@@ -8628,7 +8628,7 @@ function renderHome(){
 
   document.getElementById('c_open_orders').textContent=inCorso;
   document.getElementById('c_profit_month').textContent=money(guadagnoMese);
-  document.getElementById('c_avg_order').textContent=money(mediaOrdini);
+  window.VG_CUSTOMERS?.renderDashboard();
   document.getElementById('c_profit_total').textContent=money(guadagnoTot);
   document.getElementById('c_inc_month').textContent=money(incMese);
   document.getElementById('c_due_total').textContent=money(daIncassare);

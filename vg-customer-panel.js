@@ -14,7 +14,14 @@
  async function request(action,body){const token=await session();if(!token)throw Error('Accedi al gestionale come amministratore.');const response=await fetch(endpoint+'?action='+action,{method:body===undefined?'GET':'POST',headers:{Authorization:'Bearer '+token,...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)}),cache:'no-store'});const data=await response.json();if(!response.ok)throw Error(data.error||'Operazione non riuscita');return data}
  function line(root,text){const p=document.createElement('p');p.textContent=text;root.append(p);return p}
  function button(root,text,handler){const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=async()=>{b.disabled=true;try{await handler(b)}catch(e){el('vgCustomerPanelStatus').textContent=e.message}finally{b.disabled=false}};root.append(b);return b}
+ function renderDashboard(data=current){
+  const count=el('c_catalog_customers'),last=el('c_catalog_last_access');if(!count||!last)return;
+  count.textContent=data?Number(data.total||0).toLocaleString('it-IT'):'—';
+  const access=data?.latestAccess,who=access&&(access.name||access.email||(access.phone?'+'+access.phone:'Cliente'));
+  last.textContent=data?(access?'Ultimo accesso: '+who+' · '+date(access.at)+' (Italia)':'Nessun accesso ancora registrato.'):'Accedi al gestionale per vedere gli accessi.';
+ }
  function render(data,append,summaryOnly=false){
+  renderDashboard(data);
   current=data;el('vgCustomerBadge').textContent=data.unread?data.unread+' nuove':data.pending?data.pending+' in attesa':'Apri';el('vgCustomerTileHint').textContent=data.pending+' da autorizzare · '+data.total+' registrati';tile.classList.toggle('has-unread',data.unread>0);
   if(!dialog.open)return;
   el('vgCustomerCounts').textContent=data.total+' clienti · '+data.pending+' in attesa · '+data.unread+' nuove registrazioni da leggere';
@@ -36,8 +43,8 @@
  }
  async function load(append=false){el('vgCustomerPanelStatus').textContent='Caricamento…';try{const data=await request('customer-admin&status='+encodeURIComponent(el('vgCustomerFilter').value)+'&offset='+(append?offset+50:0));render(data,append);el('vgCustomerPanelStatus').textContent=''}catch(e){el('vgCustomerPanelStatus').textContent=e.message}}
  function open(){if(typeof setTopMenuOpen==='function')setTopMenuOpen(false);if(!dialog.open)dialog.showModal();load(false)}
- tile.onclick=opener.onclick=open;el('vgCustomersClose').onclick=()=>dialog.close();el('vgCustomerRefresh').onclick=()=>load(false);el('vgCustomerFilter').onchange=()=>load(false);el('vgCustomerNext').onclick=()=>load(true);
+ tile.onclick=opener.onclick=open;const dashboardCard=el('catalogCustomersStat');if(dashboardCard){dashboardCard.onclick=open;dashboardCard.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open()}};}el('vgCustomersClose').onclick=()=>dialog.close();el('vgCustomerRefresh').onclick=()=>load(false);el('vgCustomerFilter').onchange=()=>load(false);el('vgCustomerNext').onclick=()=>load(true);
  el('vgCustomerRead').onclick=async()=>{try{await request('customer-admin-read',{ids:current.notifications.filter(n=>!n.read_at).map(n=>n.id)});await load(false)}catch(e){el('vgCustomerPanelStatus').textContent=e.message}};
- async function poll(){if(refreshing||document.hidden)return;refreshing=true;try{const token=await session();if(!token){if(lastToken){if(dialog.open)dialog.close();current=null;el('vgCustomerBadge').textContent='Apri';el('vgCustomerTileHint').textContent='Registrazioni e ultimi accessi';el('vgCustomerList').replaceChildren();el('vgRegistrationAlerts').replaceChildren();tile.classList.remove('has-unread')}lastToken='';return}lastToken=token;render(await request('customer-admin'),false,true)}catch{}finally{refreshing=false}}
- window.VG_CUSTOMERS={open,refresh:poll};Promise.resolve(window.VG_SUPABASE_READY).then(client=>client?.auth?.onAuthStateChange?.(()=>setTimeout(poll,0))).catch(()=>{});poll();setInterval(poll,30000);document.addEventListener('visibilitychange',poll);
+ async function poll(){if(refreshing||document.hidden)return;refreshing=true;try{const token=await session();if(!token){if(lastToken){if(dialog.open)dialog.close();current=null;renderDashboard(null);el('vgCustomerBadge').textContent='Apri';el('vgCustomerTileHint').textContent='Registrazioni e ultimi accessi';el('vgCustomerList').replaceChildren();el('vgRegistrationAlerts').replaceChildren();tile.classList.remove('has-unread')}lastToken='';return}lastToken=token;render(await request('customer-admin'),false,true)}catch{}finally{refreshing=false}}
+ window.VG_CUSTOMERS={open,refresh:poll,renderDashboard};Promise.resolve(window.VG_SUPABASE_READY).then(client=>client?.auth?.onAuthStateChange?.(()=>setTimeout(poll,0))).catch(()=>{});poll();setInterval(poll,30000);document.addEventListener('visibilitychange',poll);
 })();

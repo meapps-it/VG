@@ -1,6 +1,6 @@
 (function(){
  'use strict';
- const customerStyle=document.createElement('link');customerStyle.rel='stylesheet';customerStyle.href='./vg-customer-panel.css?v=2';document.head.append(customerStyle);const customerScript=document.createElement('script');customerScript.src='./vg-customer-panel.js?v=2';document.head.append(customerScript);
+ const customerStyle=document.createElement('link');customerStyle.rel='stylesheet';customerStyle.href='./vg-customer-panel.css?v=3';document.head.append(customerStyle);const customerScript=document.createElement('script');customerScript.src='./vg-customer-panel.js?v=3';document.head.append(customerScript);
  const endpoint='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-shop-catalog?action=stats';
  const opener=document.getElementById('vgCatalogStatsOpen');if(!opener)return;
  const hybrid=/\bVgHybrid\/\d/.test(navigator.userAgent);
