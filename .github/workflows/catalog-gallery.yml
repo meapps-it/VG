@@ -33,7 +33,7 @@ jobs:
           NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
           VG_CATALOG_SCREENSHOTS: '${{ runner.temp }}/vg-catalog-screenshots'
         run: |
-          node --test tests/catalog-customer.test.cjs tests/catalog-variants.test.cjs tests/catalog-api.test.cjs tests/catalog-access.test.cjs tests/catalog-order.test.cjs tests/catalog-push.test.cjs tests/catalog-registration-push.test.cjs
+          node --test tests/catalog-customer.test.cjs tests/catalog-variants.test.cjs tests/catalog-api.test.cjs tests/catalog-access.test.cjs tests/catalog-order.test.cjs tests/catalog-push.test.cjs tests/catalog-registration-push.test.cjs tests/catalog-password-reset.test.cjs
           node tests/catalog-auto-access.test.cjs
           node tests/catalog-navigation.test.cjs
           SHOP_NAV_BROWSER=webkit node tests/catalog-navigation.test.cjs
