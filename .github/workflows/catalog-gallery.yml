@@ -38,6 +38,9 @@ jobs:
           node tests/catalog-navigation.test.cjs
           SHOP_NAV_BROWSER=webkit node tests/catalog-navigation.test.cjs
           node tests/catalog-dom.test.cjs
+          node tests/catalog-boutique.test.cjs
+          node tests/catalog-boutique-browser.test.cjs
+          SHOP_NAV_BROWSER=webkit node tests/catalog-boutique-browser.test.cjs
           node tests/catalog-shipping.test.cjs
           node tests/catalog-feedback.test.cjs
           node tests/catalog-editing.test.cjs
