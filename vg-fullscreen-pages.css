@@ -1,0 +1,22 @@
+/* Full-screen application pages, preserving the existing cartoon palette and controls. */
+:root{--vg-page-gutter:clamp(16px,3vw,40px)}
+.modalwrap:not(#mConfirm){padding:0!important;align-items:stretch!important;justify-content:stretch!important;background:var(--bg,#f8fbff)!important;overscroll-behavior:contain}
+.modalwrap:not(#mConfirm)>.modal,
+html body dialog.vgStatsDialog{
+ box-sizing:border-box!important;width:100%!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important;
+}
+.modalwrap:not(#mConfirm)>.modal{padding:0 var(--vg-page-gutter) calc(24px + env(safe-area-inset-bottom))!important;overflow-x:hidden;overflow-y:auto;scroll-padding-top:90px;overscroll-behavior:contain}
+.vgPageHeader{position:sticky;top:0;z-index:8;display:flex;align-items:center;gap:16px;margin:0 calc(-1 * var(--vg-page-gutter)) 24px;padding:calc(12px + env(safe-area-inset-top)) var(--vg-page-gutter) 12px;background:#f8fbff;border-bottom:2px solid var(--vg-outline,#111)}
+.vgPageHeader>.h2,.vgPageHeader>h2{margin:0!important;line-height:1.25!important;font-size:clamp(18px,2.4vw,24px)!important}
+.vgPageBack{flex-shrink:0;min-height:44px;white-space:nowrap}
+html body dialog.vgStatsDialog{position:fixed;inset:0;padding:0!important;overflow:hidden!important}
+html body dialog.vgStatsDialog::backdrop{background:transparent}
+html body dialog.vgStatsDialog[open]{display:flex;flex-direction:column}
+html body .vgStatsHeader{flex:0 0 auto;padding:calc(14px + env(safe-area-inset-top)) var(--vg-page-gutter) 14px;gap:14px;border-bottom:2px solid var(--vg-outline,#111);background:#f8fbff}
+html body .vgStatsContent{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:20px var(--vg-page-gutter) calc(24px + env(safe-area-inset-bottom));align-content:start}
+html body .vgCustomersPanel .vgStatsContent{display:block}
+html body .vgStatsContent>*,.modalwrap:not(#mConfirm)>.modal>:not(.vgPageHeader){width:100%;max-width:1160px;margin-left:auto;margin-right:auto;box-sizing:border-box}
+html body .vgStatsHeader h2{font-size:clamp(19px,2.4vw,25px);line-height:1.2}
+@media(min-width:900px){#vgCustomerList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}.vgCustomerCard{margin:0 0 8px}.vgStatsSummary{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:450px){.vgPageHeader{gap:10px}.vgPageBack{padding:9px 11px!important}.vgStatsHeader{gap:10px!important}.vgStatsHeader button{padding:10px 12px!important}.vgCustomerTools button{min-height:44px}}

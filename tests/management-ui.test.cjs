@@ -45,7 +45,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   assert.equal(await page.locator('#vgStatsSummary strong').allTextContents().then(x=>x.join(',')),'6,24,24,9');assert.equal(await page.locator('#vgCustomerStatsSummary strong').allTextContents().then(x=>x.join(',')),'2,4,1');await page.locator('#vgRegisteredCustomers summary').click();assert.match(await page.locator('#vgRegisteredCustomers').textContent(),/393330000000/);await page.locator('#vgCustomerOrders summary').click();assert.match(await page.locator('#vgCustomerOrders').textContent(),/Misura 36/);assert.match(await page.locator('#vgCustomerOrders').textContent(),/Nero/);
   assert.equal(await page.locator('#vgStatsBars li').nth(2).locator('.vgStatsBar').evaluate(b=>b.getBoundingClientRect().height),0,'zero visits have no false column');
   assert(await page.locator('#vgStatsBars .vgStatsBar').nth(3).evaluate(b=>b.getBoundingClientRect().height>100));
-  assert(await page.locator('#vgStatsClose').isVisible());
+  assert(await page.locator('#vgStatsClose').isVisible());const fullscreen=await page.locator('#vgCatalogStats').boundingBox();assert.equal(fullscreen.x,0);assert.equal(fullscreen.y,0);assert.equal(Math.round(fullscreen.width),width);assert.equal(Math.round(fullscreen.height),844);
   assert(await page.locator('#vgStatsTitle').isVisible());
   console.log('STAT HEADER',width,hybrid,await page.locator('#vgStatsTitle').evaluate(e=>({text:e.textContent,color:getComputedStyle(e).color,rect:e.getBoundingClientRect().toJSON()})));
   const fonts=await page.locator('body,#vgCatalogStatsOpen,#vgStatsClose,.bulkPasteBox').evaluateAll(nodes=>nodes.map(n=>getComputedStyle(n).fontFamily));assert(fonts.every(f=>f==='sans-serif'));
@@ -59,6 +59,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   await page.locator('#vgStatsClose').click();
   await page.locator('#topMenuBtn').click();await page.locator('a[href="vgapp://password"]').click();
   await page.locator('#vgCustomersPanel').waitFor({state:'visible'});await page.locator('#vgCustomerList').getByRole('button',{name:'Autorizza',exact:true}).click();await page.locator('#vgCustomersClose').click();
+  await page.locator('#mCliView').evaluate(e=>e.style.display='flex');await page.locator('#mCliView .vgPageHeader').waitFor();const clientPage=await page.locator('#mCliView .modal').boundingBox();assert.equal(clientPage.x,0);assert.equal(clientPage.y,0);assert.equal(Math.round(clientPage.width),width);assert.equal(Math.round(clientPage.height),844);await page.locator('#mCliView').evaluate(e=>e.style.display='none');
   assert.deepEqual(errors,[]);
   console.log('PASS management '+width+'px '+(hybrid?'APK':'PWA')+': original dashboard, sales bars, shared system font, 7/30-day visit columns, zero visits, owner errors, retry and close');
   await context.close();

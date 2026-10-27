@@ -5,6 +5,7 @@ on:
       - 'index.html'
       - 'vg-catalog-stats.*'
       - 'vg-customer-panel.*'
+      - 'vg-fullscreen-pages.*'
       - 'vg-bold-theme.css'
       - 'vg-startup.js'
       - 'tests/management-*.test.cjs'
@@ -33,6 +34,7 @@ jobs:
           node --test tests/article-photos.test.cjs tests/article-sync.test.cjs tests/management-cloud.test.cjs
           node --test tests/management-order-roundtrip.test.cjs tests/management-customer-stats.test.cjs tests/management-startup.test.cjs tests/management-customer-panel.test.cjs
           node tests/management-customer-panel-ui.test.cjs
+          node tests/management-fullscreen.test.cjs
           node tests/management-ui.test.cjs
           node tests/management-actions.test.cjs
           node tests/management-boot-browser.test.cjs
