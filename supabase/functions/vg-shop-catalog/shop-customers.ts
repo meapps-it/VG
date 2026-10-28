@@ -35,7 +35,7 @@ export async function customerAction(db:any,req:Request,owner:string,action:stri
   let isNew=false;let account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status').eq('owner_id',owner).eq('auth_user_id',user.id).maybeSingle();if(account.error)throw account.error;
   if(!account.data){
    const salt=hex(crypto.getRandomValues(new Uint8Array(16)));
-   account=await db.from('vg_shop_customers').insert({owner_id:owner,auth_user_id:user.id,email:user.email,phone:'',phone_hash:await digest(owner+':google:'+user.id),pin_salt:salt,pin_hash:await digest(hex(crypto.getRandomValues(new Uint8Array(32)))),profile:{},access_status:'pending',privacy_at:new Date().toISOString()}).select('id,phone,profile,email,access_status').single();
+   account=await db.from('vg_shop_customers').insert({owner_id:owner,auth_user_id:user.id,email:user.email,phone:'',phone_hash:await digest(owner+':google:'+user.id),pin_salt:salt,pin_hash:await digest(hex(crypto.getRandomValues(new Uint8Array(32)))),profile:{},access_status:'approved',privacy_at:new Date().toISOString()}).select('id,phone,profile,email,access_status').single();
    isNew=!account.error;
    if(account.error?.code==='23505')account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status').eq('owner_id',owner).eq('auth_user_id',user.id).single();if(account.error)throw account.error;
   }
@@ -52,7 +52,7 @@ export async function customerAction(db:any,req:Request,owner:string,action:stri
   const attempt=await db.from('vg_shop_customer_attempts').insert({ip_hash:ipHash,phone_hash:phoneHash});if(attempt.error)throw attempt.error;
   if(action==='customer-register'){
    const salt=hex(crypto.getRandomValues(new Uint8Array(16)));
-   const inserted=await db.from('vg_shop_customers').insert({owner_id:owner,phone,phone_hash:phoneHash,pin_salt:salt,pin_hash:await passwordHash(pin,salt),profile:{},access_status:'pending',privacy_at:new Date().toISOString()}).select('id,phone,profile,email,access_status').single();
+   const inserted=await db.from('vg_shop_customers').insert({owner_id:owner,phone,phone_hash:phoneHash,pin_salt:salt,pin_hash:await passwordHash(pin,salt),profile:{},access_status:'approved',privacy_at:new Date().toISOString()}).select('id,phone,profile,email,access_status').single();
    if(inserted.error?.code==='23505')return out({error:'Se hai già un account con questo numero, premi Accedi.'},409);if(inserted.error)throw inserted.error;await dispatchCustomerRegistration(db,owner,inserted.data.id);return out(await issue(db,owner,inserted.data));
   }
   const account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status,pin_salt,pin_hash').eq('owner_id',owner).eq('phone_hash',phoneHash).maybeSingle();if(account.error)throw account.error;
