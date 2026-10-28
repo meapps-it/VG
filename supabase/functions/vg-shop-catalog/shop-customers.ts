@@ -34,8 +34,9 @@ export async function customerAction(db:any,req:Request,owner:string,action:stri
   if(body.privacy!==true)return out({error:'Accetta il trattamento dei dati per continuare'},400);
   let isNew=false;let account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status').eq('owner_id',owner).eq('auth_user_id',user.id).maybeSingle();if(account.error)throw account.error;
   if(!account.data){
+   const name=text(user.user_metadata?.full_name||user.user_metadata?.name,100);if(name.length<2)return out({error:'Il profilo Google non contiene il nome. Registrati con telefono e nome.'},400);
    const salt=hex(crypto.getRandomValues(new Uint8Array(16)));
-   account=await db.from('vg_shop_customers').insert({owner_id:owner,auth_user_id:user.id,email:user.email,phone:'',phone_hash:await digest(owner+':google:'+user.id),pin_salt:salt,pin_hash:await digest(hex(crypto.getRandomValues(new Uint8Array(32)))),profile:{},access_status:'approved',privacy_at:new Date().toISOString()}).select('id,phone,profile,email,access_status').single();
+   account=await db.from('vg_shop_customers').insert({owner_id:owner,auth_user_id:user.id,email:user.email,phone:'',phone_hash:await digest(owner+':google:'+user.id),pin_salt:salt,pin_hash:await digest(hex(crypto.getRandomValues(new Uint8Array(32)))),profile:{name},access_status:'approved',privacy_at:new Date().toISOString()}).select('id,phone,profile,email,access_status').single();
    isNew=!account.error;
    if(account.error?.code==='23505')account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status').eq('owner_id',owner).eq('auth_user_id',user.id).single();if(account.error)throw account.error;
   }
@@ -45,6 +46,7 @@ export async function customerAction(db:any,req:Request,owner:string,action:stri
  if(['customer-register','customer-login'].includes(action)&&req.method==='POST'){
   const raw=await req.text();if(raw.length>4000)return out({error:'Richiesta troppo grande'},413);let body:any;try{body=JSON.parse(raw)}catch{return out({error:'Richiesta non valida'},400)}
   const phone=customerPhone(body.phone),pin=typeof body.password==='string'?body.password:(typeof body.pin==='string'?body.pin:'');if(!phone||pin.length<6||pin.length>128)return out({error:'Inserisci telefono e password personale da 6 a 128 caratteri'},400);
+  const name=typeof body.name==='string'?body.name.trim():'';if(action==='customer-register'&&(name.length<2||name.length>100))return out({error:'Inserisci il tuo nome (da 2 a 100 caratteri)'},400);
   if(action==='customer-register'&&body.privacy!==true)return out({error:'Accetta il trattamento dei dati per creare l’account'},400);
   const phoneHash=await digest(owner+':customer:'+phone),ip=(req.headers.get('cf-connecting-ip')||req.headers.get('x-forwarded-for')||'unknown').split(',')[0].trim(),ipHash=await digest('vg-customer:'+ip),since=new Date(Date.now()-15*60000).toISOString();
   const counts=await Promise.all(['ip_hash','phone_hash'].map((column,i)=>db.from('vg_shop_customer_attempts').select('id',{count:'exact',head:true}).eq(column,i?phoneHash:ipHash).gte('attempted_at',since)));
@@ -52,7 +54,7 @@ export async function customerAction(db:any,req:Request,owner:string,action:stri
   const attempt=await db.from('vg_shop_customer_attempts').insert({ip_hash:ipHash,phone_hash:phoneHash});if(attempt.error)throw attempt.error;
   if(action==='customer-register'){
    const salt=hex(crypto.getRandomValues(new Uint8Array(16)));
-   const inserted=await db.from('vg_shop_customers').insert({owner_id:owner,phone,phone_hash:phoneHash,pin_salt:salt,pin_hash:await passwordHash(pin,salt),profile:{},access_status:'approved',privacy_at:new Date().toISOString()}).select('id,phone,profile,email,access_status').single();
+   const inserted=await db.from('vg_shop_customers').insert({owner_id:owner,phone,phone_hash:phoneHash,pin_salt:salt,pin_hash:await passwordHash(pin,salt),profile:{name},access_status:'approved',privacy_at:new Date().toISOString()}).select('id,phone,profile,email,access_status').single();
    if(inserted.error?.code==='23505')return out({error:'Se hai già un account con questo numero, premi Accedi.'},409);if(inserted.error)throw inserted.error;await dispatchCustomerRegistration(db,owner,inserted.data.id);return out(await issue(db,owner,inserted.data));
   }
   const account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status,pin_salt,pin_hash').eq('owner_id',owner).eq('phone_hash',phoneHash).maybeSingle();if(account.error)throw account.error;
