@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.161-fullscreen-pages';
+const VERSION = 'gestionale-vg-1.0.162-promotions';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json', './vg-quality-pricing.js', './vg-bold-theme.css?v=1.0.156', './vg-startup.js?v=1.0.156',

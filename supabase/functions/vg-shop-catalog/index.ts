@@ -86,7 +86,10 @@ Deno.serve(async(req)=>{
       return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p),price:promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita),originalPrice:Number(p.prezzo_vendita),promotion:promo,image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
     });
     await trackVisit(db,OWNER,viewer);
-    return out({items,imagesExpiresAt,administrator:viewer.is_admin});
+    const promo=await db.from('vg_shop_promotion').select('enabled,title,body,image_url,product_ids').eq('owner_id',OWNER).eq('enabled',true).maybeSingle();
+    if(promo.error)throw promo.error;
+    const promotion=promo.data?{...promo.data,product_ids:promo.data.product_ids.filter((id:string)=>ids.includes(id))}:null;
+    return out({items,imagesExpiresAt,administrator:viewer.is_admin,promotion});
   }
   if(req.method!=="POST")return fail("Metodo non consentito",405);
   const length=Number(req.headers.get("content-length")||0);
