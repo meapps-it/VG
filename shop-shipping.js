@@ -41,7 +41,7 @@
    try{localStorage.setItem('vg-shop-shipping-remember-v1',remember?'1':'0');remember?localStorage.setItem('vg-shop-shipping-v1',JSON.stringify(saved)):localStorage.removeItem('vg-shop-shipping-v1')}catch{}
    if(options.notify!==false)window.dispatchEvent(new CustomEvent('vg-shipping-saved',{detail:remember?saved:null}));
   },
-  async applyProfile(saved,options={}){await this.load();if(options.ifUntouched){if(edited)return;try{if(localStorage.getItem('vg-shop-shipping-remember-v1')==='0')return}catch{}}if(!saved||!Object.values(saved).some(Boolean))return;apply(saved);this.save({notify:false})},
+  async applyProfile(saved,options={}){await this.load();if(options.ifUntouched){if(edited)return;try{if(!options.ignoreRememberPreference&&localStorage.getItem('vg-shop-shipping-remember-v1')==='0')return}catch{}}if(!saved||!Object.values(saved).some(Boolean))return;apply(saved);this.save({notify:false})},
   clear(){form.reset();edited=false;updateCities();try{localStorage.removeItem('vg-shop-shipping-v1')}catch{}},
   current(){return {name:field('name').value,phone:field('phone').value,address:field('address').value,...address()}},
   remembered(){return field('rememberShipping').checked}

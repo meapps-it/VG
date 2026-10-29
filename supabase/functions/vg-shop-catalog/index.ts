@@ -166,7 +166,7 @@ Deno.serve(async(req)=>{
     if(re)throw re;
     if(account){
       const linked=await db.from('vg_shop_customer_orders').insert({order_id:order.id,owner_id:OWNER,customer_id:account.customer_id,items:lines});if(linked.error)throw linked.error;
-      if(body.rememberShipping===true){const profileSaved=await db.from('vg_shop_customers').update({profile:shippingProfile(customer),updated_at:new Date().toISOString()}).eq('id',account.customer_id).eq('owner_id',OWNER);if(profileSaved.error)console.error('VG customer profile save unavailable')}
+      const profileSaved=await db.rpc('vg_sync_customer_address',{p_owner:OWNER,p_customer:account.customer_id,p_profile:shippingProfile(customer)});if(profileSaved.error||!profileSaved.data)console.error('VG customer profile save unavailable');
     }
     const queued=await db.from("vg_shop_notification_outbox").insert({order_id:order.id,owner_id:OWNER});
     if(queued.error)console.error("VG shop notification queue unavailable");

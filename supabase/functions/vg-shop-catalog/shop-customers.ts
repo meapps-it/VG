@@ -68,7 +68,7 @@ export async function customerAction(db:any,req:Request,owner:string,action:stri
  }
  if(action==='customer-profile'&&req.method==='POST'){
   const raw=await req.text();if(raw.length>5000)return out({error:'Dati troppo grandi'},413);let body:any;try{body=JSON.parse(raw)}catch{return out({error:'Dati non validi'},400)}
-  const profile=shippingProfile(body.profile);const saved=await db.from('vg_shop_customers').update({profile,updated_at:new Date().toISOString()}).eq('id',session.customer_id).eq('owner_id',owner);if(saved.error)throw saved.error;return out({ok:true,profile});
+  const profile=shippingProfile(body.profile);if(['name','address','city','province','cap'].every(k=>profile[k])){const synced=await db.rpc('vg_sync_customer_address',{p_owner:owner,p_customer:session.customer_id,p_profile:profile});if(synced.error)throw synced.error;if(!synced.data)return out({error:'Profilo non aggiornato'},409);return out({ok:true,profile})}const saved=await db.from('vg_shop_customers').update({profile,updated_at:new Date().toISOString()}).eq('id',session.customer_id).eq('owner_id',owner);if(saved.error)throw saved.error;return out({ok:true,profile});
  }
  if(action==='customer-orders'&&req.method==='GET'){
   const offset=Math.max(0,Math.min(10000,Number(new URL(req.url).searchParams.get('offset'))||0));if(!Number.isInteger(offset))return out({error:'Pagina non valida'},400);
