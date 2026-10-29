@@ -128,7 +128,7 @@ body{background:linear-gradient(145deg,#89a9d3,#b1c0dd 58%,#85bdc5);color:#152b4
 .top{background:#abc6e8!important;box-shadow:0 3px 0 #426792!important}
 .top .date{color:#203f65!important}.top .topMenuBtn{background:#2760a5!important;color:#fff!important}.top .topMenuBtnBar{background:#fff!important}
 .card,.row,.socialCard,.socialFolder{background:#c4d5eb;box-shadow:0 4px 0 #486588!important}
-.heroSpot{background:linear-gradient(125deg,#84acdf,#9e9cda)!important;color:#142a46}
+.heroSpot{background:#fff!important;color:#142a46}
 .heroSpot .title,.heroSpot .desc,.heroSpot .eyebrow,.sparkTitle{color:#152b46!important}
 .stat{background:#86afe1}.stat:nth-child(4n+2){background:#77c4aa}.stat:nth-child(4n+3){background:#eab46d}.stat:nth-child(4n+4){background:#b39add}
 .stat .k,.stat .sub{color:#17334e}.stat .v{color:#143f6b}.stat .pricePaid{color:#095736!important}
