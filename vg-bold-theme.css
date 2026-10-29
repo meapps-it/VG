@@ -158,3 +158,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 :root{--bg:#fff}html,body,.app,.top,.navBottom,.topMenuPanel{background:#fff!important}
 .modalwrap:not(#mConfirm)>.modal,#mArtEdit .modal.artModal,#mSocialEdit .modal,html body dialog.vgStatsDialog,html body .vgStatsContent,html body .vgPageHeader,html body .vgStatsHeader{background:#fff!important;color:#172d47!important}
 .vgPageHeader>.h2,.vgPageHeader>h2,html body .vgStatsHeader h2{color:#172d47!important}
+
+/* Rounded dashboard columns and readable chart labels. */
+.heroSpot .sparkBars{gap:10px;height:102px}
+.heroSpot .sparkCol{gap:8px}
+.heroSpot .sparkBarWrap{height:76px;overflow:visible;border-radius:0}
+.heroSpot button.sparkBarBtn{border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;min-height:0;justify-content:center}
+.heroSpot .sparkBar{width:72%;max-width:34px;border-radius:999px;background:linear-gradient(180deg,#4d96f3,#2054ce);box-shadow:inset 0 1px 1px #ffffff70,0 2px 3px #17395e20}
+.heroSpot .sparkBar.soft{background:linear-gradient(180deg,#ffc542,#eaa000)}
+.heroSpot .sparkTitle{gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.heroSpot .sparkTitle span{color:#263c57!important;font-weight:800;font-size:12px;line-height:1.35}
+.heroSpot .sparkLbl{color:#263c57!important;font-weight:800;font-size:12px;line-height:1.3}
+.heroSpot .eyebrow{color:#263c57!important;font-weight:800}
+.heroSpot .title{font-weight:800}
+.heroSpot .desc{color:#263c57!important;font-weight:700}
+.heroSpot button.sparkBarBtn:focus-visible{outline:3px solid #174fba!important;outline-offset:3px;border-radius:12px!important}
+@media(max-width:360px){.heroSpot .sparkBars{gap:7px}.heroSpot .sparkTitle span{font-size:11px}}
