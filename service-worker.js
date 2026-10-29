@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.169-simple-address';
+const VERSION = 'gestionale-vg-1.0.170-profile-open';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json', './vg-quality-pricing.js', './vg-bold-theme.css?v=1.0.156', './vg-startup.js?v=1.0.156',
