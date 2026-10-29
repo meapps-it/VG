@@ -153,3 +153,8 @@ input::placeholder,textarea::placeholder{color:#425876;opacity:1}
 .navBottom button.active{background:#164cac!important;color:#fff!important}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #081e3b;outline-offset:3px}
 @media print{body,.modalwrap:not(#mConfirm)>.modal,#mArtEdit .modal.artModal{background:#fff!important;color:#111!important}}
+
+/* White backgrounds, retaining colored cards and buttons. */
+:root{--bg:#fff}html,body,.app,.top,.navBottom,.topMenuPanel{background:#fff!important}
+.modalwrap:not(#mConfirm)>.modal,#mArtEdit .modal.artModal,#mSocialEdit .modal,html body dialog.vgStatsDialog,html body .vgStatsContent,html body .vgPageHeader,html body .vgStatsHeader{background:#fff!important;color:#172d47!important}
+.vgPageHeader>.h2,.vgPageHeader>h2,html body .vgStatsHeader h2{color:#172d47!important}
