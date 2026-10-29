@@ -1,0 +1,5 @@
+create table public.vg_shop_customer_details(customer_id uuid primary key references public.vg_shop_customers(id) on delete cascade,owner_id uuid not null references auth.users(id),addresses jsonb not null default '[]' check(jsonb_typeof(addresses)='array' and jsonb_array_length(addresses)<=5),rating integer check(rating between 1 and 5),notes text not null default '' check(char_length(notes)<=4000),updated_at timestamptz not null default now());
+alter table public.vg_shop_customer_details enable row level security;
+revoke all on public.vg_shop_customer_details from anon,authenticated;
+grant select,insert,update on public.vg_shop_customer_details to authenticated;
+create policy dossier_owner on public.vg_shop_customer_details for all to authenticated using(owner_id=(select auth.uid()) and exists(select 1 from public.vg_shop_customers c where c.id=customer_id and c.owner_id=(select auth.uid()))) with check(owner_id=(select auth.uid()) and exists(select 1 from public.vg_shop_customers c where c.id=customer_id and c.owner_id=(select auth.uid())));

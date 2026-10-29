@@ -1,3 +1,4 @@
+import {dossierAction} from './customer-dossier.ts';
 import {passwordResetAction} from './shop-password-reset.ts';
 import {customerAdminAction} from './shop-customer-admin.ts';
 import {articleOptions,requestedVariant,articleMetadata,articleHasActivePromo} from "./shop-variants.ts";
@@ -22,6 +23,7 @@ Deno.serve(async(req)=>{
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
   const url=new URL(req.url);
   const action=url.searchParams.get("action")||"";
+  const dossier=await dossierAction(db,req,OWNER,action,out);if(dossier)return dossier;
   const resetHandled=await passwordResetAction(db,req,OWNER,action,out);if(resetHandled)return resetHandled;
   const adminHandled=await customerAdminAction(db,req,OWNER,action,out);if(adminHandled)return adminHandled;
   const handled=await accessAction(db,req,OWNER,action,out);if(handled)return handled;
