@@ -35,3 +35,13 @@ export function requestedVariant(p:any,entry:any){
  if(!options.colors.length&&color&&color!==options.fixedColor)throw new Error('Colore non previsto per '+p.nome);
  return {size:options.sizes.length?size:options.fixedSize,color:chosen?.label||options.fixedColor,colorNumber:chosen?.number||null};
 }
+
+// Same active-promotion rules as the administration's Promo badge.
+export function articleHasActivePromo(p:any,today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())){
+ const m=articleMetadata(p),live=(end:any)=>!/^\d{4}-\d{2}-\d{2}$/.test(String(end||''))||String(end)>=today;
+ const personal=!!m.promoAttiva&&Number(m.prezzoPromo)>0&&live(m.scadenzaPromoPersonale||m.scadenzaPromo);
+ const values=[m.costoUsdPromo,m.costoUSDPromo,m.prezzoFornitorePromoUsd,m.promoCostoUsd];
+ const supplierCost=values.find(v=>v!==undefined&&v!==null&&v!==''&&Number.isFinite(Number(v)));
+ const supplier=Number(supplierCost)>0&&m.promoFornitoreAttiva!==false&&live(m.scadenzaPromoFornitore);
+ return personal||supplier;
+}

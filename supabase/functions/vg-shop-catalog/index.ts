@@ -1,6 +1,6 @@
 import {passwordResetAction} from './shop-password-reset.ts';
 import {customerAdminAction} from './shop-customer-admin.ts';
-import {articleOptions,requestedVariant,articleMetadata} from "./shop-variants.ts";
+import {articleOptions,requestedVariant,articleMetadata,articleHasActivePromo} from "./shop-variants.ts";
 import {customerAction,customerSession,shippingProfile} from "./shop-customers.ts";
 import {accessAction,catalogSession,trackVisit} from "./shop-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
@@ -88,7 +88,7 @@ Deno.serve(async(req)=>{
     await trackVisit(db,OWNER,viewer);
     const promo=await db.from('vg_shop_promotion').select('enabled,title,body,image_url,product_ids').eq('owner_id',OWNER).eq('enabled',true).maybeSingle();
     if(promo.error)throw promo.error;
-    const promotion=promo.data?{...promo.data,product_ids:promo.data.product_ids.filter((id:string)=>ids.includes(id))}:null;
+    const promotion=promo.data?{...promo.data,product_ids:promo.data.product_ids.filter((id:string)=>(data||[]).some((p:any)=>p.id===id&&articleHasActivePromo(p)))}:null;
     return out({items,imagesExpiresAt,administrator:viewer.is_admin,promotion});
   }
   if(req.method!=="POST")return fail("Metodo non consentito",405);
