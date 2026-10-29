@@ -121,3 +121,35 @@ input::placeholder,textarea::placeholder{color:#687a94;opacity:1}
 .navBottom button{flex:0 0 auto;min-width:106px;max-width:none;min-height:46px;flex-direction:row;gap:7px;padding:11px 13px;font-size:12px;white-space:nowrap;overflow-wrap:normal;border-radius:8px!important;scroll-snap-align:start}
 .navBottom button:before{flex:0 0 18px}.navBottom button.active{scroll-margin-inline:6px}
 @media(max-width:380px){.navBottom .inner{gap:7px}.navBottom button{min-width:102px;padding:11px 12px;font-size:12px}}
+
+/* 1.0.175 — stronger blue, teal and amber cartoon palette. */
+:root{--bg:#9eb6d5;--blue:#174fba;--soft:#b9cdeb;--muted:#304866;--vg-outline:#142840}
+body{background:linear-gradient(145deg,#89a9d3,#b1c0dd 58%,#85bdc5);color:#152b46}
+.top{background:#abc6e8!important;box-shadow:0 3px 0 #426792!important}
+.top .date{color:#203f65!important}.top .topMenuBtn{background:#2760a5!important;color:#fff!important}.top .topMenuBtnBar{background:#fff!important}
+.card,.row,.socialCard,.socialFolder{background:#c4d5eb;box-shadow:0 4px 0 #486588!important}
+.heroSpot{background:linear-gradient(125deg,#84acdf,#9e9cda)!important;color:#142a46}
+.heroSpot .title,.heroSpot .desc,.heroSpot .eyebrow,.sparkTitle{color:#152b46!important}
+.stat{background:#86afe1}.stat:nth-child(4n+2){background:#77c4aa}.stat:nth-child(4n+3){background:#eab46d}.stat:nth-child(4n+4){background:#b39add}
+.stat .k,.stat .sub{color:#17334e}.stat .v{color:#143f6b}.stat .pricePaid{color:#095736!important}
+.topMenuPanel{background:#91afd4!important}.topMenuLink{background:#bfd1eb!important;color:#17334e!important;box-shadow:0 3px 0 #41668f!important}
+.modalwrap:not(#mConfirm)>.modal,#mArtEdit .modal.artModal,#mSocialEdit .modal,html body dialog.vgStatsDialog{background:#a9bfdc!important;color:#172d47}
+html body .vgPageHeader,html body .vgStatsHeader{background:#24558f!important;color:#fff!important}
+.vgPageHeader>.h2,.vgPageHeader>h2,html body .vgStatsHeader h2{color:#fff!important}
+html body .vgStatsContent{background:#a9bfdc;color:#172d47}
+.btn:not(.primary):not(.danger):not(.promoOnlyBtn):not(.artAllBtn),.btnBig.gray,.vgPageBack,html body .vgStatsHeader button{background:#285f9f!important;color:#fff!important;box-shadow:0 3px 0 #193b65!important}
+.btn.primary,.btnBig.primary{background:#174fba!important;color:#fff!important;box-shadow:0 3px 0 #112f69!important}
+.btn.danger{background:#b62e49!important;color:#fff!important;box-shadow:0 3px 0 #6b2032!important}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea{background:#d9e5f4!important;color:#172d47!important;box-shadow:inset 0 2px 0 #90a9ca}
+input::placeholder,textarea::placeholder{color:#425876;opacity:1}
+.modal .k,.modal .small,.modal .sub,.modal label,.modal .muted{color:#304866}
+#sec_articoli .artToolbarCard{background:#8fb2df!important}#sec_articoli .artModeSwitch{background:#7097ca}
+#sec_articoli .artToolbarCard [data-action=newArt]{background:#187157!important;color:#fff!important}
+#sec_articoli .artCard{background:#c8d8ee}#sec_articoli .artPriceRow{background:#97b9e4;border-color:#5b7fa9}
+#sec_articoli .artCard.is-promo{background:#9ed1b7}#sec_articoli .artCard.is-unavailable{background:#e0a8b6}
+#sec_clienti>.card{background:#8ac5b4}#sec_ordini>.card:first-child{background:#b29bd7}#sec_finanze>.card:first-child{background:#96b8e2}
+.navBottom{background:#345981!important;border-top-color:#152b46}.navBottom button{background:#abc5e7;color:#152b46;box-shadow:0 3px 0 #172f4b!important}
+.navBottom button:nth-child(2){background:#73bda4}.navBottom button:nth-child(3){background:#ab8ad7}.navBottom button:nth-child(4){background:#df8da2}.navBottom button:nth-child(5){background:#70b5c4}.navBottom button:nth-child(6){background:#a6b5cc}
+.navBottom button.active{background:#164cac!important;color:#fff!important}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #081e3b;outline-offset:3px}
+@media print{body,.modalwrap:not(#mConfirm)>.modal,#mArtEdit .modal.artModal{background:#fff!important;color:#111!important}}
