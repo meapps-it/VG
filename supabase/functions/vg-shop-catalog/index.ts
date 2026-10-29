@@ -89,7 +89,14 @@ Deno.serve(async(req)=>{
     const promo=await db.from('vg_shop_promotion').select('enabled,title,body,image_url,product_ids').eq('owner_id',OWNER).eq('enabled',true).maybeSingle();
     if(promo.error)throw promo.error;
     const promotion=promo.data?{...promo.data,product_ids:promo.data.product_ids.filter((id:string)=>(data||[]).some((p:any)=>p.id===id&&articleHasActivePromo(p)))}:null;
-    return out({items,imagesExpiresAt,administrator:viewer.is_admin,promotion});
+    const noticeResult=await db.from('vg_shop_notice').select('enabled,kind,title,body,image_url,image_path').eq('owner_id',OWNER).eq('enabled',true).maybeSingle();
+    if(noticeResult.error)throw noticeResult.error;
+    let notice=null;
+    if(noticeResult.data?.enabled){const n=noticeResult.data;let image_url=n.image_url||'';
+      if(n.image_path&&n.image_path.startsWith(OWNER+'/catalog-notices/')){const signed=await db.storage.from('articoli').createSignedUrl(n.image_path,3600);if(signed.error)console.warn('Notice image unavailable');else image_url=signed.data?.signedUrl||''}
+      notice={enabled:true,kind:n.kind,title:n.title,body:n.body,image_url};
+    }
+    return out({items,imagesExpiresAt,administrator:viewer.is_admin,promotion,notice});
   }
   if(req.method!=="POST")return fail("Metodo non consentito",405);
   const length=Number(req.headers.get("content-length")||0);
