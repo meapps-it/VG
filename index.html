@@ -10539,7 +10539,7 @@ function articleMinimumPriceWarningHtml(){ return ''; }
 function articleUnderMarginListBadgeHtml(){ return ''; }
 
 function renderAll(){
-  window.VG_DASHBOARD_ALERTS?.refresh();
+  globalThis.VG_DASHBOARD_ALERTS?.refresh();
   // Other pages render on navigation; do not rebuild hidden article grids and photos.
   renderActivePage(currentHistoryPage());
   refreshArticleCategorySelects();
