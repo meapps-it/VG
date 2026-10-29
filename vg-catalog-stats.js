@@ -1,5 +1,6 @@
 (function(){
  'use strict';
+ const editorScript=document.createElement('script');editorScript.src='./vg-editor-stability.js?v=1';document.head.append(editorScript);
  const promoScript=document.createElement('script');promoScript.src='./vg-promotions.js?v=2';const saveScript=document.createElement('script');saveScript.src='./vg-save-feedback.js?v=1';saveScript.onload=()=>document.head.append(promoScript);document.head.append(saveScript);
  const pageStyle=document.createElement('link');pageStyle.rel='stylesheet';pageStyle.href='./vg-fullscreen-pages.css?v=1';document.head.append(pageStyle);const pageScript=document.createElement('script');pageScript.src='./vg-fullscreen-pages.js?v=1';document.head.append(pageScript);
  const customerStyle=document.createElement('link');customerStyle.rel='stylesheet';customerStyle.href='./vg-customer-panel.css?v=3';document.head.append(customerStyle);const customerScript=document.createElement('script');customerScript.src='./vg-customer-panel.js?v=3';document.head.append(customerScript);
