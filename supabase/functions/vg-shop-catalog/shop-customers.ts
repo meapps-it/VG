@@ -1,5 +1,15 @@
 import {dispatchCustomerRegistration} from './shop-customer-admin.ts';
 import {digest,passwordHash,requireOwner} from './shop-access.ts';
+export function customerOrderState(o:any){
+ const raw=String(o.note||'').match(/\[STATO:([^\]]+)\]/i)?.[1]?.trim().toLowerCase()||'';
+ if(o.stato==='annullato'||raw==='annullato')return 'Annullato';
+ if(o.stato==='consegnato'||raw==='consegnato')return 'Consegnato';
+ if(o.stato==='spedito'||raw==='spedito')return 'Spedito';
+ if(raw==='in lavorazione')return 'In lavorazione';
+ if(o.pagato||raw==='pagato')return 'Pagamento confermato';
+ if(raw==='in attesa di pagamento')return 'Disponibilità confermata · in attesa di pagamento';
+ return 'In attesa di conferma';
+}
 const hex=(a:Uint8Array)=>Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('');
 const text=(v:any,n:number)=>typeof v==='string'?v.trim().slice(0,n):'';
 function equal(a:string,b:string){let d=a.length^b.length;for(let i=0;i<Math.max(a.length,b.length);i++)d|=(a.charCodeAt(i)||0)^(b.charCodeAt(i)||0);return d===0}
@@ -74,7 +84,7 @@ export async function customerAction(db:any,req:Request,owner:string,action:stri
   const offset=Math.max(0,Math.min(10000,Number(new URL(req.url).searchParams.get('offset'))||0));if(!Number.isInteger(offset))return out({error:'Pagina non valida'},400);
   const result=await db.from('vg_shop_customer_orders').select('order_id,items,ordini!inner(numero_ordine,created_at,updated_at,note,cliente_id,stato,stato_pagamento,pagato,totale,tracking_code,tracking_url,corriere)').eq('owner_id',owner).eq('customer_id',session.customer_id).order('created_at',{ascending:false}).order('order_id').range(offset,offset+19);if(result.error)throw result.error;
   const ids=(result.data||[]).map((r:any)=>r.ordini.cliente_id).filter(Boolean);let addresses:any[]=[];if(ids.length){const a=await db.from('clienti').select('id,nome,telefono,indirizzo,provincia,citta,cap').eq('user_id',owner).in('id',ids);if(a.error)throw a.error;addresses=a.data||[]}
-  return out({orders:(result.data||[]).map((row:any)=>({id:row.order_id,customer:(()=>{const a=addresses.find(x=>x.id===row.ordini.cliente_id);return a?{name:a.nome,phone:a.telefono,address:a.indirizzo,province:a.provincia,city:a.citta,cap:a.cap}:null})(),number:row.ordini.numero_ordine,requestedAt:row.ordini.created_at,updatedAt:row.ordini.updated_at||row.ordini.created_at,editable:row.ordini.stato==='in_lavorazione'&&!row.ordini.pagato&&!String(row.ordini.note||'').includes('[STATO:'),status:row.ordini.stato,paymentStatus:row.ordini.stato_pagamento,paid:row.ordini.pagato,total:row.ordini.totale,tracking:row.ordini.tracking_code,carrier:row.ordini.corriere,items:row.items})),hasMore:(result.data||[]).length===20});
+  return out({orders:(result.data||[]).map((row:any)=>({id:row.order_id,customer:(()=>{const a=addresses.find(x=>x.id===row.ordini.cliente_id);return a?{name:a.nome,phone:a.telefono,address:a.indirizzo,province:a.provincia,city:a.citta,cap:a.cap}:null})(),number:row.ordini.numero_ordine,requestedAt:row.ordini.created_at,updatedAt:row.ordini.updated_at||row.ordini.created_at,editable:row.ordini.stato==='in_lavorazione'&&!row.ordini.pagato&&!String(row.ordini.note||'').includes('[STATO:'),displayStatus:customerOrderState(row.ordini),status:row.ordini.stato,paymentStatus:row.ordini.stato_pagamento,paid:row.ordini.pagato,total:row.ordini.totale,tracking:row.ordini.tracking_code,carrier:row.ordini.corriere,items:row.items})),hasMore:(result.data||[]).length===20});
  }
  if(action==='customer-logout'&&req.method==='POST'){
   const result=await db.from('vg_shop_customer_sessions').update({expires_at:new Date().toISOString()}).eq('owner_id',owner).eq('token_hash',await digest(req.headers.get('x-vg-customer-token')||''));if(result.error)throw result.error;const catalog=await db.from('vg_shop_sessions').update({expires_at:new Date().toISOString()}).eq('owner_id',owner).eq('token_hash',await digest(req.headers.get('x-vg-customer-token')||''));if(catalog.error)throw catalog.error;return out({ok:true});
