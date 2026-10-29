@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-1.0.173-cart-photos';
+const VERSION = 'gestionale-vg-1.0.174-menu-alerts';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json', './vg-quality-pricing.js', './vg-bold-theme.css?v=1.0.156', './vg-startup.js?v=1.0.156',
@@ -64,6 +64,9 @@ self.addEventListener('fetch', event => {
       url.pathname.endsWith('vg-startup.js') ||
       url.pathname.endsWith('vg-bold-theme.css') ||
       url.pathname.endsWith('vg-catalog-stats.js') ||
+      url.pathname.endsWith('vg-dashboard-alerts.js') ||
+      url.pathname.endsWith('vg-promotions.js') ||
+      url.pathname.endsWith('vg-notices.js') ||
       url.pathname.endsWith('vg-fullscreen-pages.js') ||
       url.pathname.endsWith('vg-fullscreen-pages.css') ||
       url.pathname.endsWith('vg-customer-panel.js') ||

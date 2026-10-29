@@ -606,7 +606,7 @@ window.addEventListener('error',e=>{
 </style>
 <link rel="stylesheet" href="./vg-bold-theme.css?v=1.0.160">
 <link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.160">
-<script src="./vg-catalog-stats.js?v=1.0.160" defer></script>
+<script src="./vg-catalog-stats.js?v=1.0.174" defer></script>
 </head>
 <body class="auth-locked">
 <script>window.SimplexClientConfig={status:'active',modules:{clienti:true,ordini:true,magazzino:true,statistiche:true}};window.SimplexLicense={refresh:()=>{},clear:()=>{},getKey:()=>''};</script>
@@ -661,18 +661,12 @@ window.addEventListener('error',e=>{
     </button>
     <div id="topMenuPanel" class="topMenuPanel" aria-hidden="true">
       <div class="topMenuGrid">
-        <button class="topMenuLink" type="button" data-go="home"><span class="topMenuEmoji">🏠</span><span class="topMenuText"><span class="topMenuTitle">Dashboard</span><span class="topMenuSub">Panoramica generale</span></span></button>
-        <button class="topMenuLink" type="button" data-go="articoli"><span class="topMenuEmoji">🏷️</span><span class="topMenuText"><span class="topMenuTitle">Articoli</span><span class="topMenuSub">Catalogo prodotti</span></span></button>
         <a class="topMenuLink" href="./catalogo.html" target="_blank" rel="noopener noreferrer" style="text-decoration:none"><span class="topMenuEmoji">👜</span><span class="topMenuText"><span class="topMenuTitle">Shop &amp; Parallelo</span><span class="topMenuSub">Apri catalogo clienti</span></span></a>
         <button class="topMenuLink" type="button" id="vgCatalogStatsOpen"><span class="topMenuEmoji">📊</span><span class="topMenuText"><span class="topMenuTitle">Statistiche catalogo</span><span class="topMenuSub">Visite, clienti registrati e ordini</span></span></button>
         <a class="topMenuLink vgNativeAction" hidden href="vgapp://preview"><span class="topMenuEmoji">🛍️</span><span class="topMenuText"><span class="topMenuTitle">Anteprima amministratore</span><span class="topMenuSub">Escludi i miei accessi al catalogo</span></span></a>
         <a class="topMenuLink vgNativeAction" hidden href="vgapp://password"><span class="topMenuEmoji">🔑</span><span class="topMenuText"><span class="topMenuTitle">Password clienti</span><span class="topMenuSub">Gestisci l’accesso al catalogo</span></span></a>
         <a class="topMenuLink vgNativeAction" hidden href="vgapp://notifications"><span class="topMenuEmoji">🔔</span><span class="topMenuText"><span class="topMenuTitle">Notifiche ordini</span><span class="topMenuSub">Abilita su questo telefono</span></span></a>
         <a class="topMenuLink vgNativeAction" hidden href="vgapp://refresh"><span class="topMenuEmoji">↻</span><span class="topMenuText"><span class="topMenuTitle">Aggiorna gestionale</span><span class="topMenuSub">Ricarica la versione online</span></span></a>
-        <button class="topMenuLink" type="button" data-go="clienti"><span class="topMenuEmoji">👥</span><span class="topMenuText"><span class="topMenuTitle">Clienti</span><span class="topMenuSub">Schede e contatti</span></span></button>
-        <button class="topMenuLink" type="button" data-go="ordini"><span class="topMenuEmoji">📦</span><span class="topMenuText"><span class="topMenuTitle">Ordini</span><span class="topMenuSub">Vendite e tracking</span></span></button>
-        <button class="topMenuLink" type="button" data-go="finanze"><span class="topMenuEmoji">💶</span><span class="topMenuText"><span class="topMenuTitle">Finanze</span><span class="topMenuSub">Incassi e margini</span></span></button>
-        <button class="topMenuLink" type="button" data-go="impostazioni"><span class="topMenuEmoji">⚙️</span><span class="topMenuText"><span class="topMenuTitle">Impostazioni</span><span class="topMenuSub">Configurazione app</span></span></button>
       </div>
     </div>
   </div>
@@ -689,6 +683,7 @@ window.addEventListener('error',e=>{
       <div id="homeSpark" class="sparkBars"></div>
     </div>
 
+    <section id="vgDashboardAlerts" aria-label="Nuove registrazioni e nuovi ordini"></section>
     <div class="cards dashMain">
       <div class="stat" data-action="openCurrentOrders" role="button" tabindex="0"><div class="k">Ordini in corso</div><div id="c_open_orders" class="v big">0</div><div class="sub">non ancora consegnati</div></div>
       <div class="stat" data-go="finanze"><div class="k">Guadagno mese</div><div id="c_profit_month" class="v big">0</div><div class="sub">margine del mese corrente</div></div>
@@ -10544,6 +10539,7 @@ function articleMinimumPriceWarningHtml(){ return ''; }
 function articleUnderMarginListBadgeHtml(){ return ''; }
 
 function renderAll(){
+  window.VG_DASHBOARD_ALERTS?.refresh();
   // Other pages render on navigation; do not rebuild hidden article grids and photos.
   renderActivePage(currentHistoryPage());
   refreshArticleCategorySelects();
