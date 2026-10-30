@@ -92,3 +92,15 @@ button:focus-visible,a:focus-visible{outline:3px solid #578ce0;outline-offset:4p
 #catalogLoading[hidden]{display:none}#catalogLoading{margin:12px 0 24px;min-height:110px;padding:22px}
 
 .cart-photo{display:flex;align-items:center;justify-content:center;width:80px;min-width:80px;height:96px;overflow:hidden;border:1px solid #dae3ef;border-radius:13px;background:#edf1f7}.cart-photo img{display:block;width:100%;height:100%;object-fit:contain;background:#fff}.cart-photo>span{font-size:10px;padding:7px;text-align:center;color:#617086}.cart-row:not(.unavailable-line){display:grid;grid-template-columns:80px minmax(0,1fr);align-items:start}.cart-row .qty{grid-column:1/-1}.cart-row>strong{min-width:0;overflow-wrap:anywhere}.checkout-review{white-space:normal}.checkout-review h3{font-size:14px;margin:10px 0 18px}.checkout-review p{line-height:1.6;margin:20px 0}.cart-review-item{display:grid;grid-template-columns:80px minmax(0,1fr);gap:14px;margin:14px 0;padding-bottom:14px;border-bottom:1px solid #dae3ef}.cart-review-item strong,.cart-review-item span:not(.cart-photo){display:block;overflow-wrap:anywhere}.cart-review-item>div{min-width:0;line-height:1.6}
+
+/* Recognizable Google sign-in and explicit consent feedback. */
+.access-card #accessGoogle{display:flex;align-items:center;justify-content:center;gap:12px;min-height:48px;padding:12px 18px;background:#fff!important;color:#1f1f1f!important;border:1px solid #747775;border-radius:12px;opacity:1;font-family:Arial,sans-serif;font-size:15px;font-weight:600;box-shadow:0 2px 4px #172b4914}
+.access-card #accessGoogle svg{flex:0 0 22px;display:block}
+.access-card #accessGoogle:hover{background:#f8fafd!important;border-color:#4285f4}
+.access-card #accessGoogle:focus-visible{outline:3px solid #4285f4;outline-offset:3px}
+.access-card #accessGoogle:disabled{opacity:.6;cursor:wait}
+.access-card #accessGooglePrivacyLabel{padding:10px 8px;border:2px solid transparent;border-radius:10px;margin-top:8px}
+.access-card #accessGooglePrivacyLabel.consent-invalid{border-color:#b42318;background:#fff1f0;color:#a11912}
+.access-card #accessGooglePrivacyLabel.consent-invalid input{outline:2px solid #b42318;outline-offset:2px;accent-color:#b42318}
+.access-card .access-consent-error{color:#b42318!important;font-size:13px;font-weight:700;line-height:1.45;margin:6px 0 14px}
+.access-card .access-consent-error[hidden]{display:none!important}
