@@ -1055,6 +1055,8 @@ window.addEventListener('error',e=>{
   <div class="hr"></div>
   <div class="h3">Prezzi</div>
   <div class="grid2" style="margin-top:10px">
+    <div><div class="k">Costo fornitore USD</div><div id="vArtSupplierUsd" class="t">-</div></div>
+    <div><div class="k">Costo fornitore EUR</div><div id="vArtSupplierEur" class="t">-</div></div>
     <div><div class="k">Prezzo vendita</div><div id="vArtPrezzo" class="t">-</div></div>
     <div>
       <div class="k">Prezzo in uso</div>
@@ -1063,6 +1065,8 @@ window.addEventListener('error',e=>{
       <div id="vArtMarginBox" style="display:none!important"></div>
     </div>
   </div>
+  <div id="vArtSupplierCostNote" class="small" style="margin-top:8px"></div>
+  <div id="vArtSupplierPromoCost" class="small" style="margin-top:8px" hidden></div>
   <div id="vArtOfficialWrap" style="display:none!important"><div id="vArtOfficialPrice"></div></div>
   <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="vArtPostFb" placeholder="Descrizione dell’articolo"></textarea></div>
   <div style="margin-top:10px">
@@ -10661,6 +10665,14 @@ async function openArtView(id){
   const officialPrice=Number(a.prezzoListinoUfficiale||0);
   if(officialWrap) officialWrap.style.display=officialPrice>0?'block':'none';
   if(officialPriceEl) officialPriceEl.textContent=officialPrice>0?money(officialPrice):'-';
+  const supplierCost=articleCostInfo(a);
+  const usdFormat=value=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'USD'}).format(value);
+  document.getElementById('vArtSupplierUsd').textContent=supplierCost?.usd>0?usdFormat(supplierCost.usd):'Non inserito';
+  document.getElementById('vArtSupplierEur').textContent=supplierCost?.eur>0?money(supplierCost.eur)+(supplierCost.estimated?' · stimato':''):'Non inserito';
+  document.getElementById('vArtSupplierCostNote').textContent=supplierCost?.usd>0?'Costo EUR del gestionale: USD × 0,90 + 5 € di costi aggiuntivi.':supplierCost?.estimated?'Stima del gestionale: costo effettivo del fornitore non inserito.':supplierCost?.eur>0?'Costo EUR registrato; importo originale in dollari non inserito.':'Inserisci il costo fornitore da Modifica.';
+  const promoCostEl=document.getElementById('vArtSupplierPromoCost'),promoUsd=getPromoSupplierUsd(a);
+  promoCostEl.hidden=!(promoUsd>0);
+  promoCostEl.textContent=promoUsd>0?'Costo promo fornitore: '+usdFormat(promoUsd)+' · '+money(promoSupplierCalc(a).costo)+(supplierPromoValid(a)?' · attiva':' · non attiva'):'';
   document.getElementById('vArtPrezzo').textContent=money(a.prezzoVendita||0);
   document.getElementById('vArtPrezzoUse').textContent=money(currentPrice(a));
   const promoActive=promoValid(a);
