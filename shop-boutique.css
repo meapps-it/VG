@@ -104,3 +104,10 @@ button:focus-visible,a:focus-visible{outline:3px solid #578ce0;outline-offset:4p
 .access-card #accessGooglePrivacyLabel.consent-invalid input{outline:2px solid #b42318;outline-offset:2px;accent-color:#b42318}
 .access-card .access-consent-error{color:#b42318!important;font-size:13px;font-weight:700;line-height:1.45;margin:6px 0 14px}
 .access-card .access-consent-error[hidden]{display:none!important}
+
+/* During callback verification, show progress instead of another login prompt. */
+body.shop-checking #accessGate .access-card>:not(img):not(#accessPending){display:none!important}
+body.shop-checking #accessPending{display:block!important;color:#203f69;font-weight:700;text-align:center;margin:20px 0 8px}
+body.shop-checking #accessPending::before{content:'';display:block;width:26px;height:26px;margin:0 auto 16px;border:3px solid #d6e4fa;border-top-color:#225cc2;border-radius:50%;animation:access-progress .8s linear infinite}
+@keyframes access-progress{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){body.shop-checking #accessPending::before{animation:none}}
