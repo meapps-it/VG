@@ -111,3 +111,12 @@ body.shop-checking #accessPending{display:block!important;color:#203f69;font-wei
 body.shop-checking #accessPending::before{content:'';display:block;width:26px;height:26px;margin:0 auto 16px;border:3px solid #d6e4fa;border-top-color:#225cc2;border-radius:50%;animation:access-progress .8s linear infinite}
 @keyframes access-progress{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){body.shop-checking #accessPending::before{animation:none}}
+
+/* Password visibility controls for login, registration and recovery. */
+.access-card .access-password-field{position:relative;display:block;width:100%;margin:7px 0 15px}
+.access-card .access-password-field input{display:block;width:100%;margin:0!important;padding-right:58px!important}
+.access-card .access-password-field button.password-toggle{position:absolute;inset:0 3px 0 auto;width:48px!important;min-height:44px;margin:auto 0;padding:0;display:flex;align-items:center;justify-content:center;border:0!important;border-radius:9px;background:transparent!important;box-shadow:none!important;color:#365575}
+.access-card .password-toggle:hover{color:#174fba}
+.access-card .password-toggle:focus-visible{outline:2px solid #225cc2;outline-offset:-4px}
+.password-toggle .password-eye-slash{display:none}
+.password-toggle[aria-pressed=true] .password-eye-slash{display:block}
