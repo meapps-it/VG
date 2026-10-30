@@ -9,7 +9,7 @@
  if(!valid(token))token='';if(!valid(adminToken))adminToken='';
  function busy(value){document.querySelectorAll('body>.brand-stage,body>main,body>.footer,body>.view,body>.overlay,body>.zoom-view').forEach(el=>el.inert=value);get('catalog').setAttribute('aria-busy',String(value))}
  function lock(message='') {document.body.classList.remove('shop-checking');document.body.classList.add('shop-locked');busy(true);get('accessError').textContent=message;get('accessCheck').hidden=!token;get('accessSignout').hidden=!token;get('accessForm').hidden=!!token;get('accessGoogle').hidden=!!token;get('accessPrivacyLabel').hidden=!!token||!register;get('accessTabs').hidden=!!token;get('accessGooglePrivacyLabel').hidden=!!token;}
- function checking(){document.body.classList.remove('shop-locked');document.body.classList.add('shop-checking');busy(true)}
+ function checking(message='Verifica dell’accesso…'){get('accessPending').textContent=message;document.body.classList.remove('shop-locked');document.body.classList.add('shop-checking');busy(true)}
  function unlock(){document.body.classList.remove('shop-locked','shop-checking');busy(false)}
  const pendingMessage=()=>profile?.accessStatus==='blocked'?'Accesso sospeso dall’assistenza. Contattaci per informazioni.':'Account registrato. L’assistenza deve autorizzarti prima di mostrarti il catalogo.';
  async function rawAction(action,body,headers={}){
@@ -25,10 +25,17 @@
   if(token){try{profile=await rawAction('customer-me')}catch(error){if(error.status===403){token='';profile=null;store(key,'')}else throw error}}
   return profile;
  }
- async function open(){
-  checking();try{await restore();if(profile&&profile.accessStatus!=='approved'){lock(pendingMessage());return}if(!token&&!adminToken&&!await ownerSession()){lock();return}await reloadCatalog();if(document.body.classList.contains('shop-locked'))return;unlock();window.dispatchEvent(new Event('vg-customer-ready'))}catch(error){lock(error.message||'Connessione non disponibile. Riprova.')}
+ async function open(verified=false){
+  checking();try{
+   if(!verified)await restore();
+   if(profile&&profile.accessStatus!=='approved'){lock(pendingMessage());return}
+   if(!token&&!adminToken&&!await ownerSession()){lock();return}
+  }catch(error){lock(error.message||'Connessione non disponibile. Riprova.');return}
+  // A verified session opens the catalogue; product loading is a separate state.
+  unlock();window.dispatchEvent(new Event('vg-customer-ready'));
+  try{await reloadCatalog()}catch(error){console.error('Caricamento catalogo:',error)}
  }
- async function accept(data){if(!valid(data.token))throw Error('Risposta di accesso non valida');token=data.token;profile=data;adminToken='';store(adminKey,'');store(key,token);get('accessPassword').value='';await open()}
+ async function accept(data){if(!valid(data.token))throw Error('Risposta di accesso non valida');token=data.token;profile=data;adminToken='';store(adminKey,'');store(key,token);get('accessPassword').value='';await open(true)}
  async function google(){
   if(!googleClient)googleClient=(async()=>{
    if(!window.supabase?.createClient)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js';script.onload=resolve;script.onerror=()=>reject(Error('Impossibile caricare l’accesso Google. Riprova.'));document.head.append(script)});
@@ -46,7 +53,7 @@
    const fragment=new URLSearchParams(location.hash.replace(/^#/,'')),preview=fragment.get('admin_token'),params=new URLSearchParams(location.search);
    if(valid(preview)){adminToken=preview;token='';store(adminKey,preview);store(key,'');history.replaceState(null,'',location.pathname+location.search)}
    if(params.has('error')||fragment.has('error')){history.replaceState(null,'',location.pathname);lock('Accesso Google annullato o non riuscito. Riprova.');return}
-   if(params.has('code')){try{const code=params.get('code');history.replaceState(null,'',location.pathname);const client=await google(),result=await client.auth.exchangeCodeForSession(code);if(result.error)throw result.error;await accept(await rawAction('customer-google',{privacy:true},{Authorization:'Bearer '+result.data.session.access_token}));await client.auth.signOut({scope:'local'});return}catch(error){lock('Accesso Google non riuscito. '+error.message);return}}
+   if(params.has('code')){checking('Accesso con Google in corso… Attendi, non serve premere di nuovo.');try{const code=params.get('code');history.replaceState(null,'',location.pathname);const client=await google(),result=await client.auth.exchangeCodeForSession(code);if(result.error)throw result.error;await accept(await rawAction('customer-google',{privacy:true},{Authorization:'Bearer '+result.data.session.access_token}));await client.auth.signOut({scope:'local'}).catch(()=>{});return}catch(error){lock('Accesso Google non riuscito. '+error.message);return}}
    await open();
   },
   async logout(){try{if(token)await rawAction('customer-logout',{})}catch{}token='';adminToken='';profile=null;store(key,'');store(adminKey,'');store('vg-shop-shipping-v1','');get('orderForm').reset();document.body.style.overflow='';document.querySelectorAll('.view.open,.overlay.open,.zoom-view.open').forEach(el=>{el.classList.remove('open');el.setAttribute('aria-hidden','true')});history.replaceState(null,'',location.pathname);window.dispatchEvent(new Event('vg-shop-logout'));lock('Accesso terminato su questo dispositivo.')}
