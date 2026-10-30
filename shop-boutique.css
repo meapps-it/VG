@@ -158,3 +158,7 @@ body.shop-checking #accessPending::before{content:'';display:block;width:26px;he
 #accessGoogleInline{display:flex;justify-content:center;min-height:44px;margin-top:8px}
 #accessGoogleInline[hidden],#accessGoogleFallback[hidden]{display:none!important}
 .access-card #accessGoogleFallback{background:transparent!important;border:0!important;box-shadow:none!important;color:#365575!important;font-size:12px;min-height:36px;padding:6px;width:100%;text-decoration:underline}
+
+/* Subtle metallic quality badges, with readable text. */
+.quality-badge.quality-original{background:linear-gradient(125deg,#fff9e8 0%,#f1dfaa 48%,#fff5d7 100%);border:1px solid #d6bd76;color:#694d12;box-shadow:inset 0 1px 0 #ffffffb3;font-weight:700}
+.quality-badge.quality-standard{background:linear-gradient(125deg,#fafbfc 0%,#dce1e7 48%,#f1f3f6 100%);border:1px solid #bdc6d0;color:#3d4b5a;box-shadow:inset 0 1px 0 #ffffffcc;font-weight:700}
