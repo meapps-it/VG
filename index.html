@@ -605,6 +605,8 @@ window.addEventListener('error',e=>{
 #simplexLicenseLoading.show{display:block}
 </style>
 <link rel="stylesheet" href="./vg-bold-theme.css?v=rounded-chart-20261030">
+<link rel="stylesheet" href="./vg-fullscreen-pages.css?v=compact-header-20261030">
+<script src="./vg-fullscreen-pages.js?v=compact-header-20261030" defer></script>
 <link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.160">
 <script src="./vg-catalog-stats.js?v=1.0.174" defer></script>
 </head>
@@ -1160,15 +1162,20 @@ window.addEventListener('error',e=>{
     <div class="blockTitle">Prezzo fornitore</div>
     <div style="margin-top:10px"><label class="k" for="a_qual">Qualità</label><select id="a_qual"><option value="">Seleziona il fornitore</option><option value="ORIGINALE">Originale</option><option value="STANDARD">Standard</option></select><div class="helper">Assegnazione automatica: Jayden = Originale; tutti gli altri fornitori = Standard.</div></div>
     <div><div class="k">Prezzo fornitore USD</div><input id="a_usd" inputmode="decimal" autocomplete="off"/></div>
+    <section class="supplierPromoEditor" style="margin-top:16px;padding:14px;border:1px solid #b6c9e2;border-radius:16px;background:#f7faff">
+      <div class="blockTitle">Promo fornitore</div>
+      <label style="display:flex;gap:10px;align-items:center;margin:10px 0;font-weight:700"><input id="a_supplier_promo_on" type="checkbox" style="width:22px;height:22px;flex-shrink:0"/>Attiva promo fornitore</label>
+      <div class="grid2">
+        <div><label class="k" for="a_usd_promo">Prezzo promo USD</label><input id="a_usd_promo" inputmode="decimal" autocomplete="off" placeholder="Es. 68"/></div>
+        <div><label class="k" for="a_supplier_promo_end">Scadenza promo</label><input id="a_supplier_promo_end" type="date"/></div>
+      </div>
+      <label style="display:flex;gap:10px;align-items:center;margin-top:12px"><input id="a_supplier_date_unknown" type="checkbox" style="width:22px;height:22px;flex-shrink:0"/>Scadenza non comunicata</label>
+      <div class="helper" style="margin-top:10px">Inserisci il prezzo scontato e attiva la spunta. Per disattivare la promo, togli la spunta. Premi Salva articolo per confermare.</div>
+      <div id="a_supplier_expiry_warning" role="status" aria-live="polite"></div>
+    </section>
     <div style="display:none!important">
-
-      <input id="a_usd_promo" inputmode="decimal"/>
-      <input id="a_supplier_promo_on" type="checkbox"/>
       <input id="a_std_cost_unknown" type="checkbox"/>
       <div id="a_cost_estimate_box"><input id="a_cost_estimate_value" inputmode="decimal" readonly/></div>
-      <input id="a_supplier_promo_end" type="date"/>
-      <input id="a_supplier_date_unknown" type="checkbox"/>
-      <div id="a_supplier_expiry_warning"></div>
     </div>
   </div>
 
