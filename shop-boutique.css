@@ -120,3 +120,36 @@ body.shop-checking #accessPending::before{content:'';display:block;width:26px;he
 .access-card .password-toggle:focus-visible{outline:2px solid #225cc2;outline-offset:-4px}
 .password-toggle .password-eye-slash{display:none}
 .password-toggle[aria-pressed=true] .password-eye-slash{display:block}
+
+/* Compact mobile article header, visible description and clearer request action. */
+.product-request-title{display:none}
+@media(max-width:650px){
+ #productView .product-dialog>.topline{min-height:44px;padding:5px 15px;padding-top:max(5px,env(safe-area-inset-top))}
+ #productView .product-back{min-height:32px;padding:5px 10px;font-size:11px}
+ #productView .product-top-brand{font-size:10px}
+ #productView .product-top-brand small,#productView .product-breadcrumb{display:none}
+ #productView .product-layout{margin-top:10px}
+ #productView .product-heading{padding:0 2px 10px}
+ #productView .product-labels{margin-bottom:4px;gap:7px}
+ #productView h2#productTitle{font-size:24px;line-height:1.12;margin:4px 0}
+ #productView .product-heading #productSku{font-size:9px}
+ #productView .product-price-line{margin-top:6px;gap:9px}
+ #productView .product-price-line #productPrice{font-size:25px}
+ #productView .product-price-line>span{display:none}
+ #productView .gallery{padding-bottom:10px}
+ #productView .gallery-stage{padding:5px;border-radius:17px}
+ #productView .product-hero{height:clamp(180px,30dvh,300px);border-radius:12px}
+ #productView .gallery-thumbs{gap:7px;padding:7px 2px 0}
+ #productView .gallery-thumbs button{flex-basis:38px;height:42px;padding:2px;border-radius:7px}
+ #productView .gallery-tip{display:none}
+ #productView .product-information{display:flex;flex-direction:column}
+ #productView .product-description{order:-1;margin:0 0 16px;padding:0 3px}
+ #productView .product-description h3{font-size:16px;margin-bottom:5px;color:#203f69}
+ #productView .product-description #productDescription{font-size:13px;line-height:1.55;color:#3f536d}
+ #productView .product-buy-panel{border:2px solid #225cc2;background:#edf3ff;padding:16px;box-shadow:0 3px 0 #c9daf4}
+ #productView .product-buy-panel .panel-kicker{display:none}
+ #productView .product-buy-panel h3{font-size:21px;font-weight:800;color:#174895;margin:0 0 10px}
+ #productView .action-row{flex-wrap:wrap;padding-top:7px;row-gap:5px}
+ #productView .product-request-title{display:block;flex:0 0 100%;font-size:12px;font-weight:800;line-height:1.2;color:#174895}
+ #productView .product-dialog{padding-bottom:calc(125px + env(safe-area-inset-bottom))}
+}
