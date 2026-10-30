@@ -5,6 +5,40 @@ const norm=value=>String(value||'').trim().toLocaleLowerCase('it');
 const money=value=>Number(value||0).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
 const image=p=>p.image||(Array.isArray(p.images)?p.images.find(Boolean):'')||'';
 const publicItem=p=>p&&p.id&&p.published!==false&&p.visible!==false;
+
+const catalogueRanks=new Map();let featuredIds=null;
+const rememberRead=key=>{try{const value=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(value)?value.map(String):[]}catch{return []}};
+const rememberWrite=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value))}catch{}};
+function shuffled(items){
+ const result=items.slice();
+ for(let i=result.length-1;i>0;i--){const k=Math.floor(Math.random()*(i+1));[result[i],result[k]]=[result[k],result[i]]}
+ return result;
+}
+function order(items){
+ if(!catalogueRanks.size){
+  const mixed=shuffled(items),previous=new Set(rememberRead('vg-shop-last-front-v1'));
+  const fresh=mixed.findIndex(p=>!previous.has(String(p.id)));
+  if(fresh>0)mixed.unshift(...mixed.splice(fresh,1));
+  mixed.forEach((p,i)=>catalogueRanks.set(String(p.id),i));
+  rememberWrite('vg-shop-last-front-v1',mixed.slice(0,6).map(p=>String(p.id)));
+ }
+ for(const p of items)if(!catalogueRanks.has(String(p.id)))catalogueRanks.set(String(p.id),catalogueRanks.size);
+ return items.slice().sort((a,b)=>catalogueRanks.get(String(a.id))-catalogueRanks.get(String(b.id)));
+}
+function featured(items){
+ const seen=new Set(),candidates=order(items).filter(p=>publicItem(p)&&image(p)&&!seen.has(String(p.id))&&(seen.add(String(p.id)),true));
+ if(featuredIds===null){
+  const previous=new Set(rememberRead('vg-shop-last-featured-v1'));
+  const fresh=candidates.filter(p=>!previous.has(String(p.id)));
+  const pool=[...fresh,...candidates.filter(p=>previous.has(String(p.id)))],chosen=[],categories=new Set();
+  // Prefer different categories and products from the previous visit.
+  for(const p of pool){const category=norm(p.category);if(categories.has(category))continue;chosen.push(p);categories.add(category);if(chosen.length===3)break}
+  for(const p of pool){if(chosen.length===3)break;if(!chosen.includes(p))chosen.push(p)}
+  featuredIds=chosen.map(p=>String(p.id));rememberWrite('vg-shop-last-featured-v1',featuredIds);
+ }
+ return featuredIds.map(id=>candidates.find(p=>String(p.id)===id)).filter(Boolean);
+}
+
 function related(items,current,limit=4){
  if(!current)return [];
  const seen=new Set([String(current.id)]),price=Number(current.price)||0;
@@ -31,7 +65,7 @@ function home(items){
  const count=document.getElementById('collectionCount'),mosaic=document.getElementById('collectionMosaic');
  if(count)count.textContent=items.length+' '+(items.length===1?'articolo da scoprire':'articoli da scoprire');
  if(!mosaic)return;
- const seen=new Set(),selected=items.filter(p=>publicItem(p)&&image(p)&&!seen.has(String(p.id))&&(seen.add(String(p.id)),true)).slice(0,3);
+ const selected=featured(items);
  const signature=selected.map(p=>String(p.id)+image(p)).join('|');
  if(mosaic.dataset.signature===signature)return;
  mosaic.dataset.signature=signature;mosaic.replaceChildren();
@@ -57,5 +91,5 @@ function product(items,current){
  const choices=related(items,current);section.hidden=!choices.length;
  grid.innerHTML=choices.map(x=>card(x.product,x.reason)).join('');
 }
-window.shopBoutique={related,home,product};
+window.shopBoutique={related,home,product,order};
 })();
