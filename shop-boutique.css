@@ -168,3 +168,18 @@ body.shop-checking #accessPending::before{content:'';display:block;width:26px;he
 html,body{background:#fff}
 .collection-heading{background:#fff}
 #productView.open,#productView .product-dialog,#productView .gallery-stage,#productView .product-hero,#productView .product-buy-panel,.photo,.related-photo{background:#fff}
+
+/* Black catalogue typography and clearer article options. */
+body,body *{color:#111!important}
+body input::placeholder,body textarea::placeholder{color:#555!important;opacity:1}
+body .browse-collection,body .browse-collection *,
+body .action-row .add,body .action-row .add *,
+body .form .primary,body .form .submit,
+body .access-card button:not(.password-toggle):not(#accessGoogle):not(#accessForgotPassword):not([data-cancel-reset]):not(#accessGoogleFallback),
+body .quality-filter button[aria-pressed=true],
+body .cart-action #cartCount{color:#fff!important}
+body .access-card #accessTabs button,body .access-card #accessResetForm [data-cancel-reset]{color:#111!important}
+body #accessError,body .access-consent-error,body .consent-invalid,body .consent-invalid *{color:#b42318!important}
+#productView .product-buy-panel h3{font-size:23px}
+#productView .variant-options label,#productView .variant-fixed{font-size:15px!important;font-weight:700;line-height:1.6}
+#productView .variant-options select{font-size:17px!important;color:#111!important}
