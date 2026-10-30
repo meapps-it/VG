@@ -153,3 +153,8 @@ body.shop-checking #accessPending::before{content:'';display:block;width:26px;he
  #productView .product-request-title{display:block;flex:0 0 100%;font-size:12px;font-weight:800;line-height:1.2;color:#174895}
  #productView .product-dialog{padding-bottom:calc(125px + env(safe-area-inset-bottom))}
 }
+
+/* Official Google chooser button, and a browser-compatible alternative. */
+#accessGoogleInline{display:flex;justify-content:center;min-height:44px;margin-top:8px}
+#accessGoogleInline[hidden],#accessGoogleFallback[hidden]{display:none!important}
+.access-card #accessGoogleFallback{background:transparent!important;border:0!important;box-shadow:none!important;color:#365575!important;font-size:12px;min-height:36px;padding:6px;width:100%;text-decoration:underline}
