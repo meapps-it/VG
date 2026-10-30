@@ -3,7 +3,7 @@
 const API='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-shop-catalog',el=id=>document.getElementById(id);
 let profile=null,offset=0,timer,ordersBusy=false;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function state(){el('customerAuth').hidden=!!profile;el('customerAccount').hidden=!profile;el('customerPhoneLabel').textContent=profile?(profile.phone?'Telefono: +'+profile.phone:profile.email||'Account Google'):'';el('checkoutAccountHint').textContent=profile?'La richiesta sarà visibile in I miei ordini.':''}
+function state(){el('customerAuth').hidden=!!profile;el('customerAccount').hidden=!profile;el('customerPhoneLabel').textContent='';el('customerPhoneLabel').hidden=true;el('checkoutAccountHint').textContent=profile?'La richiesta sarà visibile in I miei ordini.':''}
 async function request(url,options={}){return shopAccess.fetch(url,options)}
 async function action(name,body){const r=await request(API+'?action=customer-'+name,body===undefined?{cache:'no-store'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw Error(data.error||'Operazione non riuscita');return data}
 async function restore(){profile=shopAccess.customer();state();if(profile){try{const r=await request(API+'?action=profile-book',{cache:'no-store'}),d=await r.json();if(r.ok)profile={...profile,profile:{...d.profile,...(d.addresses?.[0]||{}),phone:d.addresses?.[0]?.phone||d.profile?.phone||d.phone||''}}}catch{}await shopShipping.applyProfile(profile.profile,{ifUntouched:true,ignoreRememberPreference:true})}}
