@@ -71,4 +71,23 @@
  get('accessGooglePrivacy').addEventListener('change',()=>{if(get('accessGooglePrivacy').checked){googleConsentError(false);if(get('accessError').textContent==='Accetta il trattamento dei dati per continuare con Google.')get('accessError').textContent=''}});
  get('accessGoogle').onclick=async()=>{if(!get('accessGooglePrivacy').checked){googleConsentError(true);get('accessError').textContent='Accetta il trattamento dei dati per continuare con Google.';get('accessGooglePrivacy').focus();get('accessGooglePrivacyLabel').scrollIntoView({block:'nearest',behavior:'smooth'});return}googleConsentError(false);const button=get('accessGoogle');button.disabled=true;try{const client=await google(),result=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{prompt:'select_account'}}});if(result.error)throw result.error}catch(error){get('accessError').textContent=error.message;button.disabled=false}};
  get('accessCheck').onclick=()=>open();get('accessSignout').onclick=()=>window.shopAccess.logout();get('shopLogout').onclick=()=>window.shopAccess.logout();mode(false);
+ // Show/hide controls preserve the password, caret and password-manager attributes.
+ const eyeIcon='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-eye-slash" d="m3 3 18 18"/></svg>';
+ document.querySelectorAll('#accessGate input[type="password"]').forEach((input,index)=>{
+  const wrap=document.createElement('span');wrap.className='access-password-field';
+  input.before(wrap);wrap.append(input);
+  if(!input.id)input.id='access-password-'+index;
+  const toggle=document.createElement('button');toggle.type='button';toggle.className='password-toggle';toggle.innerHTML=eyeIcon;toggle.setAttribute('aria-controls',input.id);
+  function visibility(show){input.type=show?'text':'password';toggle.setAttribute('aria-pressed',String(show));toggle.setAttribute('aria-label',show?'Nascondi password':'Mostra password');toggle.title=show?'Nascondi password':'Mostra password'}
+  visibility(false);
+  toggle.addEventListener('pointerdown',event=>event.preventDefault());
+  toggle.addEventListener('click',()=>{
+   const start=input.selectionStart,end=input.selectionEnd;visibility(input.type==='password');input.focus({preventScroll:true});
+   if(start!==null&&end!==null)input.setSelectionRange(start,end);
+  });
+  input.form?.addEventListener('reset',()=>visibility(false));
+  get('accessLoginTab').addEventListener('click',()=>visibility(false));get('accessRegisterTab').addEventListener('click',()=>visibility(false));
+  wrap.append(toggle);
+ });
+
 })();
