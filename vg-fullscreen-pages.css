@@ -20,3 +20,11 @@ html body .vgStatsContent>*,.modalwrap:not(#mConfirm)>.modal>:not(.vgPageHeader)
 html body .vgStatsHeader h2{font-size:clamp(19px,2.4vw,25px);line-height:1.2}
 @media(min-width:900px){#vgCustomerList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}.vgCustomerCard{margin:0 0 8px}.vgStatsSummary{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:450px){.vgPageHeader{gap:10px}.vgPageBack{padding:9px 11px!important}.vgStatsHeader{gap:10px!important}.vgStatsHeader button{padding:10px 12px!important}.vgCustomerTools button{min-height:44px}}
+
+/* Compact administration editor header, with a quiet icon back control. */
+html body .modalwrap:not(#mConfirm)>.modal>.vgPageHeader{min-height:56px;gap:12px;margin-bottom:14px;padding:8px var(--vg-page-gutter);border-bottom:1px solid #dce4ed;box-shadow:0 2px 8px #172d4708}
+html body .vgPageHeader>.h2,html body .vgPageHeader>h2{font-size:18px!important;line-height:1.2!important;font-weight:750;letter-spacing:-.02em}
+html body .vgPageHeader button.vgPageBack{display:inline-flex;align-items:center;justify-content:center;flex:0 0 40px;width:40px;height:40px;min-height:40px;padding:0!important;border:1px solid #cbd8e7!important;border-radius:12px!important;background:#f2f6fb!important;color:#24496e!important;box-shadow:none!important}
+html body .vgPageHeader button.vgPageBack:focus-visible{outline:3px solid #2760a5;outline-offset:2px}
+html body .vgPageHeader button.vgPageBack svg{display:block;width:22px;height:22px}
+.modalwrap:not(#mConfirm)>.modal{scroll-padding-top:70px}
