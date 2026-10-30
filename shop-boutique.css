@@ -183,3 +183,5 @@ body #accessError,body .access-consent-error,body .consent-invalid,body .consent
 #productView .product-buy-panel h3{font-size:23px}
 #productView .variant-options label,#productView .variant-fixed{font-size:15px!important;font-weight:700;line-height:1.6}
 #productView .variant-options select{font-size:17px!important;color:#111!important}
+
+body .purchase-note,body .access-card #accessGoogleFallback{color:#111!important}
