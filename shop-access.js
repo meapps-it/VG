@@ -8,7 +8,7 @@
  const store=(name,value)=>{try{value?localStorage.setItem(name,value):localStorage.removeItem(name)}catch{}};
  if(!valid(token))token='';if(!valid(adminToken))adminToken='';
  function busy(value){document.querySelectorAll('body>.brand-stage,body>main,body>.footer,body>.view,body>.overlay,body>.zoom-view').forEach(el=>el.inert=value);get('catalog').setAttribute('aria-busy',String(value))}
- function lock(message='') {document.body.classList.remove('shop-checking');document.body.classList.add('shop-locked');busy(true);get('accessError').textContent=message;get('accessCheck').hidden=!token;get('accessSignout').hidden=!token;get('accessForm').hidden=!!token;get('accessGoogle').hidden=!!token;get('accessPrivacyLabel').hidden=!!token||!register;get('accessTabs').hidden=!!token;get('accessGooglePrivacyLabel').hidden=!!token;}
+ function lock(message='') {document.body.classList.remove('shop-checking');document.body.classList.add('shop-locked');busy(true);get('accessError').textContent=message;get('accessCheck').hidden=!token;get('accessSignout').hidden=!token;get('accessForm').hidden=!!token;get('accessGoogle').hidden=!!token;get('accessPrivacyLabel').hidden=!!token||!register;get('accessTabs').hidden=!!token;get('accessGooglePrivacyLabel').hidden=!!token;syncInlineGoogle();}
  function checking(message='Verifica dell’accesso…'){get('accessPending').textContent=message;document.body.classList.remove('shop-locked');document.body.classList.add('shop-checking');busy(true)}
  function unlock(){document.body.classList.remove('shop-locked','shop-checking');busy(false)}
  const pendingMessage=()=>profile?.accessStatus==='blocked'?'Accesso sospeso dall’assistenza. Contattaci per informazioni.':'Account registrato. L’assistenza deve autorizzarti prima di mostrarti il catalogo.';
@@ -61,7 +61,7 @@
  function mode(value){register=value;get('accessNameField').hidden=!value;get('accessName').disabled=!value;get('accessName').required=value;get('accessFormTitle').textContent=value?'Crea il tuo account':'Accedi con telefono';get('accessSubmit').textContent=value?'Crea account ed entra':'Accedi';get('accessPassword').autocomplete=value?'new-password':'current-password';get('accessPrivacy').required=value;get('accessPrivacyLabel').hidden=!value;get('accessLoginTab').setAttribute('aria-pressed',String(!value));get('accessRegisterTab').setAttribute('aria-pressed',String(value));get('accessError').textContent=''}
  const resetButton=document.createElement('button');resetButton.type='button';resetButton.textContent='Password dimenticata?';resetButton.id='accessForgotPassword';get('accessForm').after(resetButton);
  const resetForm=document.createElement('form');resetForm.hidden=true;resetForm.id='accessResetForm';resetForm.innerHTML='<h2>Recupera la password</h2><p>Chiedi all’assistenza un codice reset. Inseriscilo qui per scegliere una nuova password personale.</p><label>Telefono<input name="phone" type="tel" autocomplete="tel" required maxlength="40"></label><label>Codice ricevuto dall’assistenza<input name="code" type="text" autocomplete="off" required maxlength="40"></label><label>Nuova password<input name="password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label><label>Ripeti nuova password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label><button type="submit">Salva nuova password</button><button type="button" data-cancel-reset>Torna all’accesso</button><p role="status" aria-live="polite"></p>';resetButton.after(resetForm);
- function showRecovery(open){resetForm.hidden=!open;resetButton.hidden=open||!!token;get('accessForm').hidden=open||!!token;get('accessGoogle').hidden=open||!!token;get('accessGooglePrivacyLabel').hidden=open||!!token;get('accessTabs').hidden=open||!!token;get('accessError').textContent='';if(open){resetForm.elements.phone.value=get('accessPhone').value;resetForm.elements.phone.focus()}else lock(profile?pendingMessage():'')}
+ function showRecovery(open){resetForm.hidden=!open;resetButton.hidden=open||!!token;get('accessForm').hidden=open||!!token;get('accessGoogle').hidden=open||!!token;get('accessGooglePrivacyLabel').hidden=open||!!token;syncInlineGoogle();get('accessTabs').hidden=open||!!token;get('accessError').textContent='';if(open){resetForm.elements.phone.value=get('accessPhone').value;resetForm.elements.phone.focus()}else lock(profile?pendingMessage():'')}
  resetButton.onclick=()=>showRecovery(true);resetForm.querySelector('[data-cancel-reset]').onclick=()=>{resetForm.reset();showRecovery(false)};
 
  resetForm.onsubmit=async event=>{event.preventDefault();const f=resetForm.elements,status=resetForm.querySelector('[role=status]'),button=resetForm.querySelector('[type=submit]');if(f.password.value!==f.confirmPassword.value){status.textContent='Le due password non coincidono.';return}return window.vgSaveFeedback.run(button,async()=>{await rawAction('customer-reset-complete',{phone:f.phone.value,code:f.code.value,password:f.password.value});get('accessPhone').value=f.phone.value;resetForm.reset();showRecovery(false);mode(false);get('accessPassword').value='';get('accessError').textContent='Password salvata. Ora accedi con il numero e la nuova password.';get('accessPassword').focus();return {ok:true,message:'Password salvata correttamente.'}})};
@@ -69,7 +69,63 @@
  get('accessForm').addEventListener('submit',async event=>{event.preventDefault();const button=get('accessSubmit');button.disabled=true;get('accessError').textContent='Verifica…';try{if(register&&!get('accessName').value.trim().match(/^.{2,100}$/u))throw Error('Inserisci il tuo nome (da 2 a 100 caratteri).');await accept(await rawAction(register?'customer-register':'customer-login',{...(register?{name:get('accessName').value.trim()}:{}),phone:get('accessPhone').value,password:get('accessPassword').value,privacy:get('accessPrivacy').checked}))}catch(error){get('accessError').textContent=error.message}finally{button.disabled=false}});
  function googleConsentError(invalid){get('accessGooglePrivacyLabel').classList.toggle('consent-invalid',invalid);get('accessGooglePrivacy').setAttribute('aria-invalid',String(invalid));get('accessGoogleConsentError').hidden=!invalid;}
  get('accessGooglePrivacy').addEventListener('change',()=>{if(get('accessGooglePrivacy').checked){googleConsentError(false);if(get('accessError').textContent==='Accetta il trattamento dei dati per continuare con Google.')get('accessError').textContent=''}});
- get('accessGoogle').onclick=async()=>{if(!get('accessGooglePrivacy').checked){googleConsentError(true);get('accessError').textContent='Accetta il trattamento dei dati per continuare con Google.';get('accessGooglePrivacy').focus();get('accessGooglePrivacyLabel').scrollIntoView({block:'nearest',behavior:'smooth'});return}googleConsentError(false);const button=get('accessGoogle');button.disabled=true;try{const client=await google(),result=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{prompt:'select_account'}}});if(result.error)throw result.error}catch(error){get('accessError').textContent=error.message;button.disabled=false}};
+
+ // Google's own account chooser (FedCM where supported), with the existing redirect as fallback.
+ const googleWebClientId='598309166441-hi9h68au8eahdrj95phafjufj4bvm4t0.apps.googleusercontent.com';
+ let inlineGoogleReady=false,inlineGoogleTask=null,inlineGoogleBusy=false;
+ function syncInlineGoogle(){
+  const allowed=get('accessGooglePrivacy').checked&&!token&&!get('accessGooglePrivacyLabel').hidden;
+  get('accessGoogleInline').hidden=!(allowed&&inlineGoogleReady);
+  get('accessGoogleFallback').hidden=!allowed;
+  if(!get('accessGooglePrivacyLabel').hidden)get('accessGoogle').hidden=allowed&&inlineGoogleReady;
+ }
+ async function redirectGoogle(){
+  const client=await google(),result=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{prompt:'select_account'}}});
+  if(result.error)throw result.error;
+ }
+ async function prepareInlineGoogle(){
+  if(inlineGoogleTask)return inlineGoogleTask;
+  inlineGoogleTask=(async()=>{
+   if(!window.google?.accounts?.id)await new Promise((resolve,reject)=>{
+    const script=document.createElement('script');script.src='https://accounts.google.com/gsi/client';script.async=true;
+    const timer=setTimeout(()=>reject(Error('Scelta rapida Google non disponibile')),12000);
+    script.onload=()=>{clearTimeout(timer);window.google?.accounts?.id?resolve():reject(Error('Scelta rapida Google non disponibile'))};
+    script.onerror=()=>{clearTimeout(timer);reject(Error('Scelta rapida Google non disponibile'))};document.head.append(script);
+   });
+   const nonce=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
+   const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(nonce));
+   const hashedNonce=Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
+   window.google.accounts.id.initialize({
+    client_id:googleWebClientId,nonce:hashedNonce,auto_select:false,button_auto_select:false,use_fedcm_for_button:true,
+    callback:async response=>{
+     if(inlineGoogleBusy)return;
+     if(!get('accessGooglePrivacy').checked){googleConsentError(true);return}
+     inlineGoogleBusy=true;checking('Accesso con Google in corso…');
+     try{
+      if(!response?.credential)throw Error('Risposta Google non valida');
+      const client=await google(),result=await client.auth.signInWithIdToken({provider:'google',token:response.credential,nonce});
+      if(result.error)throw result.error;
+      await accept(await rawAction('customer-google',{privacy:true},{Authorization:'Bearer '+result.data.session.access_token}));
+      await client.auth.signOut({scope:'local'}).catch(()=>{});
+     }catch(error){lock('Accesso Google non riuscito. '+error.message);syncInlineGoogle()}
+     finally{inlineGoogleBusy=false}
+    }
+   });
+   window.google.accounts.id.renderButton(get('accessGoogleInline'),{type:'standard',theme:'outline',size:'large',text:'signin_with',shape:'pill',width:Math.min(360,Math.max(200,Math.floor(get('accessGoogle').getBoundingClientRect().width||300))),locale:'it'});
+   inlineGoogleReady=true;syncInlineGoogle();
+  })().catch(error=>{inlineGoogleTask=null;inlineGoogleReady=false;syncInlineGoogle();throw error});
+  return inlineGoogleTask;
+ }
+ get('accessGoogleFallback').onclick=async()=>{
+  if(!get('accessGooglePrivacy').checked){googleConsentError(true);return}
+  try{await redirectGoogle()}catch(error){get('accessError').textContent=error.message}
+ };
+ get('accessGooglePrivacy').addEventListener('change',()=>{
+  syncInlineGoogle();if(get('accessGooglePrivacy').checked)prepareInlineGoogle().catch(()=>{});
+ });
+ if(!token)prepareInlineGoogle().catch(()=>{});
+
+ get('accessGoogle').onclick=async()=>{if(!get('accessGooglePrivacy').checked){googleConsentError(true);get('accessError').textContent='Accetta il trattamento dei dati per continuare con Google.';get('accessGooglePrivacy').focus();get('accessGooglePrivacyLabel').scrollIntoView({block:'nearest',behavior:'smooth'});return}googleConsentError(false);const button=get('accessGoogle');button.disabled=true;try{try{await prepareInlineGoogle();window.google.accounts.id.prompt(notification=>{if(notification.isNotDisplayed?.()){get('accessError').textContent='Scelta rapida non disponibile in questo browser. Usa il pulsante di accesso alternativo.'}button.disabled=false});button.disabled=false}catch{await redirectGoogle()}}catch(error){get('accessError').textContent=error.message;button.disabled=false}};
  get('accessCheck').onclick=()=>open();get('accessSignout').onclick=()=>window.shopAccess.logout();get('shopLogout').onclick=()=>window.shopAccess.logout();mode(false);
  // Show/hide controls preserve the password, caret and password-manager attributes.
  const eyeIcon='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-eye-slash" d="m3 3 18 18"/></svg>';
