@@ -71,6 +71,60 @@
  get('accessGooglePrivacy').addEventListener('change',()=>{if(get('accessGooglePrivacy').checked){googleConsentError(false);if(get('accessError').textContent==='Accetta il trattamento dei dati per continuare con Google.')get('accessError').textContent=''}});
 
  get('accessGoogle').onclick=async()=>{if(!get('accessGooglePrivacy').checked){googleConsentError(true);get('accessError').textContent='Accetta il trattamento dei dati per continuare con Google.';get('accessGooglePrivacy').focus();get('accessGooglePrivacyLabel').scrollIntoView({block:'nearest',behavior:'smooth'});return}googleConsentError(false);const button=get('accessGoogle');button.disabled=true;try{const client=await google(),result=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{prompt:'select_account'}}});if(result.error)throw result.error}catch(error){get('accessError').textContent=error.message;button.disabled=false}};
+
+ // Official Google Identity Services button with the browser account chooser.
+ const googleInline=document.createElement('div');googleInline.id='accessGoogleInline';googleInline.hidden=true;
+ const googleFallback=document.createElement('button');googleFallback.type='button';googleFallback.id='accessGoogleFallback';googleFallback.textContent='Problemi con la finestrella? Usa l’accesso alternativo';googleFallback.hidden=true;
+ get('accessGoogle').after(googleInline,googleFallback);
+ const redirectGoogle=get('accessGoogle').onclick;googleFallback.onclick=redirectGoogle;
+ let gisReady=false,gisLoading=null,gisBusy=false;
+ function syncGoogleControls(){
+  const available=!token&&resetForm.hidden&&get('accessGooglePrivacy').checked&&gisReady;
+  for(const [node,hidden] of [[googleInline,!available],[googleFallback,!available],[get('accessGoogle'),!!token||!resetForm.hidden||available]])if(node.hidden!==hidden)node.hidden=hidden;
+ }
+ async function setupGoogleInline(){
+  if(location.origin!=='https://simplexapp.it')return false;
+  if(gisLoading)return gisLoading;
+  gisLoading=(async()=>{
+   const rawNonce=Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');
+   const hashedNonce=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(rawNonce))),x=>x.toString(16).padStart(2,'0')).join('');
+   if(!window.google?.accounts?.id)await new Promise((resolve,reject)=>{
+    const script=document.createElement('script');let settled=false;
+    const timer=setTimeout(()=>finish(Error('Caricamento Google non disponibile. Usa l’accesso alternativo.')),12000);
+    function finish(error){if(settled)return;settled=true;clearTimeout(timer);error?reject(error):resolve()}
+    script.src='https://accounts.google.com/gsi/client';script.async=true;script.onload=()=>finish();script.onerror=()=>finish(Error('Impossibile caricare Google.'));document.head.append(script);
+   });
+   window.google.accounts.id.initialize({
+    client_id:'598309166441-hi9h68au8eahdrj95phafjufj4bvm4t0.apps.googleusercontent.com',
+    nonce:hashedNonce,use_fedcm_for_button:true,button_auto_select:false,auto_select:false,ux_mode:'popup',
+    callback:async response=>{
+     if(gisBusy)return;
+     if(!get('accessGooglePrivacy').checked){googleConsentError(true);return}
+     if(!response?.credential){get('accessError').textContent='Accesso Google non completato. Riprova.';return}
+     gisBusy=true;checking('Accesso con Google in corso…');
+     let client;
+     try{
+      client=await google();
+      const result=await client.auth.signInWithIdToken({provider:'google',token:response.credential,nonce:rawNonce});
+      if(result.error)throw result.error;
+      if(!result.data?.session?.access_token)throw Error('Sessione Google non disponibile.');
+      await accept(await rawAction('customer-google',{privacy:true},{Authorization:'Bearer '+result.data.session.access_token}));
+     }catch(error){lock('Accesso Google non riuscito. '+error.message)}
+     finally{gisBusy=false;if(client)await client.auth.signOut({scope:'local'}).catch(()=>{});syncGoogleControls()}
+    }
+   });
+   window.google.accounts.id.renderButton(googleInline,{type:'standard',theme:'outline',size:'large',text:'signin_with',shape:'pill',locale:'it',width:Math.min(400,Math.max(200,Math.floor(get('accessGoogle').getBoundingClientRect().width||300)))});
+   gisReady=true;syncGoogleControls();return true;
+  })().catch(error=>{gisLoading=null;get('accessError').textContent=error.message;syncGoogleControls();return false});
+  return gisLoading;
+ }
+ get('accessGoogle').onclick=async()=>{
+  if(!get('accessGooglePrivacy').checked)return redirectGoogle();
+  googleConsentError(false);
+  if(await setupGoogleInline())window.google.accounts.id.prompt();else return redirectGoogle();
+ };
+ get('accessGooglePrivacy').addEventListener('change',()=>{syncGoogleControls();if(get('accessGooglePrivacy').checked)setupGoogleInline()});
+ new MutationObserver(syncGoogleControls).observe(get('accessGoogle'),{attributes:true,attributeFilter:['hidden']});
  get('accessCheck').onclick=()=>open();get('accessSignout').onclick=()=>window.shopAccess.logout();get('shopLogout').onclick=()=>window.shopAccess.logout();mode(false);
  // Show/hide controls preserve the password, caret and password-manager attributes.
  const eyeIcon='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-eye-slash" d="m3 3 18 18"/></svg>';
