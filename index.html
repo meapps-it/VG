@@ -2883,6 +2883,13 @@ function mergeById(arrA=[], arrB=[]){
 }
 function loadDB(){
   try{
+    const resetKey=KEY+'_descriptions_cleared_20261031';
+    if(!localStorage.getItem(resetKey)){
+      const resetKeys=[KEY,KEY+'_backup_latest',...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])];
+      for(const key of resetKeys){const raw=localStorage.getItem(key);if(!raw)continue;try{const data=JSON.parse(raw);for(const art of data.articoli||[])art.descrizione='';localStorage.setItem(key,JSON.stringify(data));}catch(_e){}}
+      if(typeof ART_DRAFT_KEY!=='undefined'){const raw=localStorage.getItem(ART_DRAFT_KEY);if(raw){try{const draft=JSON.parse(raw);if(draft.values)draft.values.descrizione='';localStorage.setItem(ART_DRAFT_KEY,JSON.stringify(draft));}catch(_e){}}}
+      localStorage.setItem(resetKey,'1');
+    }
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
     // Normal reads must not merge/rewrite the complete archive on every call.
     if(!legacyKeys.some(key=>localStorage.getItem(key))){
@@ -3003,10 +3010,10 @@ function saveViewFbPostNow(opts={}){
   const db=loadDB();
   const i=(db.articoli||[]).findIndex(x=>x.id===artId);
   if(i<0) return false;
-  txt=normalizeFacebookPostForArticle(txt, db.articoli[i]||{});
+  txt=txt.trim();
   el.value=txt;
   fitTextarea(el);
-  db.articoli[i]={...db.articoli[i], postFb:txt, postFacebook:txt, _ts:Date.now()};
+  db.articoli[i]={...db.articoli[i], descrizione:txt, _ts:Date.now()};
   saveDBLocal(db);
   setViewFbSaveMeta('Salvato');
   if(opts.cloud && cloudEnabled()){
@@ -3015,7 +3022,7 @@ function saveViewFbPostNow(opts={}){
       const fresh=loadDB();
       const j=(fresh.articoli||[]).findIndex(x=>x.id===artId);
       if(j>=0){
-        fresh.articoli[j]={...fresh.articoli[j], ...saved, postFb:txt, postFacebook:txt, _ts:Date.now()};
+        fresh.articoli[j]={...fresh.articoli[j], ...saved, descrizione:txt, _ts:Date.now()};
         saveDBLocal(fresh);
       }
     }).catch(err=>console.warn('Sync cloud post Facebook fallita', err));
@@ -10704,7 +10711,7 @@ async function openArtView(id){
   const telegramPost=document.getElementById('vArtPost');
   if(telegramPost){ telegramPost.value=buildPostTelegram(a); fitTextarea(telegramPost); }
   const facebookPost=document.getElementById('vArtPostFb');
-  if(facebookPost){ facebookPost.value=getArticleFacebookPost(a); fitTextarea(facebookPost); }
+  if(facebookPost){ facebookPost.value=String(a.descrizione||''); fitTextarea(facebookPost); }
   const instagramPost=document.getElementById('vArtPostIg');
   if(instagramPost){ instagramPost.value=buildPostInstagram(a); fitTextarea(instagramPost); }
   const vArtSupplierLink=document.getElementById('vArtSupplierLink');
@@ -14779,7 +14786,7 @@ async function pullCloudToLocal(opts={}){
         const meta=(packed.meta&&typeof packed.meta==='object')?packed.meta:{};
         const cleanBrand=normalizeSpaceText(p.marca||meta.brand||meta.marca||local?.brand||'');
         const pulledModel=stripBrandFromText(meta.modello||p.nome||'', cleanBrand) || stripBrandFromText(p.nome||'', cleanBrand) || local?.modello || '';
-        const pulledDescr=(meta.descrizione||legacy.descrizione||local?.descrizione||'').trim();
+        const pulledDescr=String(typeof meta.descrizione==='string'?meta.descrizione:(legacy.descrizione||'')).trim();
         const pulledNote=(meta.note||legacy.note||local?.note||'').trim();
         const pulledPost=(meta.post||local?.post||'').trim();
         const pulledPostFb=(meta.postFb||meta.postFacebook||local?.postFb||local?.postFacebook||'').trim();
