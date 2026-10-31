@@ -85,7 +85,7 @@ Deno.serve(async(req)=>{
       const quality=supplier==="jayden"?"ORIGINALE":"STANDARD";
       const publicRaw=String(p.descrizione_app||((typeof meta.descrizione==='string'&&meta.descrizione)?meta.descrizione:rawDescription));
       const description=publicRaw.replace(/\[VGMETA\][\s\S]*?\[\/VGMETA\]/gi,' ').replace(/\[VGMETA\][\s\S]*$/gi,'').replace(/\\n/g,'\n').split(/\r?\n/).filter(line=>!/(?:costo|prezzo).*?(?:\busd\b|fornitor|jayden)/i.test(line)).join('\n').trim();
-      return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p),price:promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita),originalPrice:Number(p.prezzo_vendita),promotion:promo,image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
+      return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p),priceHidden:meta.nascondiPrezzo===true,price:meta.nascondiPrezzo===true?null:(promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita)),originalPrice:meta.nascondiPrezzo===true?null:Number(p.prezzo_vendita),promotion:meta.nascondiPrezzo===true?false:promo,image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
     });
     await trackVisit(db,OWNER,viewer);
     const promo=await db.from('vg_shop_promotion').select('enabled,title,body,image_url,product_ids').eq('owner_id',OWNER).eq('enabled',true).maybeSingle();
@@ -138,7 +138,7 @@ Deno.serve(async(req)=>{
     const price=promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita);
     const meta=articleMetadata(p);
     const quality=String(p.fornitore||meta.fornitore||"").trim().toLowerCase()==="jayden"?"Originale":"Standard";
-    return {id:p.id,qty:Number(entry.qty),price,name:p.nome,sku:p.sku,quality,...variant};
+    return {id:p.id,qty:Number(entry.qty),priceHidden:meta.nascondiPrezzo===true,price,name:p.nome,sku:p.sku,quality,...variant};
   })}catch(error){return fail(error instanceof Error?error.message:"Misura o colore non validi")}
   const total=Math.round(lines.reduce((v,x)=>v+x.qty*x.price,0)*100)/100;
   if(!(total>=0&&total<1000000))return fail("Totale ordine non valido");
