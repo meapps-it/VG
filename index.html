@@ -604,7 +604,7 @@ window.addEventListener('error',e=>{
 #simplexLicenseLoading{position:fixed;inset:0;z-index:2147483500;background:var(--bg,#f5f7fb);display:none}
 #simplexLicenseLoading.show{display:block}
 </style>
-<link rel="stylesheet" href="./vg-bold-theme.css?v=admin-colors-20261031">
+<link rel="stylesheet" href="./vg-bold-theme.css?v=inline-price-visibility-20261031">
 <link rel="stylesheet" href="./vg-fullscreen-pages.css?v=compact-header-20261030">
 <script src="./vg-fullscreen-pages.js?v=compact-header-20261030" defer></script>
 <link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.160">
@@ -1187,7 +1187,7 @@ window.addEventListener('error',e=>{
     </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Prezzo calcolato</div><input id="a_recommended" readonly/></div>
-      <div><div id="a_sell_label" class="k">Prezzo di vendita</div><input id="a_sell" inputmode="decimal" autocomplete="off"/><label for="a_price_visibility" class="k" style="display:block;margin-top:10px">Prezzo nel catalogo</label><select id="a_price_visibility"><option value="show">Mostra prezzo</option><option value="hide">Nascondi prezzo · Info in privato</option></select><div class="helper" style="margin-top:5px">Il prezzo resta salvato nel gestionale.</div><div id="a_sell_hint" class="helper" style="margin-top:5px"></div></div>
+      <div><div id="a_sell_label" class="k">Prezzo di vendita</div><div class="priceVisibilityField"><input id="a_sell" inputmode="decimal" autocomplete="off" aria-labelledby="a_sell_label"/><span class="priceVisibilityControl"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6Z"/><circle cx="10" cy="10" r="2.5"/><path class="priceHiddenSlash" d="m3 3 14 14"/><path d="m19 19 2 2 2-2"/></svg><select id="a_price_visibility" aria-label="Prezzo nel catalogo: mostra o nascondi" title="Mostra o nascondi il prezzo nel catalogo"><option value="show">Mostra prezzo</option><option value="hide">Nascondi prezzo · Info in privato</option></select></span></div><div id="a_sell_hint" class="helper" style="margin-top:5px"></div></div>
     </div>
     <input id="a_profit_min" type="hidden"/>
     <input id="a_margin" type="hidden"/>
