@@ -8,7 +8,7 @@
  const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='btn';dismiss.textContent='Cancella avvisi di registrazione';dismiss.hidden=true;tile.after(dismiss);dismiss.onclick=()=>el('vgCustomerRead').click();
  const opener=document.createElement('button');opener.type='button';opener.className='topMenuLink';opener.id='vgCustomerModuleOpen';opener.textContent='Clienti catalogo · registrazioni e accessi';el('vgCatalogStatsOpen')?.after(opener);
  const dialog=document.createElement('dialog');dialog.className='vgStatsDialog vgCustomersPanel';dialog.id='vgCustomersPanel';dialog.setAttribute('aria-labelledby','vgCustomersTitle');
- dialog.innerHTML='<header class="vgStatsHeader"><h2 id="vgCustomersTitle">Clienti catalogo</h2><button id="vgCustomersClose" type="button">Chiudi</button></header><div class="vgStatsContent"><p id="vgCustomerPanelStatus" role="status" aria-live="polite"></p><div class="vgCustomerTools"><button id="vgCustomerRefresh" type="button">Aggiorna</button><button id="vgCustomerRead" type="button">Cancella avvisi di registrazione</button></div><div class="vgCustomerCounts" id="vgCustomerCounts"></div><section><h3>Nuove registrazioni</h3><div id="vgRegistrationAlerts"></div></section><label for="vgCustomerFilter">Mostra clienti</label><select id="vgCustomerFilter"><option value="">Tutti</option><option value="pending">In attesa</option><option value="approved">Autorizzati</option><option value="blocked">Bloccati</option></select><div id="vgCustomerList"></div><button id="vgCustomerNext" type="button" hidden>Mostra altri clienti</button><p class="vgStatsNote">Orari italiani. Le visite con accesso già ricordato sono registrate una volta ogni 30 minuti per sessione. I nuovi login sono registrati separatamente.</p></div>';
+ dialog.innerHTML='<header class="vgStatsHeader"><h2 id="vgCustomersTitle">Clienti catalogo</h2><button id="vgCustomersClose" type="button">Chiudi</button></header><div class="vgStatsContent"><p id="vgCustomerPanelStatus" role="status" aria-live="polite"></p><div class="vgCustomerTools"><button id="vgCustomerRefresh" type="button">Aggiorna</button><button id="vgCustomerRead" type="button">Cancella avvisi di registrazione</button></div><div class="vgCustomerCounts" id="vgCustomerCounts"></div><section id="vgClientIntegration"><h3>Schede clienti del gestionale</h3><p>Stesso telefono: collegamento automatico. Email e omonimi: integrazione solo dopo conferma.</p><div id="vgClientIntegrationList"></div></section><section><h3>Nuove registrazioni</h3><div id="vgRegistrationAlerts"></div></section><label for="vgCustomerFilter">Mostra clienti</label><select id="vgCustomerFilter"><option value="">Tutti</option><option value="pending">In attesa</option><option value="approved">Autorizzati</option><option value="blocked">Bloccati</option></select><div id="vgCustomerList"></div><button id="vgCustomerNext" type="button" hidden>Mostra altri clienti</button><p class="vgStatsNote">Orari italiani. Le visite con accesso già ricordato sono registrate una volta ogni 30 minuti per sessione. I nuovi login sono registrati separatamente.</p></div>';
  document.body.append(dialog);
  let current=null,offset=0,refreshing=false,lastToken='',controller;
  async function session(){const client=await window.VG_SUPABASE_READY;if(!client)return null;const r=await client.auth.getSession();return r.data?.session?.access_token||null}
@@ -42,10 +42,45 @@
   }
   if(!el('vgCustomerList').children.length)line(el('vgCustomerList'),'Nessun cliente per questo filtro.');el('vgCustomerNext').hidden=!data.hasMore;offset=data.offset;
  }
- async function load(append=false){el('vgCustomerPanelStatus').textContent='Caricamento…';try{const data=await request('customer-admin&status='+encodeURIComponent(el('vgCustomerFilter').value)+'&offset='+(append?offset+50:0));render(data,append);el('vgCustomerPanelStatus').textContent=''}catch(e){el('vgCustomerPanelStatus').textContent=e.message}}
+
+ async function loadClientIntegrations(){
+  const data=await request('customer-client-links'),root=el('vgClientIntegrationList');root.replaceChildren();
+  if(typeof loadDB==='function'&&typeof saveDBLocal==='function'&&typeof cloudClientRowAsLocal==='function'){
+   const local=loadDB();let changed=false;local.clienti=local.clienti||[];
+   for(const row of data.clients){const client=cloudClientRowAsLocal(row),index=local.clienti.findIndex(c=>c.id===row.id);if(index<0){local.clienti.push(client);changed=true}else if(Number(client._ts||0)>Number(local.clienti[index]._ts||0)){local.clienti[index]={...local.clienti[index],...client};changed=true}}
+   if(changed){saveDBLocal(local);if(typeof renderAll==='function')renderAll()}
+  }
+  for(const a of data.accounts){
+   const card=document.createElement('article');card.className='vgCustomerCard';line(card,a.name+(a.email?' · '+a.email:'')+(a.phone?' · '+a.phone:''));
+   const linked=data.clients.find(c=>c.id===a.clientId);
+   line(card,linked?'Scheda collegata: '+[linked.nome,linked.cognome].filter(Boolean).join(' '):'Scheda da collegare');
+   if(a.candidates.length){const warning=line(card,'Da verificare: '+a.candidates.map(c=>c.name+' — '+c.reason).join('; '));warning.style.cssText='color:#a92720;font-weight:700;background:#fff1ef;padding:10px;border-radius:8px';}
+   const form=document.createElement('div');form.hidden=true;
+   const label=document.createElement('label');label.textContent='Integra questo account con la scheda:';
+   const select=document.createElement('select');select.setAttribute('aria-label','Scheda cliente da integrare');select.add(new Option('Scegli una scheda esistente',''));
+   for(const c of data.clients.filter(c=>c.id!==a.clientId))select.add(new Option([c.nome,c.cognome,c.telefono,c.email].filter(Boolean).join(' · '),c.id));
+   label.append(select);form.append(label);
+   line(form,'Controlla nome, telefono ed email. La scheda selezionata verrà mantenuta e riceverà i dati disponibili, gli ordini e le spedizioni della scheda collegata. L’account e la sua valutazione restano attivi.');
+   button(form,'Conferma integrazione',async()=>{
+    if(!select.value)throw Error('Scegli la scheda cliente da integrare.');
+    const target=data.clients.find(c=>c.id===select.value);if(!target)throw Error('Scheda non valida.');
+    const result=await request('customer-client-merge',{id:a.id,clientId:target.id,confirm:true});
+    if(typeof loadDB==='function'&&typeof saveDBLocal==='function'){
+     const local=loadDB();if(result.removedClientId){local.clienti=(local.clienti||[]).filter(c=>c.id!==result.removedClientId);for(const o of local.ordini||[])if(o.clienteId===result.removedClientId)o.clienteId=result.clientId;}saveDBLocal(local);if(typeof renderAll==='function')renderAll();
+    }
+    await loadClientIntegrations();el('vgCustomerPanelStatus').textContent='Integrazione completata. Aggiorna la sincronizzazione per rileggere tutti i dati della scheda.';
+   });
+   button(form,'Annulla',()=>{form.hidden=true});card.append(form);
+   button(card,'Integra con una scheda esistente',()=>{form.hidden=!form.hidden});
+   root.append(card);
+  }
+  if(!data.accounts.length)line(root,'Nessun account del catalogo.');
+ }
+
+ async function load(append=false){el('vgCustomerPanelStatus').textContent='Caricamento…';try{const data=await request('customer-admin&status='+encodeURIComponent(el('vgCustomerFilter').value)+'&offset='+(append?offset+50:0));render(data,append);if(!append)await loadClientIntegrations();el('vgCustomerPanelStatus').textContent=''}catch(e){el('vgCustomerPanelStatus').textContent=e.message}}
  function open(){if(typeof setTopMenuOpen==='function')setTopMenuOpen(false);if(!dialog.open)dialog.showModal();load(false)}
  tile.onclick=opener.onclick=open;const dashboardCard=el('catalogCustomersStat');if(dashboardCard){dashboardCard.onclick=open;dashboardCard.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open()}};}el('vgCustomersClose').onclick=()=>dialog.close();el('vgCustomerRefresh').onclick=()=>load(false);el('vgCustomerFilter').onchange=()=>load(false);el('vgCustomerNext').onclick=()=>load(true);
  el('vgCustomerRead').onclick=async()=>{if(!current)return;dismiss.disabled=true;try{await request('customer-admin-read',{ids:current.notifications.filter(n=>!n.read_at).map(n=>n.id)});await load(false)}catch(e){el('vgCustomerPanelStatus').textContent=e.message;dismiss.textContent='Errore: riprova a cancellare gli avvisi'}finally{dismiss.disabled=false}};
- async function poll(){if(refreshing||document.hidden)return;refreshing=true;try{const token=await session();if(!token){if(lastToken){if(dialog.open)dialog.close();current=null;renderDashboard(null);el('vgCustomerBadge').textContent='Apri';el('vgCustomerTileHint').textContent='Registrazioni e ultimi accessi';el('vgCustomerList').replaceChildren();el('vgRegistrationAlerts').replaceChildren();tile.classList.remove('has-unread');tile.hidden=true}lastToken='';return}lastToken=token;render(await request('customer-admin'),false,true)}catch{}finally{refreshing=false}}
+ async function poll(){if(refreshing||document.hidden)return;refreshing=true;try{const token=await session();if(!token){if(lastToken){if(dialog.open)dialog.close();current=null;renderDashboard(null);el('vgCustomerBadge').textContent='Apri';el('vgCustomerTileHint').textContent='Registrazioni e ultimi accessi';el('vgCustomerList').replaceChildren();el('vgRegistrationAlerts').replaceChildren();tile.classList.remove('has-unread');tile.hidden=true}lastToken='';return}lastToken=token;render(await request('customer-admin'),false,true);await loadClientIntegrations()}catch{}finally{refreshing=false}}
  window.VG_CUSTOMERS={open,refresh:poll,renderDashboard};Promise.resolve(window.VG_SUPABASE_READY).then(client=>client?.auth?.onAuthStateChange?.(()=>setTimeout(poll,0))).catch(()=>{});poll();setInterval(poll,30000);document.addEventListener('visibilitychange',poll);
 })();
