@@ -2887,7 +2887,7 @@ function loadDB(){
     if(!localStorage.getItem(resetKey)){
       const resetKeys=[KEY,KEY+'_backup_latest',...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])];
       for(const key of resetKeys){const raw=localStorage.getItem(key);if(!raw)continue;try{const data=JSON.parse(raw);for(const art of data.articoli||[])art.descrizione='';localStorage.setItem(key,JSON.stringify(data));}catch(_e){}}
-      if(typeof ART_DRAFT_KEY!=='undefined'){const raw=localStorage.getItem(ART_DRAFT_KEY);if(raw){try{const draft=JSON.parse(raw);if(draft.values)draft.values.descrizione='';localStorage.setItem(ART_DRAFT_KEY,JSON.stringify(draft));}catch(_e){}}}
+      {const draftKey='vg_draft_art_v2_clean';const raw=localStorage.getItem(draftKey);if(raw){try{const draft=JSON.parse(raw);if(draft.values)draft.values.descrizione='';localStorage.setItem(draftKey,JSON.stringify(draft));}catch(_e){}}}
       localStorage.setItem(resetKey,'1');
     }
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
