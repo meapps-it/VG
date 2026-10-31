@@ -153,10 +153,10 @@ Deno.serve(async(req)=>{
     const runtime=(globalThis as any).EdgeRuntime;if(runtime?.waitUntil)runtime.waitUntil(dispatch);else await dispatch;
     return out(amended.data);
   }
-  let clientId:string|undefined,orderId:string|undefined;
+  let clientId:string|undefined,orderId:string|undefined,createdClient=false;
   try{
-    const {data:client,error:ce}=await db.from("clienti").insert({user_id:OWNER,nome:name,telefono:phone,indirizzo:address,citta:city,provincia:province,cap,note:"Richiesta da Shop & Parallelo"}).select("id").single();
-    if(ce)throw ce;clientId=client.id;
+    if(account){const linked=await db.from('vg_shop_customers').select('cliente_id').eq('owner_id',OWNER).eq('id',account.customer_id).single();if(linked.error)throw linked.error;clientId=linked.data.cliente_id;}
+    if(!clientId){const {data:client,error:ce}=await db.from("clienti").insert({user_id:OWNER,nome:name,telefono:phone,indirizzo:address,citta:city,provincia:province,cap,note:"Richiesta da Shop & Parallelo"}).select("id").single();if(ce)throw ce;clientId=client.id;createdClient=true;}
     const orderPlacedAt=new Date();
     const orderTimestamp=new Intl.DateTimeFormat("it-IT",{timeZone:"Europe/Rome",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(orderPlacedAt);
     const number="WEB-"+orderPlacedAt.toISOString().replace(/[-:TZ.]/g,"").slice(0,14)+"-"+crypto.randomUUID().slice(0,6).toUpperCase();
@@ -177,7 +177,7 @@ Deno.serve(async(req)=>{
     return out({ok:true,id:order.id,number:order.numero_ordine,requestedAt:order.created_at||orderPlacedAt.toISOString(),timeZone:"Europe/Rome"});
   }catch(e){
     if(orderId)await db.from("ordini").delete().eq("id",orderId).eq("user_id",OWNER);
-    if(clientId)await db.from("clienti").delete().eq("id",clientId).eq("user_id",OWNER);
+    if(createdClient&&clientId)await db.from("clienti").delete().eq("id",clientId).eq("user_id",OWNER);
     console.error("VG order request failure",e);
     return fail("Invio non riuscito, riprova senza reinviare più volte",500)
   }
