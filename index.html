@@ -1070,7 +1070,7 @@ window.addEventListener('error',e=>{
   <div id="vArtSupplierCostNote" class="small" style="margin-top:8px"></div>
   <div id="vArtSupplierPromoCost" class="small" style="margin-top:8px" hidden></div>
   <div id="vArtOfficialWrap" style="display:none!important"><div id="vArtOfficialPrice"></div></div>
-  <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="vArtPostFb" placeholder="Descrizione dell’articolo"></textarea></div>
+  <div hidden style="display:none!important"><textarea aria-hidden="true" tabindex="-1" id="vArtPostFb" placeholder="Descrizione dell’articolo"></textarea></div>
   <div style="margin-top:10px">
     <div class="k">Link articolo / fornitore</div>
     <input id="vArtSupplierLink" aria-label="Indirizzo articolo del fornitore" readonly placeholder="Nessun link presente" style="width:100%;box-sizing:border-box;margin-top:6px"/>
@@ -1113,7 +1113,7 @@ window.addEventListener('error',e=>{
       <div><div class="k">Modello</div><input id="a_mod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
       <div><div class="k">Categoria</div><select id="a_cat"><option value="">Seleziona categoria</option></select></div>
     </div>
-    <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Descrizione articolo da inserire nel post Facebook sotto il nome modello..."></textarea></div>
+    <div hidden style="display:none!important"><textarea aria-hidden="true" tabindex="-1" id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Descrizione articolo da inserire nel post Facebook sotto il nome modello..."></textarea></div>
     <div style="margin-top:10px"><div class="k">Disponibilità</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_unavailable" type="checkbox" style="width:auto;margin-right:8px"/>Segna come NON DISPONIBILE</label><div class="k" style="margin-top:12px">Catalogo clienti</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_shop_published" type="checkbox" style="width:auto;margin-right:8px"/>Pubblicato nel catalogo clienti</label><div class="helper" style="margin-top:6px">Gli articoli non pubblicati restano nel gestionale, ma non appaiono nel catalogo clienti.</div><div class="helper" style="margin-top:6px">L'articolo viene spostato nella cartella Archivio articoli e può essere ripristinato in qualsiasi momento.</div></div>
     <div style="margin-top:10px"><div class="k">Fornitore</div><select id="a_forn"></select><div id="a_forn_hint" class="date" style="margin-top:6px">Riconoscimento automatico dal link fornitore, sempre modificabile.</div></div>
   </div>
@@ -1205,8 +1205,8 @@ window.addEventListener('error',e=>{
   <div style="display:none!important"><input id="a_promo_on" type="checkbox"/><input id="a_promo_price"/><input id="a_promo_date" type="date"/><div id="a_promo_summary"></div></div>
 
   <div class="formBlock postblk inputSoft">
-    <div class="blockTitle">Descrizione e contenuti</div>
-    <div style="margin-top:10px"><div class="k">Descrizione</div><textarea id="a_post_fb" placeholder="Descrizione dell’articolo"></textarea><div class="actions compact" style="margin-top:8px"></div></div>
+    <div class="blockTitle">Dati aggiuntivi</div>
+    <div hidden style="display:none!important"><textarea aria-hidden="true" tabindex="-1" id="a_post_fb" placeholder="Descrizione dell’articolo"></textarea><div class="actions compact" style="margin-top:8px"></div></div>
     <div style="margin-top:10px"><div class="k">Link articolo / fornitore</div><input id="a_forn_link" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Incolla https://... oppure annota WhatsApp"/><div class="helper" style="margin-top:6px">I link web si aprono dal dettaglio articolo. Le note WhatsApp restano testo, senza collegamenti inventati.</div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 20 foto totali per articolo.</div></div>
@@ -15186,5 +15186,17 @@ if('serviceWorker' in navigator){
 </script>
 
 
+
+<script>
+(function(){
+ function removeDescriptionButtons(){
+  for(const root of document.querySelectorAll('#mArtView,#mArtEdit')){
+   for(const button of root.querySelectorAll('button'))if(/^salva\s+descrizione$/i.test(button.textContent.trim()))button.remove();
+  }
+ }
+ removeDescriptionButtons();
+ new MutationObserver(removeDescriptionButtons).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
 </body>
 </html>
