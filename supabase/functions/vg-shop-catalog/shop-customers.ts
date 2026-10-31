@@ -69,7 +69,7 @@ export async function customerAction(db:any,req:Request,owner:string,action:stri
   }
   const account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status,pin_salt,pin_hash').eq('owner_id',owner).eq('phone_hash',phoneHash).maybeSingle();if(account.error)throw account.error;
   // Use the same derivation even for an unknown number.
-  const actual=await passwordHash(pin,account.data?.pin_salt||'00'.repeat(16));if(!account.data||!equal(actual,account.data.pin_hash))return out({error:'Numero o password non corretti'},403);
+  const actual=await passwordHash(pin,account.data?.pin_salt||'00'.repeat(16));if(!account.data)return out({error:'Questo numero non risulta registrato. Premi Registrati per creare il tuo account.',code:'CUSTOMER_NOT_REGISTERED'},403);if(!equal(actual,account.data.pin_hash))return out({error:'Password non corretta. Riprova oppure usa Password dimenticata.',code:'CUSTOMER_INVALID_PASSWORD'},403);
   return out(await issue(db,owner,account.data));
  }
  const session=await customerSession(db,req,owner,['customer-me','customer-logout'].includes(action));if(!session)return out({error:'Accedi alla tua area clienti',code:'CUSTOMER_LOGIN_REQUIRED'},403);
