@@ -2,7 +2,7 @@
 (()=>{'use strict';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=value=>String(value||'').trim().toLocaleLowerCase('it');
-const money=value=>Number(value||0).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
+const money=value=>value===null?'Info in privato':Number(value||0).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
 const image=p=>p.image||(Array.isArray(p.images)?p.images.find(Boolean):'')||'';
 const publicItem=p=>p&&p.id&&p.published!==false&&p.visible!==false;
 
