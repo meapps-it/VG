@@ -205,3 +205,7 @@ body #accessGate #accessFormTitle{font-size:22px;line-height:1.25;margin:0 0 20p
 body #accessGate #accessError:not(:empty){padding:12px 14px;border:1px solid #c92b26;border-left:4px solid #b42318;border-radius:10px;background:#fff1f0;color:#b42318!important;font-size:14px;font-weight:700;line-height:1.5}
 body #accessGate #accessGoRegister{width:100%;margin:4px 0 12px;background:#fff!important;color:#9f2018!important;border:2px solid #b42318!important;box-shadow:none!important;font-weight:700}
 body #accessGate #accessGoRegister[hidden]{display:none!important}
+
+/* Compact catalogue prices. */
+body .item .price,body .related-bottom .price{font-size:16px!important;line-height:1.35;font-weight:700}
+body .item .price .old{font-size:11px!important}
