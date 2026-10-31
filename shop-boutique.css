@@ -185,3 +185,9 @@ body #accessError,body .access-consent-error,body .consent-invalid,body .consent
 #productView .variant-options select{font-size:17px!important;color:#111!important}
 
 body .purchase-note,body .access-card #accessGoogleFallback{color:#111!important}
+
+/* Slightly smaller catalogue prices. */
+body .item .price{font-size:19px}
+body .related-bottom .price{font-size:18px}
+body #productView .product-price-line #productPrice{font-size:26px}
+@media(max-width:650px){body .item .price{font-size:19px}body #productView .product-price-line #productPrice{font-size:22px}}
