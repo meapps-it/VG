@@ -1,9 +1,17 @@
 import {requireOwner} from './shop-access.ts';
 const uuid=(v:string)=>/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(v||'');
 export async function customerAdminAction(db:any,req:Request,owner:string,action:string,out:any){
- if(!['customer-admin','customer-admin-read','customer-delete','customer-access-history'].includes(action))return null;
+ if(!['customer-admin','customer-admin-read','customer-delete','customer-access-history','customer-client-links','customer-client-merge'].includes(action))return null;
  if(!await requireOwner(db,req,owner))return out({error:'Operazione riservata al titolare del catalogo'},403);
  const url=new URL(req.url);
+ if(action==='customer-client-links'&&req.method==='GET'){
+  const accounts:any[]=[],clients:any[]=[];
+  for(let offset=0;;offset+=500){const r=await db.from('vg_shop_customers').select('id,phone,email,profile,cliente_id').eq('owner_id',owner).order('id').range(offset,offset+499);if(r.error)throw r.error;accounts.push(...r.data);if(r.data.length<500)break}
+  for(let offset=0;;offset+=500){const r=await db.from('clienti').select('*').eq('user_id',owner).order('id').range(offset,offset+499);if(r.error)throw r.error;clients.push(...r.data);if(r.data.length<500)break}
+  const norm=(v:any)=>String(v||'').trim().toLocaleLowerCase('it').replace(/\s+/g,' ');
+  return out({clients,accounts:accounts.map(a=>({id:a.id,name:a.profile?.name||a.email||'Cliente catalogo',phone:a.profile?.phone||a.phone||'',email:a.email||'',clientId:a.cliente_id,candidates:clients.filter(c=>c.id!==a.cliente_id&&(!a.phone&&norm([c.nome,c.cognome].filter(Boolean).join(' '))===norm(a.profile?.name)||a.email&&norm(c.email)===norm(a.email))).map(c=>({id:c.id,name:[c.nome,c.cognome].filter(Boolean).join(' '),phone:c.telefono||'',email:c.email||'',reason:a.email&&norm(c.email)===norm(a.email)?'Stessa email':'Nome omonimo: conferma necessaria'}))}))});
+ }
+
  if(action==='customer-admin'&&req.method==='GET'){
   const offset=Math.max(0,Math.min(100000,Number(url.searchParams.get('offset'))||0)),status=url.searchParams.get('status')||'';
   if(!Number.isInteger(offset)||status&&!['pending','approved','blocked'].includes(status))return out({error:'Filtro non valido'},400);
@@ -24,6 +32,11 @@ export async function customerAdminAction(db:any,req:Request,owner:string,action
  }
  if(req.method!=='POST')return out({error:'Metodo non consentito'},405);
  const raw=await req.text();if(raw.length>6000)return out({error:'Richiesta troppo grande'},413);let body:any;try{body=JSON.parse(raw)}catch{return out({error:'Richiesta non valida'},400)}
+
+ if(action==='customer-client-merge'){
+  if(!uuid(body.id)||!uuid(body.clientId)||body.confirm!==true)return out({error:'Scegli la scheda e conferma l’integrazione'},400);
+  const r=await db.rpc('vg_merge_catalog_client',{p_owner:owner,p_customer:body.id,p_target:body.clientId});if(r.error)throw r.error;return out(r.data);
+ }
  if(action==='customer-admin-read'){
   if(!Array.isArray(body.ids)||body.ids.length>30||!body.ids.every(uuid))return out({error:'Avvisi non validi'},400);
   if(body.ids.length){const r=await db.from('vg_shop_customer_notifications').update({read_at:new Date().toISOString()}).eq('owner_id',owner).in('id',body.ids).is('read_at',null);if(r.error)throw r.error;}return out({ok:true});
