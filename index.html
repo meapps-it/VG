@@ -4739,19 +4739,48 @@ async function nativeShareArticleNow({title='', text='', files=[], channelLabel=
   return false;
 }
 
+function existingStoragePhotoPath(source,existingPaths){
+  try{
+    const url=new URL(source);
+    if(url.origin!=='https://qfjwtawsqfwmsmrrgqfi.supabase.co')return '';
+    const prefix='/storage/v1/object/';
+    for(const mode of ['sign','authenticated','public']){
+      const start=prefix+mode+'/'+SUPABASE_BUCKET+'/';
+      if(url.pathname.startsWith(start)){
+        const path=decodeURIComponent(url.pathname.slice(start.length));
+        return existingPaths.includes(path)?path:'';
+      }
+    }
+  }catch(_e){}
+  return '';
+}
+async function readArticlePhotoRowsWithRetry(sb,artId){
+  for(let attempt=0;attempt<3;attempt++){
+    try{
+      const result=await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id',artId).order('ordine',{ascending:true});
+      if(result.error)throw result.error;
+      return result.data||[];
+    }catch(error){
+      const transient=/failed to fetch|fetch failed|network|load failed|timeout/i.test(String(error?.message||error))||Number(error?.status)>=500;
+      if(!transient||attempt===2)throw error;
+      await new Promise(resolve=>setTimeout(resolve,attempt?900:300));
+    }
+  }
+}
 async function syncArticlePhotosToCloud(artId, codice, pics){
   const sb=await ensureCloud();
   if(!sb||!cloudSession||!artId) return [];
   const cleanCode=String(codice||artId||'art').trim() || String(artId);
   const normalized=(pics||[]).filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS);
-  const { data:existingRows,error:readError } = await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id', artId).order('ordine',{ascending:true});
-  if(readError) throw readError;
+  const existingRows=await readArticlePhotoRowsWithRetry(sb,artId);
   const existingPaths=(existingRows||[]).map(r=>String(r?.path||'').trim()).filter(Boolean);
   const savedPaths=[];
   const uploadErrors=[];
   for(let i=0;i<normalized.length;i++){
     const src=String(normalized[i]||'').trim();
     if(!src) continue;
+    const storedPath=existingStoragePhotoPath(src,existingPaths);
+    if(storedPath){savedPaths.push(storedPath);continue;}
 
     if(isLikelyCloudPhotoPath(src)){
       const cleanPath = src.replace(/^\/+/, '').replace(new RegExp('^'+SUPABASE_BUCKET+'\/'), '');
@@ -14436,7 +14465,7 @@ async function upsertCloudArticle(art){
     cloudFoto=await syncArticlePhotosToCloud(data.id, art.codice||data.sku||data.id, pics);
   }catch(err){
     console.warn('Sync foto cloud fallita', err);
-    throw new Error('Foto non sincronizzate: '+(err?.message||'riprova il salvataggio'));
+    throw new Error('Foto non sincronizzate. I dati dell’articolo sono salvati, ma le foto non sono state aggiornate. Riprova Salva articolo quando la connessione è disponibile.');
   }
   const finalFoto=normalizeCloudPhotoPathList(cloudFoto.length?cloudFoto:(art.foto||[]));
   try{
