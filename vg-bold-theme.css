@@ -197,3 +197,19 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color])
 }
 input::placeholder,textarea::placeholder{color:#59697d!important}
 #sec_articoli .artPriceRow,#sec_articoli .artThumbBox,#sec_articoli .artThumbLarge{background:#f4f5f7!important;border-color:#8a99a9!important}
+
+/* Coherent administration palette: white surfaces, blue actions, clear status colors. */
+html body,html body .app{background:#fff!important}
+html body .top{border-bottom:1px solid #cbd5e1!important;box-shadow:0 2px 0 #e2e8f0!important}
+html body .vgAdminTitle{font-size:clamp(21px,5.8vw,30px)!important;line-height:1.16!important;font-weight:800!important;color:#172d47!important;letter-spacing:-.025em;margin:8px 0!important;max-width:310px;width:auto!important;min-height:0!important}
+html body .card,html body .row,html body .stat,html body #sec_articoli .artToolbarCard,html body #sec_articoli .artCard{background:#fff!important;border-color:#52677e!important;box-shadow:0 3px 0 #dce3eb!important}
+html body input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),html body select,html body textarea{background:#fff!important;border-color:#a7b5c5!important;box-shadow:inset 0 1px 2px #172d4708!important;color:#172d47!important}
+html body #sec_articoli .artModeSwitch{background:#e7edf5!important;border:1px solid #bccbdd!important}
+html body #sec_articoli .artModeSwitch button{color:#334d6c!important}
+html body #sec_articoli .artModeSwitch button.active,html body #sec_articoli .artModeSwitch button[aria-pressed=true]{background:#245ebc!important;color:#fff!important}
+html body #sec_articoli .artPriceRow{background:#f0f4fa!important;border-color:#ccd6e2!important}
+html body #sec_articoli .artCard.is-promo{border-color:#278467!important;background:#f5fbf8!important}
+html body #sec_articoli .artCard.is-unavailable{border-color:#b45364!important;background:#fff8f9!important}
+html body .navBottom{background:#fff!important;border-top:2px solid #c1cddd!important}
+html body .navBottom button:nth-child(n){background:#e9eff7!important;color:#263f5e!important;border-color:#7890ad!important;box-shadow:0 3px 0 #bccbdc!important}
+html body .navBottom button.active{background:#225cc2!important;color:#fff!important;border-color:#194b9f!important;box-shadow:0 3px 0 #173c76!important}
