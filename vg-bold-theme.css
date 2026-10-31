@@ -213,3 +213,14 @@ html body #sec_articoli .artCard.is-unavailable{border-color:#b45364!important;b
 html body .navBottom{background:#fff!important;border-top:2px solid #c1cddd!important}
 html body .navBottom button:nth-child(n){background:#e9eff7!important;color:#263f5e!important;border-color:#7890ad!important;box-shadow:0 3px 0 #bccbdc!important}
 html body .navBottom button.active{background:#225cc2!important;color:#fff!important;border-color:#194b9f!important;box-shadow:0 3px 0 #173c76!important}
+
+/* Price and catalogue visibility share one field. */
+html body #mArtEdit .priceVisibilityField{display:flex;align-items:stretch;position:relative;background:#fff;border:2px solid #a7b5c5;border-radius:16px;overflow:hidden}
+html body #mArtEdit .priceVisibilityField:focus-within{outline:2px solid #245ebc;outline-offset:2px}
+html body #mArtEdit .priceVisibilityField #a_sell{flex:1 1 auto;width:0;min-width:0;border:0!important;border-radius:0!important;box-shadow:none!important;outline:none!important;background:transparent!important;margin:0}
+html body #mArtEdit .priceVisibilityControl{position:relative;flex:0 0 48px;display:flex;align-items:center;justify-content:center;border-left:1px solid #dce4ef;background:#f3f6fb;color:#294c77}
+html body #mArtEdit .priceVisibilityControl svg{pointer-events:none}
+html body #mArtEdit .priceVisibilityControl #a_price_visibility{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;min-height:44px}
+html body #mArtEdit .priceHiddenSlash{display:none}
+html body #mArtEdit .priceVisibilityField:has(option[value=hide]:checked) .priceHiddenSlash{display:block}
+html body #mArtEdit .priceVisibilityField:has(option[value=hide]:checked) .priceVisibilityControl{background:#fff0d9;color:#704900}
