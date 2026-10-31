@@ -191,3 +191,17 @@ body .item .price{font-size:19px}
 body .related-bottom .price{font-size:18px}
 body #productView .product-price-line #productPrice{font-size:26px}
 @media(max-width:650px){body .item .price{font-size:19px}body #productView .product-price-line #productPrice{font-size:22px}}
+
+/* Distinct sign-in and registration choices. */
+body #accessGate .access-card #accessTabs{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0;background:transparent;border:0;margin:26px 0 12px}
+body #accessGate .access-card #accessTabs button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:15px 9px;min-height:82px;background:#fff!important;border:2px solid #bdc9d9!important;border-radius:14px!important;box-shadow:none!important;color:#111!important}
+body #accessGate .access-card #accessTabs button strong{font-size:18px;color:#111!important}
+body #accessGate .access-card #accessTabs button small{font-size:11px;line-height:1.35;color:#333!important}
+body #accessGate .access-card #accessTabs button[aria-pressed=true]{background:#225cc2!important;border-color:#17458f!important;box-shadow:0 3px 0 #173c76!important}
+body #accessGate .access-card #accessTabs button[aria-pressed=true] *{color:#fff!important}
+body #accessGate .access-card .access-mode-help{font-size:13px;line-height:1.5;margin:10px 0 20px}
+body #accessGate #accessForm{border-top:1px solid #d6dfeb;padding-top:14px}
+body #accessGate #accessFormTitle{font-size:22px;line-height:1.25;margin:0 0 20px}
+body #accessGate #accessError:not(:empty){padding:12px 14px;border:1px solid #c92b26;border-left:4px solid #b42318;border-radius:10px;background:#fff1f0;color:#b42318!important;font-size:14px;font-weight:700;line-height:1.5}
+body #accessGate #accessGoRegister{width:100%;margin:4px 0 12px;background:#fff!important;color:#9f2018!important;border:2px solid #b42318!important;box-shadow:none!important;font-weight:700}
+body #accessGate #accessGoRegister[hidden]{display:none!important}
