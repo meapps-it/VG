@@ -608,7 +608,7 @@ window.addEventListener('error',e=>{
 <link rel="stylesheet" href="./vg-fullscreen-pages.css?v=compact-header-20261030">
 <script src="./vg-fullscreen-pages.js?v=compact-header-20261030" defer></script>
 <link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.160">
-<script src="./vg-catalog-stats.js?v=1.0.174" defer></script>
+<script src="./vg-catalog-stats.js?v=client-integration-20261031" defer></script>
 </head>
 <body class="auth-locked">
 <script>window.SimplexClientConfig={status:'active',modules:{clienti:true,ordini:true,magazzino:true,statistiche:true}};window.SimplexLicense={refresh:()=>{},clear:()=>{},getKey:()=>''};</script>
@@ -2551,16 +2551,9 @@ function splitClientNameForCloud(cli){
 }
 
 function normalizeClientDedupKey(x){
-  const full=normalizeTextKey(normalizeClientDisplayName(x));
-  const telefono=normalizePhone(x?.telefono||x?.tel||x?.phone||'');
-  const email=normalizeEmail(x?.email||'');
-  const citta=normalizeTextKey(x?.citta||x?.city||'');
-  const cap=normalizeTextKey(x?.cap||'');
-  const indirizzo=normalizeTextKey(x?.indirizzo||x?.address||'');
-  if(email) return `email|${email}`;
-  if(telefono && telefono.replace(/\D/g,'').length>=6) return `tel|${telefono}`;
-  if(full) return `name|${full}|${citta}|${cap}|${indirizzo}`;
-  return '';
+  const phone=String(normalizePhone(x?.telefono||x?.tel||x?.phone||'')).replace(/\D/g,'').replace(/^0039(?=\d{10}$)/,'').replace(/^39(?=\d{10}$)/,'');
+  if(phone.length>=6)return 'tel|'+phone;
+  return x?.id?'id|'+x.id:'';
 }
 function clientMeaningfulDataScore(x){
   if(!x || typeof x!=='object') return 0;
@@ -2597,15 +2590,7 @@ function clientHasStrongIdentityData(x){
 function isClientNameOnlyRecord(x){
   return !!normalizeTextKey(normalizeClientDisplayName(x)) && clientMeaningfulDataScore(x)===0;
 }
-function isSafeSparseClientDuplicate(a,b){
-  const an=normalizeTextKey(normalizeClientDisplayName(a));
-  const bn=normalizeTextKey(normalizeClientDisplayName(b));
-  if(!an || an!==bn) return false;
-  const aSparse=isClientNameOnlyRecord(a), bSparse=isClientNameOnlyRecord(b);
-  if(aSparse===bSparse) return false;
-  const rich=aSparse?b:a;
-  return clientHasStrongIdentityData(rich);
-}
+function isSafeSparseClientDuplicate(a,b){return false;}
 function mergeClientRecords(prev,item){
   if(!prev) return {
     ...item,
@@ -14600,24 +14585,9 @@ async function upsertCloudClient(cli){
   let data=null, error=null;
   let matchedId=isUuid(cli.id) ? cli.id : null;
 
-  if(!matchedId && payload.email){
-    const existing=await sb.from('clienti').select('*').eq('email', payload.email).maybeSingle();
-    if(existing.data && !existing.error) matchedId=existing.data.id;
-  }
   if(!matchedId && payload.telefono){
     const existing=await sb.from('clienti').select('*').eq('telefono', payload.telefono).maybeSingle();
     if(existing.data && !existing.error) matchedId=existing.data.id;
-  }
-  if(!matchedId && payload.nome){
-    const probeKey=normalizeClientDedupKey({...cli, nome:normalizeClientDisplayName(cli), cognome:nameParts.cognome, email:payload.email, telefono:payload.telefono});
-    const existing=await sb.from('clienti').select('*').eq('nome', payload.nome).limit(20);
-    const rows=Array.isArray(existing.data) ? existing.data : [];
-    let match=rows.find(row=>normalizeClientDedupKey(cloudClientRowAsLocal(row))===probeKey);
-    if(!match){
-      const safeMatches=rows.filter(row=>isSafeSparseClientDuplicate(cloudClientRowAsLocal(row),cli));
-      if(safeMatches.length===1) match=safeMatches[0];
-    }
-    if(match) matchedId=match.id;
   }
 
   if(matchedId){
