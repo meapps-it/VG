@@ -1187,7 +1187,7 @@ window.addEventListener('error',e=>{
     </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Prezzo calcolato</div><input id="a_recommended" readonly/></div>
-      <div><div id="a_sell_label" class="k">Prezzo di vendita</div><input id="a_sell" inputmode="decimal" autocomplete="off"/><div id="a_sell_hint" class="helper" style="margin-top:5px"></div></div>
+      <div><div id="a_sell_label" class="k">Prezzo di vendita</div><input id="a_sell" inputmode="decimal" autocomplete="off"/><label for="a_price_visibility" class="k" style="display:block;margin-top:10px">Prezzo nel catalogo</label><select id="a_price_visibility"><option value="show">Mostra prezzo</option><option value="hide">Nascondi prezzo · Info in privato</option></select><div class="helper" style="margin-top:5px">Il prezzo resta salvato nel gestionale.</div><div id="a_sell_hint" class="helper" style="margin-top:5px"></div></div>
     </div>
     <input id="a_profit_min" type="hidden"/>
     <input id="a_margin" type="hidden"/>
@@ -3065,6 +3065,7 @@ function collectArticleDraft(){
       brand:getArticleBrandValue(),
       modello:document.getElementById('a_mod')?.value||'',
       categoria:document.getElementById('a_cat')?.value||'',
+      nascondiPrezzo:document.getElementById('a_price_visibility')?.value==='hide',
       descrizione:document.getElementById('a_desc')?.value||'',
       fornitore:document.getElementById('a_forn')?.value||'',
       qualita:document.getElementById('a_qual')?.value||'',
@@ -3115,6 +3116,7 @@ function restoreArticleDraft(targetId=''){
   syncBrandField(v.brand||'');
   document.getElementById('a_mod').value=v.modello||'';
   refreshArticleCategorySelects(v.categoria||'');
+  document.getElementById('a_price_visibility').value=v.nascondiPrezzo===true?'hide':'show';
   document.getElementById('a_desc').value=v.descrizione||'';
   document.getElementById('a_forn_link').value=v.fornitoreLink||'';
   currentSupplierManualOverride=(typeof v.fornitoreManuale==='boolean') ? v.fornitoreManuale : !!String(v.fornitore||'').trim();
@@ -5326,7 +5328,8 @@ function articleCostEstimateInputFromForm(){
     brand:getArticleBrandValue(),
     materiale:document.getElementById('a_taglia')?.value||'',
     variante:document.getElementById('a_variante')?.value||'',
-    descrizione:document.getElementById('a_desc')?.value||'',
+    nascondiPrezzo:document.getElementById('a_price_visibility')?.value==='hide',
+      descrizione:document.getElementById('a_desc')?.value||'',
     misura:document.getElementById('a_mis')?.value||'',
     modello:document.getElementById('a_mod')?.value||''
   };
@@ -7674,6 +7677,7 @@ function buildPostTelegram(a, includePrice=true){
 }
 function buildCloudArticleMeta(art){
   return {
+    nascondiPrezzo: art?.nascondiPrezzo===true,
     brand: art?.brand||'',
     modello: art?.modello||'',
     categoria: art?.categoria||'',
@@ -11012,6 +11016,7 @@ function applyBulkPasteArticle(){
 }
 
 async function openArtEdit(id){
+  document.getElementById('a_price_visibility').value='show';
   const db=loadDB();
   const a=id?db.articoli.find(x=>x.id===id):null;
   currentArtId=id||null;
@@ -11054,6 +11059,7 @@ async function openArtEdit(id){
   }
   set('a_cod', a?.codice); syncBrandField(a?.brand); set('a_mod', a?.modello);
   refreshArticleCategorySelects(a?.categoria||'');
+  set('a_price_visibility', a?.nascondiPrezzo===true?'hide':'show');
   set('a_desc', a?.descrizione); set('a_forn_link', a?.fornitoreLink||'');
   currentSupplierManualOverride=(typeof a?.fornitoreManuale==='boolean') ? a.fornitoreManuale : !!normalizeSpaceText(a?.fornitore||'');
   currentQualityManualOverride=(typeof a?.qualitaManuale==='boolean') ? a.qualitaManuale : !!normalizeSpaceText(a?.qualita||a?.qualità||'');
@@ -11481,7 +11487,7 @@ function renderArtAutoFields(){
   const promoOn=document.getElementById('a_promo_on').checked;
   const promoPrice=Number(document.getElementById('a_promo_price').value||0);
   const promoDate=document.getElementById('a_promo_date').value.trim();
-  let a={codice:code, fornitore:document.getElementById('a_forn').value.trim(), qualita:currentArticleFormQuality(), fornitoreLink:document.getElementById('a_forn_link').value.trim(), costoUsd:usd, costoEur:hasAcceptedEstimate?0:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, costoStimatoAttivo:hasAcceptedEstimate, costoIpotetico:hasAcceptedEstimate, costoEurStimato:hasAcceptedEstimate?acceptedEstimate.estimatedCost:0, prezzoVenditaStimato:hasAcceptedEstimate?chosenSale:0, prezzoVenditaStimatoOriginale:hasAcceptedEstimate?recommendedSell:0, prezzoVendita:chosenSale, promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, scadenzaPromoPersonale:promoDate, dataInizioPromoPersonale:'', promoFornitoreAttiva:!!document.getElementById('a_supplier_promo_on')?.checked, dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, costoNormaleSconosciuto:document.getElementById('a_std_cost_unknown').checked};
+  let a={codice:code, fornitore:document.getElementById('a_forn').value.trim(), qualita:currentArticleFormQuality(), fornitoreLink:document.getElementById('a_forn_link').value.trim(), costoUsd:usd, costoEur:hasAcceptedEstimate?0:r.costo, costoUsdPromo:promoUsd, costoEurPromo:rPromo.costo, costoStimatoAttivo:hasAcceptedEstimate, costoIpotetico:hasAcceptedEstimate, costoEurStimato:hasAcceptedEstimate?acceptedEstimate.estimatedCost:0, prezzoVenditaStimato:hasAcceptedEstimate?chosenSale:0, prezzoVenditaStimatoOriginale:hasAcceptedEstimate?recommendedSell:0, prezzoVendita:chosenSale,nascondiPrezzo:document.getElementById('a_price_visibility')?.value==='hide', promoAttiva:promoOn, prezzoPromo:promoPrice, scadenzaPromo:promoDate, scadenzaPromoPersonale:promoDate, dataInizioPromoPersonale:'', promoFornitoreAttiva:!!document.getElementById('a_supplier_promo_on')?.checked, dataInizioPromoFornitore:'', scadenzaPromoFornitore:document.getElementById('a_supplier_promo_end').value.trim(), promoFornitoreDataSconosciuta:document.getElementById('a_supplier_date_unknown').checked, costoNormaleSconosciuto:document.getElementById('a_std_cost_unknown').checked};
   a=normalizeArticlePromoState(a);
   // Aggiorna anche i controlli visivi: una promo scaduta non deve sembrare
   // ancora selezionata mentre il prezzo è già tornato normale.
@@ -11525,7 +11531,7 @@ function renderArtAutoFields(){
     ...a,
     codice:code, brand:getArticleBrandValue(),
     modello:document.getElementById('a_mod').value.trim(),
-    prezzoVendita:chosenSale,
+    prezzoVendita:chosenSale,nascondiPrezzo:document.getElementById('a_price_visibility')?.value==='hide',
     misura:document.getElementById('a_mis').value.trim(),
     altezzaCintura:document.getElementById('a_belt_h')?.value.trim()||'',
     hCintura:document.getElementById('a_belt_h')?.value.trim()||'',
@@ -11624,6 +11630,7 @@ async function duplicateCurrentArticle(sourceId=null){
   syncBrandField(clone.brand||'');
   document.getElementById('a_mod').value=clone.modello||'';
   refreshArticleCategorySelects(clone.categoria||'');
+  document.getElementById('a_price_visibility').value=clone.nascondiPrezzo===true?'hide':'show';
   document.getElementById('a_desc').value=clone.descrizione||'';
   document.getElementById('a_forn_link').value=clone.fornitoreLink||'';
   currentSupplierManualOverride=(typeof clone?.fornitoreManuale==='boolean') ? clone.fornitoreManuale : !!normalizeSpaceText(clone?.fornitore||'');
@@ -11769,7 +11776,7 @@ async function saveArt(){
       costoStimaMax: acceptedEstimate ? Number(acceptedEstimate.maxCost||0) : 0,
       costoStimaSogliaMinima: acceptedEstimate ? Number(acceptedEstimate.minimumPrice||0) : 0,
       costoStimaSignature: acceptedEstimate ? String(acceptedEstimate.signature||'') : '',
-      prezzoVendita: chosenSale,
+      prezzoVendita: chosenSale,nascondiPrezzo:document.getElementById('a_price_visibility')?.value==='hide',
       ivaPercent: old?.ivaPercent ?? 0,
       promoAttiva: document.getElementById('a_promo_on').checked,
       prezzoPromo: Number(document.getElementById('a_promo_price').value||0),
@@ -14131,7 +14138,7 @@ document.getElementById('a_sell')?.addEventListener('input', ()=>{
   saveArticleDraft();
 });
 
-['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_official_price','a_std_cost_unknown','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_date_unknown','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
+['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_official_price','a_std_cost_unknown','a_price_visibility','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_date_unknown','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
   ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
@@ -14787,7 +14794,7 @@ async function pullCloudToLocal(opts={}){
         const pulledUnavailable=(typeof meta.nonDisponibile==='boolean') ? meta.nonDisponibile : ((typeof meta.disponibile==='boolean') ? !meta.disponibile : ((typeof local?.nonDisponibile==='boolean') ? local.nonDisponibile : (p.attivo===false)));
         const cloudTs=parseTimestampLike(meta._ts, p.updated_at, p.created_at, local?._ts, Date.now());
         const createdAt=meta.createdAt||local?.createdAt||local?.dataInserimento||p.created_at||'';
-        return {id:p.id,createdAt,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:p.fornitore||meta.fornitore||local?.fornitore||'',qualita:normalizeSpaceText(p.qualita||meta.qualita||meta.qualità||local?.qualita||local?.qualità||''),fornitoreManuale:(typeof meta.fornitoreManuale==='boolean'?meta.fornitoreManuale:(typeof local?.fornitoreManuale==='boolean'?local.fornitoreManuale:undefined)),qualitaManuale:(typeof meta.qualitaManuale==='boolean'?meta.qualitaManuale:(typeof local?.qualitaManuale==='boolean'?local.qualitaManuale:undefined)),fornitoreLink:meta.fornitoreLink||p.link_prodotto||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,costoStimatoAttivo:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoIpotetico:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoEurStimato:firstFiniteNumber(meta.costoEurStimato,local?.costoEurStimato,0),prezzoVenditaStimato:firstFiniteNumber(meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),prezzoVenditaStimatoOriginale:firstFiniteNumber(meta.prezzoVenditaStimatoOriginale,local?.prezzoVenditaStimatoOriginale,meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),costoStimaCampioni:Math.max(0,parseInt(meta.costoStimaCampioni||local?.costoStimaCampioni||0,10)||0),costoStimaAffidabilita:meta.costoStimaAffidabilita||local?.costoStimaAffidabilita||'',costoStimaMetodo:meta.costoStimaMetodo||local?.costoStimaMetodo||'',costoStimaData:meta.costoStimaData||local?.costoStimaData||'',costoStimaMin:firstFiniteNumber(meta.costoStimaMin,local?.costoStimaMin,0),costoStimaMax:firstFiniteNumber(meta.costoStimaMax,local?.costoStimaMax,0),costoStimaSogliaMinima:firstFiniteNumber(meta.costoStimaSogliaMinima,local?.costoStimaSogliaMinima,0),costoStimaSignature:meta.costoStimaSignature||local?.costoStimaSignature||'',prezzoVendita:pulledPrezzoVendita,prezzoListinoUfficiale:firstFiniteNumber(meta.prezzoListinoUfficiale,local?.prezzoListinoUfficiale,0),linkUfficiale:meta.linkUfficiale||local?.linkUfficiale||'',promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,pubblicatoCatalogo:p.stato_pubblicazione==='pubblicato',post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],_ts:cloudTs,_cloud:true};
+        return {id:p.id,createdAt,codice:p.sku||'',brand:cleanBrand,modello:pulledModel,categoria:meta.categoria||catMap.get(p.categoria_id)||local?.categoria||'',descrizione:pulledDescr,fornitore:p.fornitore||meta.fornitore||local?.fornitore||'',qualita:normalizeSpaceText(p.qualita||meta.qualita||meta.qualità||local?.qualita||local?.qualità||''),fornitoreManuale:(typeof meta.fornitoreManuale==='boolean'?meta.fornitoreManuale:(typeof local?.fornitoreManuale==='boolean'?local.fornitoreManuale:undefined)),qualitaManuale:(typeof meta.qualitaManuale==='boolean'?meta.qualitaManuale:(typeof local?.qualitaManuale==='boolean'?local.qualitaManuale:undefined)),fornitoreLink:meta.fornitoreLink||p.link_prodotto||local?.fornitoreLink||'',materiale:meta.materiale||meta.taglia||p.materiale||local?.materiale||local?.taglia||'',taglia:'',variante:meta.variante||local?.variante||'',colore:colorShape.colorMode==='multiple' ? '' : (meta.colore||p.colore||local?.colore||''),colorMode:colorShape.colorMode,colorType:colorShape.colorMode,colorCount:colorShape.colorCount,colorLabels:colorShape.colorLabels,colorData:makeStableColorData(colorShape),misura:meta.misura||local?.misura||'',altezzaCintura:meta.altezzaCintura||meta.hCintura||local?.altezzaCintura||local?.hCintura||'',hCintura:meta.hCintura||meta.altezzaCintura||local?.hCintura||local?.altezzaCintura||'',costoUsd:pulledCostoUsd,costoUsdPromo:pulledCostoUsdPromo,costoEur:pulledCostoEur,costoEurPromo:pulledCostoEurPromo,costoStimatoAttivo:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoIpotetico:!!(meta.costoStimatoAttivo||meta.costoIpotetico||local?.costoStimatoAttivo||local?.costoIpotetico),costoEurStimato:firstFiniteNumber(meta.costoEurStimato,local?.costoEurStimato,0),prezzoVenditaStimato:firstFiniteNumber(meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),prezzoVenditaStimatoOriginale:firstFiniteNumber(meta.prezzoVenditaStimatoOriginale,local?.prezzoVenditaStimatoOriginale,meta.prezzoVenditaStimato,local?.prezzoVenditaStimato,0),costoStimaCampioni:Math.max(0,parseInt(meta.costoStimaCampioni||local?.costoStimaCampioni||0,10)||0),costoStimaAffidabilita:meta.costoStimaAffidabilita||local?.costoStimaAffidabilita||'',costoStimaMetodo:meta.costoStimaMetodo||local?.costoStimaMetodo||'',costoStimaData:meta.costoStimaData||local?.costoStimaData||'',costoStimaMin:firstFiniteNumber(meta.costoStimaMin,local?.costoStimaMin,0),costoStimaMax:firstFiniteNumber(meta.costoStimaMax,local?.costoStimaMax,0),costoStimaSogliaMinima:firstFiniteNumber(meta.costoStimaSogliaMinima,local?.costoStimaSogliaMinima,0),costoStimaSignature:meta.costoStimaSignature||local?.costoStimaSignature||'',prezzoVendita:pulledPrezzoVendita,nascondiPrezzo:meta.nascondiPrezzo===true,prezzoListinoUfficiale:firstFiniteNumber(meta.prezzoListinoUfficiale,local?.prezzoListinoUfficiale,0),linkUfficiale:meta.linkUfficiale||local?.linkUfficiale||'',promoAttiva:(typeof meta.promoAttiva==='boolean') ? meta.promoAttiva : !!local?.promoAttiva,prezzoPromo:firstFiniteNumber(meta.prezzoPromo, local?.prezzoPromo, 0),scadenzaPromo:meta.scadenzaPromo||local?.scadenzaPromo||'',dataInizioPromo:normalizePromoStartDate(meta.dataInizioPromo||local?.dataInizioPromo||''),costoNormaleSconosciuto:!!(meta.costoNormaleSconosciuto??local?.costoNormaleSconosciuto),promoFornitoreAttiva:(typeof meta.promoFornitoreAttiva==='boolean'?meta.promoFornitoreAttiva:(typeof local?.promoFornitoreAttiva==='boolean'?local.promoFornitoreAttiva:pulledCostoUsdPromo>0)),dataInizioPromoFornitore:normalizePromoStartDate(meta.dataInizioPromoFornitore||local?.dataInizioPromoFornitore||''),scadenzaPromoFornitore:meta.scadenzaPromoFornitore||local?.scadenzaPromoFornitore||'',promoFornitoreDataSconosciuta:!!(meta.promoFornitoreDataSconosciuta??local?.promoFornitoreDataSconosciuta),dataInizioPromoPersonale:normalizePromoStartDate(meta.dataInizioPromoPersonale||local?.dataInizioPromoPersonale||meta.dataInizioPromo||local?.dataInizioPromo||''),scadenzaPromoPersonale:meta.scadenzaPromoPersonale||local?.scadenzaPromoPersonale||meta.scadenzaPromo||local?.scadenzaPromo||'',nonDisponibile:!!pulledUnavailable,disponibile:!pulledUnavailable,pubblicatoCatalogo:p.stato_pubblicazione==='pubblicato',post:pulledPost,postFb:pulledPostFb,postIg:pulledPostIg,note:pulledNote,foto:finalFoto,photoIds:Array.isArray(local?.photoIds)?local.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],_ts:cloudTs,_cloud:true};
       }).filter(a=>!articleMatchesDeleteTombstone(a, deletedArticleTombstones)),
       clienti:(cli||[]).map(c=>cloudClientRowAsLocal(c)),
       ordini:(ord||[]).map(o=>{ const noteRaw=o.note||''; const noteMeta=extractOrderNoteMeta(noteRaw); const righeOrd=righeByOrd.get(o.id)||[]; const righeDiscount=righeOrd.reduce((sum,row)=>sum+Number(row?.sconto||0),0); const shadow={id:o.id,numeroOrdine:o.numero_ordine,data:o.data_ordine||todayStr(),tracking:o.tracking_code||'',totale:Number(o.totale||0),note:noteMeta.cleanNote,righe:righeOrd}; const local=localOrdById.get(o.id)||localOrdByNumero.get(normalizeTextKey(o.numero_ordine||''))||localOrdByFingerprint.get(normalizeOrderFingerprint(shadow)); const mergedRighe=righeOrd.map((row,idx)=>{ const localRow=Array.isArray(local?.righe) ? local.righe.find((lr,j)=> j===idx && ((lr?.articoloId && lr.articoloId===row.articoloId) || (lr?.codice && lr.codice===row.codice))) : null; const shape=deriveColorShape(localRow||{}); return {...row, brand:localRow?.brand||row?.brand||'', categoria:localRow?.categoria||row?.categoria||'', qualita:localRow?.qualita||row?.qualita||'', costoEur:historicalNumber(localRow?.costoEur,row?.costoEur), articoloSnapshot:localRow?.articoloSnapshot||row?.articoloSnapshot||null, richiedeNumeroColore:shape.colorMode==='multiple' || !!localRow?.richiedeNumeroColore, colorCount:shape.colorCount, colorLabels:shape.colorLabels, colorData:makeStableColorData(shape), misura:row.misura||localRow?.misura||'', numeroColore:normalizeSpaceText(row.numeroColore||localRow?.numeroColore||''), colore:normalizeSpaceText(row.colore||localRow?.colore||'')}; }); const scontoCliente=firstFiniteNumber(noteMeta.scontoCliente, righeDiscount, local?.scontoCliente, 0); const subTotale=calcOrderSubtotal(mergedRighe); const statoMeta=normalizeOrderStatus(noteMeta.stato||''); const localStatus=local?.stato?normalizeOrderStatus(local.stato):''; const cloudDerived=(o.stato==='consegnato'?'Consegnato':(o.stato==='spedito'?'Spedito':(o.stato==='annullato'?'Annullato':((o.pagato===true || o.pagato===1 || o.pagato==='true')?'Pagato':'Richiesto')))); const statoCloud=noteMeta.stato ? statoMeta : (localStatus || cloudDerived); return {id:o.id,numeroOrdine:ensureOrderNumber({id:o.id,numeroOrdine:o.numero_ordine}),clienteId:o.cliente_id,stato:statoCloud,data:o.data_ordine||todayStr(),note:noteMeta.cleanNote,mis:noteMeta.mis||'',modalitaPagamento:noteMeta.modalitaPagamento||local?.modalitaPagamento||'',tracking:o.tracking_code||'',righe:mergedRighe,fotoArticoli:[],fotoManuali:Array.isArray(local?.fotoManuali)?local.fotoManuali.filter(Boolean).slice(0,15):[],orderPhotoIds:Array.isArray(local?.orderPhotoIds)?local.orderPhotoIds.filter(Boolean).slice(0,15):[],shippingPhotoId:String(local?.shippingPhotoId||''),shippingPhoto:String(local?.shippingPhoto||''),foto:[],subTotale,scontoCliente,totale:(Number(o.totale)>0 || subTotale===0) ? Number(o.totale||0) : calcOrderNetTotal(mergedRighe, scontoCliente),_ts:parseTimestampLike(o.updated_at, o.data_ordine, local?._ts, Date.now()),_cloud:true}; }).filter(o=>!orderMatchesDeleteTombstone(o, deletedOrderTombstones))
