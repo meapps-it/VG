@@ -2883,11 +2883,11 @@ function mergeById(arrA=[], arrB=[]){
 }
 function loadDB(){
   try{
-    const resetKey=KEY+'_descriptions_cleared_20261031';
+    const resetKey=KEY+'_descriptions_cleared_20261031_v2';
     if(!localStorage.getItem(resetKey)){
       const resetKeys=[KEY,KEY+'_backup_latest',...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])];
-      for(const key of resetKeys){const raw=localStorage.getItem(key);if(!raw)continue;try{const data=JSON.parse(raw);for(const art of data.articoli||[])art.descrizione='';localStorage.setItem(key,JSON.stringify(data));}catch(_e){}}
-      {const draftKey='vg_draft_art_v2_clean';const raw=localStorage.getItem(draftKey);if(raw){try{const draft=JSON.parse(raw);if(draft.values)draft.values.descrizione='';localStorage.setItem(draftKey,JSON.stringify(draft));}catch(_e){}}}
+      for(const key of resetKeys){const raw=localStorage.getItem(key);if(!raw)continue;try{const data=JSON.parse(raw);for(const art of data.articoli||[]){art.descrizione='';art.postFb='';art.postFacebook='';}localStorage.setItem(key,JSON.stringify(data));}catch(_e){}}
+      {const draftKey='vg_draft_art_v2_clean';const raw=localStorage.getItem(draftKey);if(raw){try{const draft=JSON.parse(raw);if(draft.values){draft.values.descrizione='';draft.values.postFb='';draft.values.postFacebook='';}localStorage.setItem(draftKey,JSON.stringify(draft));}catch(_e){}}}
       localStorage.setItem(resetKey,'1');
     }
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
@@ -7595,14 +7595,7 @@ function buildPostFacebookWithPrice(a){
   return formatGeneratedPostLines([base, prezzo]);
 }
 function setArticleFacebookPostAuto(text){
-  const el=document.getElementById('a_post_fb');
-  if(!el) return;
-  if(el.dataset.fbCustom==='1') return;
-  if(document.activeElement===el) return;
-  const prevScroll=el.scrollTop;
-  el.value=text||'';
-  fitTextarea(el);
-  el.scrollTop=prevScroll;
+  // Descriptions are entered manually; never regenerate deleted article text.
 }
 
 function buildPostInstagram(a){
@@ -11092,7 +11085,7 @@ async function openArtEdit(id){
   const fbEditEl=document.getElementById('a_post_fb');
   if(fbEditEl){
     fbEditEl.dataset.fbCustom=getArticleFacebookCustomPost(a||{}) ? '1' : '0';
-    fbEditEl.value=getArticleFacebookPost(a||{});
+    fbEditEl.value=String(a?.postFb||'');
     fitTextarea(fbEditEl);
   }
   document.getElementById('a_post_ig').value=buildPostInstagram(a||{});
@@ -11668,7 +11661,7 @@ async function duplicateCurrentArticle(sourceId=null){
   const fbCloneEl=document.getElementById('a_post_fb');
   if(fbCloneEl){
     fbCloneEl.dataset.fbCustom=getArticleFacebookCustomPost(clone||{}) ? '1' : '0';
-    fbCloneEl.value=getArticleFacebookPost(clone||{});
+    fbCloneEl.value=String(clone?.postFb||'');
     fitTextarea(fbCloneEl);
   }
   document.getElementById('a_post_ig').value=buildPostInstagram(clone||{});
@@ -14789,7 +14782,7 @@ async function pullCloudToLocal(opts={}){
         const pulledDescr=String(typeof meta.descrizione==='string'?meta.descrizione:(legacy.descrizione||'')).trim();
         const pulledNote=(meta.note||legacy.note||local?.note||'').trim();
         const pulledPost=(meta.post||local?.post||'').trim();
-        const pulledPostFb=(meta.postFb||meta.postFacebook||local?.postFb||local?.postFacebook||'').trim();
+        const pulledPostFb=String(typeof meta.postFb==='string'?meta.postFb:(meta.postFacebook||'')).trim();
         const pulledPostIg=(meta.postIg||local?.postIg||'').trim();
         const finalFoto=normalizeCloudPhotoPathList(fotoByProd.get(p.id) || meta.foto || meta.fotoCloud || local?.foto || []);
         const pulledCostoUsd=firstFiniteNumber(meta.costoUsd, local?.costoUsd, 0);
