@@ -8176,6 +8176,28 @@ const ORDER_DELETE_TOMBSTONES_KEY='vg_order_delete_tombstones_v1';
 const ORDER_DELETE_TOMBSTONE_TTL=30*24*60*60*1000;
 const ARTICLE_DELETE_TOMBSTONES_KEY='vg_article_delete_tombstones_v1';
 const ARTICLE_DELETE_TOMBSTONE_TTL=365*24*60*60*1000;
+// Client deletions are scoped to the signed-in owner and retained across reloads.
+function clientDeleteStorageKey(){
+  return 'vg_client_delete_tombstones_v1:'+String(cloudSession?.user?.id||'local');
+}
+function loadClientDeleteTombstones(){
+  const raw=JSON.parse(localStorage.getItem(clientDeleteStorageKey())||'[]');
+  return Array.isArray(raw)?raw:[];
+}
+function addClientDeleteTombstone(cli){
+  if(!cli?.id) return;
+  const ids=new Set(loadClientDeleteTombstones());
+  ids.add(String(cli.id));
+  localStorage.setItem(clientDeleteStorageKey(),JSON.stringify([...ids]));
+}
+function filterDeletedCloudRecords(db){
+  const clients=new Set(loadClientDeleteTombstones());
+  const articles=loadArticleDeleteTombstones(),orders=loadOrderDeleteTombstones();
+  db.clienti=(db.clienti||[]).filter(c=>!clients.has(String(c.id)));
+  db.articoli=(db.articoli||[]).filter(a=>!articleMatchesDeleteTombstone(a,articles));
+  db.ordini=(db.ordini||[]).filter(o=>!orderMatchesDeleteTombstone(o,orders));
+  return db;
+}
 function normalizeArticleDeleteKeys(art){
   return {
     id:normalizeSpaceText(art?.id||''),
@@ -12515,17 +12537,22 @@ async function saveCli(){
 }
 async function deleteCli(){
   if(!currentCliId) return hide('mCliEdit');
-  
-  const db=loadDB();
-  const old=db.clienti.find(c=>c.id===currentCliId);
-  db.clienti=db.clienti.filter(c=>c.id!==currentCliId);
-  if(!saveDB(db)) return;
-  if(old && cloudEnabled()) await cloudDeleteOne('cli', old);
-  clearClientDraft();
-  hide('mCliEdit');
-  toast(cloudEnabled() ? 'Cliente eliminato anche dal cloud' : 'Cliente eliminato');
+  const db=loadDB(),old=db.clienti.find(c=>c.id===currentCliId);
+  if(!old) return hide('mCliEdit');
+  try{
+    // Persist the deletion before any asynchronous download can restore it.
+    addClientDeleteTombstone(old);
+    catalogPublicationRevision++;
+    db.clienti=db.clienti.filter(c=>c.id!==old.id);
+    if(!saveDB(db)) return;
+    clearClientDraft();hide('mCliEdit');hide('mCliView');currentCliId=null;renderAll();
+    if(cloudEnabled()) await cloudDeleteOne('cli',old);
+    toast(cloudEnabled()?'Cliente eliminato anche dal cloud':'Cliente eliminato');
+  }catch(err){
+    console.error('Eliminazione cliente fallita',err);
+    toast('Eliminazione cloud non confermata. La scheda resta nascosta su questo dispositivo.');
+  }
 }
-
 
 function articleCategoryIsShoe(rawCat=''){
   const cat=normalizeTextKey(rawCat||'');
@@ -14352,12 +14379,14 @@ async function cloudSaveOne(type, payload, dbRef){
 }
 async function cloudDeleteOne(type, payload){
   if(!cloudEnabled() || !payload) return;
+  catalogPublicationWrites++;catalogPublicationRevision++;
   cloudBusy=true; cloudUi();
   try{
     if(type==='art') return await deleteCloudArticle(payload);
     if(type==='cli') return await deleteCloudClient(payload);
     if(type==='ord') return await deleteCloudOrder(payload);
   }finally{
+    catalogPublicationWrites--;catalogPublicationRevision++;
     cloudBusy=false; cloudUi();
   }
 }
@@ -14603,6 +14632,9 @@ async function deleteCloudClient(cli){
   if(!sb||!cloudSession||!isUuid(cli?.id)) return;
   const {error}=await sb.from('clienti').delete().eq('id', cli.id);
   if(error) throw error;
+  const check=await sb.from('clienti').select('id').eq('id',cli.id);
+  if(check.error) throw check.error;
+  if(check.data?.length) throw new Error('Il server non ha eliminato la scheda cliente.');
 }
 async function upsertCloudOrder(ord, db){
   const sb=await ensureCloud();
@@ -14821,6 +14853,9 @@ async function pullCloudToLocal(opts={}){
       agenda:[...(Array.isArray(localDb?.agenda)?localDb.agenda:[])]
     });
 
+    // Downloads can await photo lookups after the initial revision check.
+    if(publicationRevision!==catalogPublicationRevision || catalogPublicationWrites) return false;
+    filterDeletedCloudRecords(mergedDb);
     updateShippingNotifications(mergedDb, bg?'cloud-auto':'cloud');
     saveDBLocal(mergedDb);
     renderAll();
