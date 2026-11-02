@@ -225,9 +225,9 @@ html body #mArtEdit .priceHiddenSlash{display:none}
 html body #mArtEdit .priceVisibilityField:has(option[value=hide]:checked) .priceHiddenSlash{display:block}
 html body #mArtEdit .priceVisibilityField:has(option[value=hide]:checked) .priceVisibilityControl{background:#fff0d9;color:#704900}
 
-/* Slightly stronger management text; headings and action weights stay distinct. */
-html body{font-weight:500}
-html body input,html body select,html body textarea{font-weight:500}
-html body .small,html body .s,html body .sub,html body label{font-weight:600}
-html body #sec_articoli .artToolbarCard input#qArt{font-weight:600}
-html body #sec_articoli .artMeta .s{font-weight:600}
+/* Clearly readable semibold management text on mobile and desktop. */
+html body{font-weight:600}
+html body input,html body select,html body textarea{font-weight:600!important}
+html body .small,html body .s,html body .sub,html body label{font-weight:700}
+html body #sec_articoli .artToolbarCard input#qArt{font-weight:600!important}
+html body #sec_articoli .artMeta .s{font-weight:700}
