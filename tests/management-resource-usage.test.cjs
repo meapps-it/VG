@@ -23,7 +23,8 @@ test('customer badge polling does not download hidden integration dossiers or re
   w.eval(fs.readFileSync(__dirname+'/../vg-customer-panel.js','utf8'));await tick();await tick();
   assert.equal(calls.filter(a=>a==='customer-client-links').length,0);
   await w.VG_CUSTOMERS.refresh();assert.equal(calls.filter(a=>a==='customer-client-links').length,0);
-  w.VG_CUSTOMERS.open();await tick();await tick();assert.equal(calls.filter(a=>a==='customer-client-links').length,1);
+  const before=calls.length;w.VG_CUSTOMERS.open();await tick();await tick();assert.equal(calls.length,before,'opening reuses the freshly polled customer list');
+  const details=w.document.getElementById('vgClientIntegration');details.open=true;details.dispatchEvent(new w.Event('toggle'));await tick();await tick();assert.equal(calls.filter(a=>a==='customer-client-links').length,1);
   const root=w.document.getElementById('vgClientIntegrationList'),node=root.firstChild;
   await w.VG_CUSTOMERS.refresh();assert.equal(root.firstChild,node);assert.equal(calls.filter(a=>a==='customer-client-links').length,1);
  }finally{w.close()}
@@ -41,4 +42,23 @@ test('unchanged order alerts reuse the archive, pause while typing and isolate d
   w.cloudSession.user.id='two';w.VG_DASHBOARD_ALERTS.refresh();w.document.querySelector('.vgOrderDismiss').click();
   assert.equal(w.localStorage.getItem('vg_dismissed_order_alerts_v1:one'),null);assert.deepEqual(JSON.parse(w.localStorage.getItem('vg_dismissed_order_alerts_v1:two')),['order']);
  }finally{w.close()}
+});
+
+test('customer opening shares an in-flight poll and a late filter response cannot replace the selected list',async()=>{
+ const d=new JSDOM('<section id="vgDashboardAlerts"></section><button id="vgCatalogStatsOpen"></button>',{url:'https://example.test',runScripts:'outside-only',pretendToBeVisual:true}),w=d.window,calls=[],responses=[];
+ w.setInterval=()=>0;w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};
+ w.VG_SUPABASE_READY=Promise.resolve({auth:{getSession:async()=>({data:{session:{access_token:'fixture'}}})}});
+ w.fetch=url=>new Promise(resolve=>{calls.push(url);responses.push(data=>resolve({ok:true,json:async()=>data}))});
+ const data=name=>({total:1,pending:0,unread:0,customers:[{id:name,name,status:'approved'}],notifications:[],hasMore:false,offset:0});
+ try{
+  w.eval(fs.readFileSync(__dirname+'/../vg-customer-panel.js','utf8'));await tick();w.VG_CUSTOMERS.open();await tick();assert.equal(calls.length,1,'initial poll and open share the same request');
+  const filter=w.document.getElementById('vgCustomerFilter');filter.value='blocked';filter.dispatchEvent(new w.Event('change'));await tick();assert.equal(calls.length,2);
+  responses[1](data('Selected filter'));await tick();responses[0](data('Old response'));await tick();
+  assert.match(w.document.getElementById('vgCustomerList').textContent,/Selected filter/);assert.doesNotMatch(w.document.getElementById('vgCustomerList').textContent,/Old response/);
+  assert(!calls.some(url=>url.includes('customer-client-links')));
+ }finally{w.close()}
+});
+test('management font enforces normal bold on body text and controls and initializes once',async()=>{
+ const d=new JSDOM('<p>Testo</p><button>Apri</button><input value="Cliente">',{url:'https://example.test',runScripts:'outside-only',pretendToBeVisual:true}),w=d.window;
+ try{const source=fs.readFileSync(__dirname+'/../vg-font-settings.js','utf8');w.eval(source);w.eval(source);await tick();assert.equal(w.document.querySelectorAll('#vg-native-font-style').length,1);for(const el of w.document.querySelectorAll('p,button,input'))assert.equal(w.getComputedStyle(el).fontWeight,'700');}finally{w.close()}
 });

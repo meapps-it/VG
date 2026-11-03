@@ -1,10 +1,11 @@
 (()=>{'use strict';
+if(document.getElementById('vg-native-font-style'))return;
 const STORAGE='vg-font-scale-percent';
 const FONT='system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
 const read=()=>{try{return Math.min(150,Math.max(75,Number(localStorage.getItem(STORAGE))||100));}catch{return 100;}};
 let percent=read(),busy=false;
 const style=document.createElement('style');style.id='vg-native-font-style';style.textContent=`
-html,body,body :not(svg):not(svg *):not(.material-icons):not(.material-symbols-outlined):not(.material-symbols-rounded):not(.fa):not([class*="icon-"]){font-family:${FONT}!important}
+html,body,body :not(svg):not(svg *):not(.material-icons):not(.material-symbols-outlined):not(.material-symbols-rounded):not(.fa):not([class*="icon-"]){font-family:${FONT}!important;font-weight:700!important}
 [data-vg-font-original]{font-size:calc(var(--vg-font-original) * var(--vg-font-scale, 1))!important}
 #vg-font-control{font-family:${FONT}!important;display:flex;flex-direction:column;gap:10px;padding:16px;margin:14px 0;border:1px solid #dedede;border-radius:12px;background:var(--card,#fff);color:var(--ink,#222)}
 #vg-font-control .vg-font-head{display:flex;justify-content:space-between;gap:10px;align-items:center;font-weight:600}
