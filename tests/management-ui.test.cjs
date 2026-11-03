@@ -56,7 +56,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   assert(await page.locator('#vgStatsClose').isVisible());await page.locator('#vgStatsClose').click();
   forbidden=true;await page.locator('#topMenuBtn').click();await page.locator('#vgCatalogStatsOpen').click();
   await page.getByText('Statistiche riservate al titolare del catalogo.',{exact:true}).waitFor();assert(await page.locator('#vgStatsResults').isHidden());
-  forbidden=false;await page.locator('#vgStatsRetry').click();await page.locator('#vgStatsResults:not([hidden])').waitFor();assert.equal(requests,3);
+  forbidden=false;await page.locator('#vgStatsRetry').click();await page.locator('#vgStatsResults:not([hidden])').waitFor();assert.equal(requests,4,'initial load, 30-day range, rejected access and explicit retry each make one request');
   await page.locator('#vgStatsClose').click();
   await page.locator('#topMenuBtn').click();await page.locator('a[href="vgapp://password"]').click();
   await page.locator('#vgCustomersPanel').waitFor({state:'visible'});await page.locator('#vgCustomerList').getByRole('button',{name:'Autorizza',exact:true}).click();await page.locator('#vgCustomersClose').click();
