@@ -13642,21 +13642,51 @@ function renderSearchSuggest(boxId, items, onPick){
   box.classList.add('show');
   Array.from(box.querySelectorAll('button')).forEach((btn,idx)=>btn.addEventListener('click',()=>onPick(items[idx])));
 }
+let __vgArticleFieldsTimer=0;
+function flushArticleAutoFields(){
+  clearTimeout(__vgArticleFieldsTimer);__vgArticleFieldsTimer=0;
+  if(!isModalVisible('mArtEdit'))return;
+  renderArtAutoFields();
+  updateArticleCodeStatus();
+}
+function queueArticleAutoFields(event){
+  clearTimeout(__vgArticleFieldsTimer);
+  if(event?.isComposing)return;
+  __vgArticleFieldsTimer=setTimeout(flushArticleAutoFields,180);
+}
+document.addEventListener('click',event=>{
+  if(event.target.closest?.('[data-action="saveArt"],[data-action="closeEdit"]'))flushArticleAutoFields();
+},true);
+document.getElementById('mArtEdit')?.addEventListener('focusout',()=>{if(__vgArticleFieldsTimer)flushArticleAutoFields();});
+document.getElementById('mArtEdit')?.addEventListener('compositionend',queueArticleAutoFields);
+
 function bindSearchSuggest(inputId, boxId, kind, onApply){
   const input=document.getElementById(inputId);
   const box=document.getElementById(boxId);
   if(!input || !box) return;
   const apply=(value)=>{
+    clearTimeout(timer);timer=0;
     input.value=value;
     hideSearchSuggest(boxId);
     onApply(value);
   };
-  input.addEventListener('input',()=>{
+  let timer=0,composing=false;
+  const refresh=()=>{
+    clearTimeout(timer);timer=0;
+    if(composing)return;
     const value=input.value||'';
     onApply(value);
-    const items=getSearchSuggestions(kind, value);
-    renderSearchSuggest(boxId, items, apply);
+    const items=getSearchSuggestions(kind,value);
+    renderSearchSuggest(boxId,items,apply);
+  };
+  input.addEventListener('input',event=>{
+    clearTimeout(timer);
+    if(!composing&&!event.isComposing)timer=setTimeout(refresh,180);
   });
+  input.addEventListener('compositionstart',()=>{composing=true;clearTimeout(timer)});
+  input.addEventListener('compositionend',()=>{composing=false;clearTimeout(timer);timer=setTimeout(refresh,180)});
+  input.addEventListener('change',refresh);
+  input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!composing)refresh()});
   input.addEventListener('blur',()=>setTimeout(()=>hideSearchSuggest(boxId), 180));
   input.addEventListener('focus',()=>{
     const items=getSearchSuggestions(kind, input.value||'');
@@ -14049,7 +14079,7 @@ document.getElementById('pricingMarkupMode')?.addEventListener('change',()=>{
   if(value) value.disabled=['manual','quality'].includes(mode);
   for(const id of ['pricingVatDefault','pricingVatCategories']){const field=document.getElementById(id);if(field)field.disabled=mode==='quality';}
 });
-document.getElementById('a_iva')?.addEventListener('input',()=>{ renderArtAutoFields(); saveArticleDraft(); });
+document.getElementById('a_iva')?.addEventListener('input',event=>{ queueArticleAutoFields(event); saveArticleDraft(); });
 
 bindSearchSuggest('qCli','qCliSuggest','cli', ()=>renderCli());
 ['c_nome','c_tel','c_facebook','c_ind','c_cap','c_citta','c_prov','c_prov_text','c_paese','c_note','c_alt_nome','c_alt_cognome','c_alt_ind','c_alt_cap','c_alt_citta','c_alt_prov','c_alt_paese'].forEach(id=>{
@@ -14148,22 +14178,23 @@ document.getElementById('a_sell')?.addEventListener('input', ()=>{
   currentArtPriceManuallySet=currentArtChosenPrice>0;
   const est=acceptedArticleCostEstimate();
   if(est && currentArtChosenPrice>0) currentArticleCostEstimate.salePrice=currentArtChosenPrice;
-  renderArtAutoFields();
+  queueArticleAutoFields();
   saveArticleDraft();
 });
 
 ['a_cod','a_brand','a_brand_custom','a_mod','a_mis','a_belt_h','a_usd','a_usd_promo','a_official_price','a_std_cost_unknown','a_price_visibility','a_supplier_promo_on','a_promo_on','a_promo_price','a_promo_date','a_supplier_promo_end','a_supplier_date_unknown','a_desc','a_taglia','a_variante','a_colore','a_color_mode','a_color_count','a_color_labels','a_unavailable'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
-  ['input','change'].forEach(evt=>el.addEventListener(evt, renderArtAutoFields));
-  if(id==='a_cod') el.addEventListener('input', updateArticleCodeStatus);
+  el.addEventListener('input',queueArticleAutoFields);
+  el.addEventListener('change',flushArticleAutoFields);
   if(id==='a_color_mode') el.addEventListener('change', ()=>{ updateArticleColorModeUI(); saveArticleDraft(); });
   if(id==='a_color_count' || id==='a_color_labels' || id==='a_colore' || id==='a_belt_h') el.addEventListener('change', saveArticleDraft);
 });
 
 document.getElementById('a_forn')?.addEventListener('change', handleSupplierManualChange);
 ['input','change'].forEach(evt=>document.getElementById('a_qual')?.addEventListener(evt, handleQualityManualChange));
-['input','change'].forEach(evt=>document.getElementById('a_forn_link')?.addEventListener(evt, handleSupplierLinkChange));
+document.getElementById('a_forn_link')?.addEventListener('input',queueArticleAutoFields);
+document.getElementById('a_forn_link')?.addEventListener('change',()=>{clearTimeout(__vgArticleFieldsTimer);__vgArticleFieldsTimer=0;handleSupplierLinkChange();});
 document.getElementById('a_cat')?.addEventListener('change', ()=>{ updateArticleMeasureState(); renderArtAutoFields(); saveArticleDraft(); });
 
 bindSearchSuggest('o_cli_q','oCliSuggest','orderCli', value=>fillClientSelect(loadDB(), value, true));
