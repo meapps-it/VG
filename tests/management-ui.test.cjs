@@ -62,7 +62,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   }
   if(hybrid){await page.evaluate(()=>document.documentElement.style.setProperty('--vg-android-font','monospace'));assert((await page.locator('#vgStatsClose').evaluate(el=>getComputedStyle(el).fontFamily)).startsWith('monospace'),'changing Android font keeps the native family');assert.equal(await page.locator('#vgStatsClose').evaluate(el=>getComputedStyle(el).fontWeight),'700');}
   if(hybrid){
-   const encoded=fs.readFileSync(root+'/vg-bold-theme.css','utf8').match(/data:font\/woff;base64,([^"\)]+)/)[1];
+   const encoded=JSON.parse(fs.readFileSync(root+'/tests/fixtures/native-regular-font.json','utf8')).base64;
    await page.evaluate(async encoded=>{
     await window.__vgApplyAppearance({percent:100,systemPercent:100,fontRevision:2,sources:[encoded],faces:[{source:0,weight:'400',style:'normal'},{source:0,weight:'700',style:'normal'}]});
    },encoded);
