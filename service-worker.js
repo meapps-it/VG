@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-system-bold-20261103';
+const VERSION = 'gestionale-vg-glyph-bold-20261103';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json', './vg-quality-pricing.js', './vg-bold-theme.css?v=1.0.156', './vg-startup.js?v=1.0.156',
@@ -83,6 +83,7 @@ self.addEventListener('fetch', event => {
       url.pathname.endsWith('vg-customer-panel.css') ||
       url.pathname.endsWith('vg-catalog-stats.css') ||
       url.pathname.endsWith('vg-font-settings.js') ||
+      url.pathname.endsWith('vg-system-bold.js') ||
       url.pathname.endsWith('vg-quality-pricing.js') ||
       /icon-|apple-touch|favicon/.test(url.pathname))){
     event.respondWith((async()=>{

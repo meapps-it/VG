@@ -1,6 +1,7 @@
 (function(){
  'use strict';
- const typography=document.createElement('link');typography.rel='stylesheet';typography.href='./vg-admin-typography.css?v=system-bold-20261103';document.head.append(typography);
+ const systemBold=document.createElement('script');systemBold.src='./vg-system-bold.js?v=glyph-bold-20261103';document.head.append(systemBold);
+ const typography=document.createElement('link');typography.rel='stylesheet';typography.href='./vg-admin-typography.css?v=glyph-bold-20261103';document.head.append(typography);
  if(!document.querySelector('script[src*="vg-font-settings.js"]')){const fontScript=document.createElement('script');fontScript.src='./vg-font-settings.js?v=bold-20261103';document.head.append(fontScript)}
  const alertsScript=document.createElement('script');alertsScript.src='./vg-dashboard-alerts.js?v=1';document.head.append(alertsScript);
  const editorScript=document.createElement('script');editorScript.src='./vg-editor-stability.js?v=2';document.head.append(editorScript);
