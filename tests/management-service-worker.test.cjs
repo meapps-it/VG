@@ -14,14 +14,14 @@ test('only the management entry gets font injection and may replace the offline 
  await h.navigate('catalogo.html');assert.equal(h.writes.length,1);
 });
 test('shared profile and shop assets fetch fresh copies instead of staying cache-first',async()=>{
- for(const path of ['customer-profile-ui.js?v=6','shop-customer.js?v=old','shop-boutique.css?v=old']){
+ for(const path of ['customer-profile-ui.js?v=6','shop-customer.js?v=old','shop-boutique.css?v=old','vg-admin-typography.css?v=old']){
   const h=harness();let response;h.events.fetch({request:{url:'https://example.test/VG/'+path,method:'GET',mode:'cors'},respondWith(p){response=p}});await response;
   assert.equal(h.network[0].options.cache,'no-store');
  }
 });
 test('activating an admin update preserves caches belonging to other applications',async()=>{
  const h=harness(),deleted=[];h.context.self.clients={claim:async()=>{}};
- const current=vm.runInNewContext("'gestionale-runtime-gestionale-vg-fast-customers-bold-20261103'");
+ const current=vm.runInNewContext("'gestionale-runtime-gestionale-vg-android-bold-20261103'");
  h.context.caches.keys=async()=>['another-app-cache','gestionale-runtime-old',current];h.context.caches.delete=async name=>deleted.push(name);
  let task;h.events.activate({waitUntil(p){task=p}});await task;assert.deepEqual(deleted,['gestionale-runtime-old']);
 });

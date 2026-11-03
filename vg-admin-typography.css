@@ -1,0 +1,7 @@
+/* Keep management text bold even when the Android appearance bridge replaces system fonts.
+   VG Admin Sans is the licensed bold face embedded in vg-bold-theme.css. */
+:is(#vg-admin-typography, html) body,
+:is(#vg-admin-typography, html) body :not(svg):not(svg *):not(canvas):not(.material-icons):not(.material-symbols-outlined):not(.material-symbols-rounded):not(.fa):not(.fas):not(.far):not(.fab):not([class*="icon-"]){
+  font-family:"VG Admin Sans",Arial,sans-serif!important;
+  font-weight:700!important;
+}
