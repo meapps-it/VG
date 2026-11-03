@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-android-bold-20261103';
+const VERSION = 'gestionale-vg-system-bold-20261103';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json', './vg-quality-pricing.js', './vg-bold-theme.css?v=1.0.156', './vg-startup.js?v=1.0.156',
