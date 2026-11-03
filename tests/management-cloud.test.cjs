@@ -32,9 +32,11 @@ test('downloads overlapping a publication update are discarded before applying a
 });
 
 test('ordinary archive reads preserve creation date and never rewrite the whole local database',()=>{
- const original={createdAt:'2020-01-01',articoli:[{id:'article',pubblicatoCatalogo:true}],clienti:[],ordini:[]};let writes=0,normalizations=0;
- const c={KEY:'db',LEGACY_KEYS:[],localStorage:{getItem:k=>k==='db'?JSON.stringify(original):null,setItem(){writes++},removeItem(){writes++}},normalizeDBShape:db=>{normalizations++;return db},defDB(){throw Error('Existing archive must be read directly')}};
+ const original={createdAt:'2020-01-01',articoli:[{id:'article',pubblicatoCatalogo:true,descrizione:'Descrizione da conservare',postFb:'Testo Facebook',postFacebook:'Testo Facebook'}],clienti:[],ordini:[]};let writes=0,normalizations=0;
+ const entries=new Map([['db',JSON.stringify(original)],['db_backup_latest',JSON.stringify(original)],['vg_draft_art_v2_clean',JSON.stringify({values:{descrizione:'Bozza da conservare',postFb:'Bozza Facebook'}})]]);
+ const before=[...entries];
+ const c={KEY:'db',LEGACY_KEYS:[],localStorage:{getItem:k=>entries.get(k)??null,setItem(k,v){writes++;entries.set(k,v)},removeItem(k){writes++;entries.delete(k)}},normalizeDBShape:db=>{normalizations++;return db},defDB(){throw Error('Existing archive must be read directly')}};
  vm.createContext(c);vm.runInContext(slice('function loadDB(){','function freeTechnicalLocalStorageSpace('),c);
  for(let i=0;i<30;i++){const db=c.loadDB();assert.equal(db.createdAt,'2020-01-01');db.articoli[0].pubblicatoCatalogo=false;}
- assert.equal(c.loadDB().articoli[0].pubblicatoCatalogo,true,'unsaved edits cannot leak into subsequent reads');assert.equal(writes,0);assert.equal(normalizations,31);
+ assert.equal(c.loadDB().articoli[0].pubblicatoCatalogo,true,'unsaved edits cannot leak into subsequent reads');assert.equal(writes,0);assert.equal(normalizations,31);assert.deepEqual([...entries],before,'reads must preserve descriptions, backups and drafts even without an old cleanup marker');
 });

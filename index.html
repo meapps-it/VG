@@ -2868,13 +2868,7 @@ function mergeById(arrA=[], arrB=[]){
 }
 function loadDB(){
   try{
-    const resetKey=KEY+'_descriptions_cleared_20261031_v2';
-    if(!localStorage.getItem(resetKey)){
-      const resetKeys=[KEY,KEY+'_backup_latest',...(typeof LEGACY_KEYS!=='undefined'?LEGACY_KEYS:[])];
-      for(const key of resetKeys){const raw=localStorage.getItem(key);if(!raw)continue;try{const data=JSON.parse(raw);for(const art of data.articoli||[]){art.descrizione='';art.postFb='';art.postFacebook='';}localStorage.setItem(key,JSON.stringify(data));}catch(_e){}}
-      {const draftKey='vg_draft_art_v2_clean';const raw=localStorage.getItem(draftKey);if(raw){try{const draft=JSON.parse(raw);if(draft.values){draft.values.descrizione='';draft.values.postFb='';draft.values.postFacebook='';}localStorage.setItem(draftKey,JSON.stringify(draft));}catch(_e){}}}
-      localStorage.setItem(resetKey,'1');
-    }
+    // Reading an archive must never clear descriptions or rewrite drafts/backups.
     const legacyKeys = (typeof LEGACY_KEYS!=='undefined' ? LEGACY_KEYS : []);
     // Normal reads must not merge/rewrite the complete archive on every call.
     if(!legacyKeys.some(key=>localStorage.getItem(key))){

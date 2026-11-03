@@ -8,6 +8,7 @@ on:
       - 'vg-fullscreen-pages.*'
       - 'vg-bold-theme.css'
       - 'vg-startup.js'
+      - 'vg-font-settings.js'
       - 'tests/management-*.test.cjs'
       - 'tests/article-photos.test.cjs'
       - '.github/workflows/management-ui.yml'
@@ -31,6 +32,7 @@ jobs:
           NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
           VG_UI_SCREENSHOTS: '${{ runner.temp }}/vg-ui-screenshots'
         run: |
+          node tests/management-typing-performance.test.cjs
           node --test tests/article-photos.test.cjs tests/article-sync.test.cjs tests/management-cloud.test.cjs
           node --test tests/management-order-roundtrip.test.cjs tests/management-customer-stats.test.cjs tests/management-startup.test.cjs tests/management-customer-panel.test.cjs
           node tests/management-customer-panel-ui.test.cjs
