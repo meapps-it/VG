@@ -76,3 +76,14 @@ test('shipping drafts remain bound to their customer even if an expired session 
   assert.equal(w.localStorage.getItem('vg-shop-shipping-owner-v1'),'customer-two');
  }finally{w.close()}
 });
+test('re-authenticating as a different customer clears an already opened profile page without requiring logout',async()=>{
+ const d=new JSDOM(html,{url:'https://example.test',runScripts:'outside-only',pretendToBeVisual:true}),w=d.window;let source={id:'one'};
+ w.crypto.randomUUID=()=> 'fixture-id';w.fetch=async()=>({ok:true,json:async()=>({provinces:{},municipalities:[]})});
+ w.shopAccess={customer:()=>source,fetch:async()=>({ok:true,json:async()=>({profile:{name:source.id==='one'?'Old account':'New account'},addresses:[]})})};
+ try{
+  w.eval(fs.readFileSync(__dirname+'/../customer-profile-ui.js','utf8'));w.document.getElementById('customerAccount').hidden=false;w.document.getElementById('customerView').classList.add('open');await tick();await tick();
+  assert.match(w.document.querySelector('.profile-summary').textContent,/Old account/);
+  source={id:'two'};w.dispatchEvent(new w.Event('vg-customer-ready'));await tick();await tick();
+  assert.match(w.document.querySelector('.profile-summary').textContent,/New account/);assert.doesNotMatch(w.document.getElementById('customerAccount').textContent,/Old account/);
+ }finally{w.close()}
+});
