@@ -209,3 +209,11 @@ body #accessGate #accessGoRegister[hidden]{display:none!important}
 /* Compact catalogue prices. */
 body .item .price,body .related-bottom .price{font-size:16px!important;line-height:1.35;font-weight:700}
 body .item .price .old{font-size:11px!important}
+
+/* Compact foreground promotions; swipe remains available without autoplay. */
+.shop-promotions{border:2px solid #315ca6;background:linear-gradient(120deg,#eaf1ff,#fff4e4)}
+.shop-promo-products{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:thin;padding:3px 2px 12px;position:relative}
+.shop-promo-products button{flex:0 0 clamp(150px,28vw,210px);scroll-snap-align:start;display:grid;grid-template-columns:60px minmax(0,1fr);align-items:center;gap:8px;padding:10px;font-size:13px}
+.shop-promo-products img{width:60px;height:70px;grid-row:span 2;object-fit:contain}.shop-promo-products span{grid-column:2}.shop-promo-products button:not(:has(img)){grid-template-columns:1fr}.shop-promo-products button:not(:has(img)) span{grid-column:1}
+.shop-promo-banner{max-height:260px;margin:14px 0}.shop-promo-controls{display:flex;flex-wrap:wrap;gap:8px}.shop-promo-controls button{padding:9px 12px;border:1px solid #bacbe4;background:#fff;color:#18335d;border-radius:12px;font:inherit;font-size:12px;cursor:pointer}
+@media(prefers-reduced-motion:reduce){.shop-promo-products{scroll-behavior:auto}}

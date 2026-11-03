@@ -5,7 +5,7 @@ test('promotion is hidden when disabled, renders safe copy and only existing lin
  const d=new JSDOM('<main class="container"><section id="home"></section></main>',{runScripts:'outside-only',url:'https://simplexapp.it/shop/'}),w=d.window;
  w.eval(source('shop-promotions.js'));const render=w.shopPromotions.render;
  render(null,[]);assert(w.document.querySelector('#shopPromotions').hidden);
- render({enabled:true,title:'<img onerror=alert(1)>',body:'Offerte',image_url:'javascript:alert(1)',product_ids:['a','private']},[{id:'a',name:'Borsa',price:99}]);
+ render({enabled:true,title:'<img onerror=alert(1)>',body:'Offerte',image_url:'javascript:alert(1)',product_ids:['a','private']},[{id:'a',name:'Borsa',price:99,promotion:true}]);
  const root=w.document.querySelector('#shopPromotions');assert(!root.hidden);assert.equal(root.querySelector('h2').textContent,'<img onerror=alert(1)>');assert.equal(root.querySelectorAll('button').length,1);assert.equal(root.querySelector('button').dataset.detail,'a');assert(!root.querySelector('.shop-promo-banner'));assert.equal(root.parentNode.firstElementChild,root);
  render({enabled:false,title:'Hidden'},[]);assert(root.hidden);assert.equal(root.children.length,0);
  render({enabled:true,title:'Promo'},[]);w.dispatchEvent(new w.Event('vg-shop-logout'));assert(root.hidden);w.close();
@@ -20,4 +20,22 @@ test('administrator loads draft, saves enabled and disabled promotion with linke
 test('Promo eligibility includes supplier and personal promotions and excludes expired or disabled ones',()=>{
  const {articleHasActivePromo}=require('./catalog-server-helpers.cjs');const check=m=>articleHasActivePromo({descrizione:'[VGMETA]'+JSON.stringify(m)+'[/VGMETA]'},'2026-10-29');
  assert(check({promoAttiva:true,prezzoPromo:50}));assert(check({costoUsdPromo:40}));assert(check({costoUsdPromo:40,scadenzaPromoFornitore:'2026-10-29'}));assert(!check({costoUsdPromo:40,scadenzaPromoFornitore:'2026-10-28'}));assert(!check({costoUsdPromo:40,promoFornitoreAttiva:false}));assert(!check({promoAttiva:true,prezzoPromo:50,scadenzaPromoPersonale:'2026-10-28'}));assert(!check({}));
+});
+test('slider excludes inactive products, honors reduced motion and releases its timer on logout',()=>{
+ const d=new JSDOM('<main class="container"></main>',{runScripts:'outside-only',pretendToBeVisual:true}),w=d.window;let active=0,cleared=0,reduced=false;
+ w.setInterval=()=>{active++;return active};w.clearInterval=id=>{if(id)cleared++};w.matchMedia=()=>({matches:reduced,addEventListener(){},removeEventListener(){}});
+ try{w.eval(source('shop-promotions.js'));const promo={enabled:true,title:'Natale',product_ids:['a','b','off']},items=[{id:'a',name:'Prima',promotionActive:true,price:10},{id:'b',name:'Seconda',promotionActive:true,priceHidden:true},{id:'off',name:'Scaduta',promotionActive:false,price:30}];
+ w.shopPromotions.render(promo,items);assert.equal(w.document.querySelectorAll('[data-detail]').length,2);assert.equal(active,1);assert.match(w.document.querySelector('#shopPromotions').textContent,/Info in privato/);assert.doesNotMatch(w.document.querySelector('#shopPromotions').textContent,/Scaduta/);
+ w.dispatchEvent(new w.Event('vg-shop-logout'));assert(cleared>0);reduced=true;const before=active;w.shopPromotions.render(promo,items);assert.equal(active,before);
+ }finally{w.close()}
+});
+test('gallery prepares and uploads a photo before saving, preserves the stored pointer and offers removal',async()=>{
+ const d=new JSDOM('<nav class="topMenuGrid"></nav>',{runScripts:'outside-only',pretendToBeVisual:true}),w=d.window;let saved,uploaded,removed=false;
+ w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};
+ w.URL.createObjectURL=()=> 'blob:preview';w.URL.revokeObjectURL=()=>{};
+ w.createImageBitmap=async()=>({width:2000,height:1000,close(){}});w.HTMLCanvasElement.prototype.getContext=()=>({drawImage(){}});w.HTMLCanvasElement.prototype.toBlob=fn=>fn(new w.Blob(['webp'],{type:'image/webp'}));
+ const result=data=>({data,error:null}),chain={select(){return this},eq(){return this},order(){return this},limit:async()=>result([]),maybeSingle:async()=>result({title:'11.11',product_ids:[]}),upsert(p){saved=p;return {select(){return this},single:async()=>result({enabled:p.enabled})}}};
+ const db={auth:{getUser:async()=>result({user:{id:'a51e2715-3b5e-4ad3-906e-c664fcdd486d'}})},from:()=>Object.create(chain),storage:{from:()=>({upload:async(path,blob)=>{uploaded=path;assert.equal(blob.type,'image/webp');return {error:null}},remove:async()=>{removed=true}})}};
+ w.VG_SUPABASE_READY=Promise.resolve(db);w.eval(source('vg-save-feedback.js'));w.eval(source('vg-promotions.js'));
+ try{await w.document.querySelector('.topMenuLink').onclick();const form=w.document.querySelector('form');assert.equal(form.elements.image_url.type,'hidden');Object.defineProperty(form.elements.image_file,'files',{value:[new w.File(['photo'],'natale.jpg',{type:'image/jpeg'})]});form.elements.image_file.onchange();await form.onsubmit({preventDefault(){}});assert(uploaded.includes('/catalog-promotions/'));assert(saved.image_url.endsWith(uploaded));assert(!removed);form.querySelector('[data-remove]').click();await form.onsubmit({preventDefault(){}});assert.equal(saved.image_url,'');}finally{w.close()}
 });
