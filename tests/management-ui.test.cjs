@@ -51,16 +51,16 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   assert(await page.locator('#vgStatsClose').isVisible());const fullscreen=await page.locator('#vgCatalogStats').boundingBox();assert.equal(fullscreen.x,0);assert.equal(fullscreen.y,0);assert.equal(Math.round(fullscreen.width),width);assert.equal(Math.round(fullscreen.height),844);
   assert(await page.locator('#vgStatsTitle').isVisible());
   console.log('STAT HEADER',width,hybrid,await page.locator('#vgStatsTitle').evaluate(e=>({text:e.textContent,color:getComputedStyle(e).color,rect:e.getBoundingClientRect().toJSON()})));
-  const fonts=await page.locator('body,#vgCatalogStatsOpen,#vgStatsClose,.bulkPasteBox').evaluateAll(nodes=>nodes.map(n=>getComputedStyle(n).fontFamily));assert(fonts.every(f=>f.includes('"VG Admin Sans"')),'management uses its embedded font instead of the device font');
+  const fonts=await page.locator('body,#vgCatalogStatsOpen,#vgStatsClose,.bulkPasteBox').evaluateAll(nodes=>nodes.map(n=>getComputedStyle(n).fontFamily));assert(fonts.every(f=>!f.includes('VG Admin Sans')),'management preserves the system font instead of the embedded face');
   if(hybrid){
    await page.evaluate(async()=>{await window.__vgApplyAppearance({percent:100,systemPercent:100,fontRevision:1,faces:[]});document.documentElement.style.setProperty('--vg-android-font','serif')});
    await page.waitForFunction(()=>document.getElementById('vg-android-appearance-style')&&!document.getElementById('vg-native-font-style'));
   }
   for(const selector of ['.heroSpot .desc','#vgStatsClose']){
    const typography=await page.locator(selector).evaluate(el=>({weight:getComputedStyle(el).fontWeight,family:getComputedStyle(el).fontFamily}));
-   assert.equal(typography.weight,'700');assert.match(typography.family,/VG Admin Sans/,'bold face must win over the actual Android appearance bridge');
+   assert.equal(typography.weight,'700');assert(!typography.family.includes('VG Admin Sans'));assert(typography.family.startsWith(hybrid?'serif':'system-ui'),'bold styling must preserve the font supplied by Android');
   }
-  assert.equal(await page.evaluate(async()=>{const faces=await document.fonts.load('700 16px "VG Admin Sans"','Èà€');return faces.filter(face=>face.status==='loaded').length}),1,'embedded bold font is decoded and loaded');
+  if(hybrid){await page.evaluate(()=>document.documentElement.style.setProperty('--vg-android-font','monospace'));assert((await page.locator('#vgStatsClose').evaluate(el=>getComputedStyle(el).fontFamily)).startsWith('monospace'),'changing Android font keeps the native family');assert.equal(await page.locator('#vgStatsClose').evaluate(el=>getComputedStyle(el).fontWeight),'700');}
   assert(await page.locator('#vgCatalogStats').evaluate(d=>{const r=d.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight}));
   if(hybrid&&process.env.VG_UI_SCREENSHOTS)await page.screenshot({path:path.join(process.env.VG_UI_SCREENSHOTS,'statistics-'+width+'.png')});
   const requestsBeforeRange=requests;await page.getByRole('button',{name:'30 giorni',exact:true}).click();assert.equal(await page.locator('#vgStatsBars li').count(),30);assert.equal(requests,requestsBeforeRange,'switching chart range reuses already loaded statistics');
@@ -73,7 +73,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   await page.locator('#vgCustomersPanel').waitFor({state:'visible'});await page.locator('#vgCustomerList').getByRole('button',{name:'Autorizza',exact:true}).click();await page.locator('#vgCustomersClose').click();
   await page.locator('#mCliView').evaluate(e=>e.style.display='flex');await page.locator('#mCliView .vgPageHeader').waitFor();const clientPage=await page.locator('#mCliView .modal').boundingBox();assert.equal(clientPage.x,0);assert.equal(clientPage.y,0);assert.equal(Math.round(clientPage.width),width);assert.equal(Math.round(clientPage.height),844);await page.locator('#mCliView').evaluate(e=>e.style.display='none');
   assert.deepEqual(errors,[]);
-  console.log('PASS management '+width+'px '+(hybrid?'APK':'PWA')+': original dashboard, sales bars, embedded bold font, 7/30-day visit columns, zero visits, owner errors, retry and close');
+  console.log('PASS management '+width+'px '+(hybrid?'APK':'PWA')+': original dashboard, sales bars, system bold font, 7/30-day visit columns, zero visits, owner errors, retry and close');
   await context.close();
  }
  }finally{await browser.close()}
