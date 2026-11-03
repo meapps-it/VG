@@ -61,6 +61,23 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
    assert.equal(typography.weight,'700');assert(!typography.family.includes('VG Admin Sans'));assert(typography.family.startsWith(hybrid?'serif':'system-ui'),'bold styling must preserve the font supplied by Android');
   }
   if(hybrid){await page.evaluate(()=>document.documentElement.style.setProperty('--vg-android-font','monospace'));assert((await page.locator('#vgStatsClose').evaluate(el=>getComputedStyle(el).fontFamily)).startsWith('monospace'),'changing Android font keeps the native family');assert.equal(await page.locator('#vgStatsClose').evaluate(el=>getComputedStyle(el).fontWeight),'700');}
+  if(hybrid){
+   const encoded=fs.readFileSync(root+'/vg-bold-theme.css','utf8').match(/data:font\/woff;base64,([^"\)]+)/)[1];
+   await page.evaluate(async encoded=>{
+    await window.__vgApplyAppearance({percent:100,systemPercent:100,fontRevision:2,sources:[encoded],faces:[{source:0,weight:'400',style:'normal'},{source:0,weight:'700',style:'normal'}]});
+   },encoded);
+   await page.waitForFunction(()=>[...document.fonts].filter(f=>f.family.replace(/["']/g,'')==='VgAndroidSystem'&&f.weight==='700').length===0);
+   assert(await page.evaluate(()=>{
+    function raster(weight){const c=document.createElement('canvas');c.width=640;c.height=80;const x=c.getContext('2d');x.font=weight+' 48px "VgAndroidSystem"';x.fillText('AgMw 0123 Àèìòù',2,58);return x.getImageData(0,0,640,80).data}
+    const normal=raster('400'),bold=raster('700');return normal.some((value,i)=>value!==bold[i]);
+   }),'the same native font must produce visibly different pixels in regular and bold');
+   assert((await page.locator('#vgStatsClose').evaluate(el=>getComputedStyle(el).fontFamily)).startsWith('VgAndroidSystem'));
+   await page.evaluate(async encoded=>{
+    const bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));const distinct=new FontFace('VgAndroidSystem',bytes,{weight:'700',style:'normal',sizeAdjust:'120%'});await distinct.load();document.fonts.add(distinct);document.documentElement.style.setProperty('--vg-android-font','VgAndroidSystem, serif');
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+   },encoded);
+   assert(await page.evaluate(()=>[...document.fonts].some(f=>f.family.replace(/["']/g,'')==='VgAndroidSystem'&&f.weight==='700')),'a visually distinct bold face must be retained');
+  }
   assert(await page.locator('#vgCatalogStats').evaluate(d=>{const r=d.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight}));
   if(hybrid&&process.env.VG_UI_SCREENSHOTS)await page.screenshot({path:path.join(process.env.VG_UI_SCREENSHOTS,'statistics-'+width+'.png')});
   const requestsBeforeRange=requests;await page.getByRole('button',{name:'30 giorni',exact:true}).click();assert.equal(await page.locator('#vgStatsBars li').count(),30);assert.equal(requests,requestsBeforeRange,'switching chart range reuses already loaded statistics');
