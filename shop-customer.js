@@ -6,7 +6,25 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 function state(){el('customerAuth').hidden=!!profile;el('customerAccount').hidden=!profile;el('customerPhoneLabel').textContent='';el('customerPhoneLabel').hidden=true;el('checkoutAccountHint').textContent=profile?'La richiesta sarà visibile in I miei ordini.':''}
 async function request(url,options={}){return shopAccess.fetch(url,options)}
 async function action(name,body){const r=await request(API+'?action=customer-'+name,body===undefined?{cache:'no-store'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw Error(data.error||'Operazione non riuscita');return data}
-async function restore(){profile=shopAccess.customer();state();if(profile){try{const r=await request(API+'?action=profile-book',{cache:'no-store'}),d=await r.json();if(r.ok)profile={...profile,profile:{...d.profile,...(d.addresses?.[0]||{}),phone:d.addresses?.[0]?.phone||d.profile?.phone||d.phone||''}}}catch{}await shopShipping.applyProfile(profile.profile,{ifUntouched:true,ignoreRememberPreference:true})}}
+let restoreTask=null,restoreSource=null,profileSource=null,sessionRevision=0;
+async function restore(){
+ const source=shopAccess.customer();
+ if(source!==profileSource){profileSource=source;profile=source;sessionRevision++;if(source)shopShipping.bindCustomer?.(source);}
+ state();if(!source)return;
+ if(restoreTask&&restoreSource===source)return restoreTask;
+ const revision=sessionRevision;restoreSource=source;
+ const isCurrent=()=>revision===sessionRevision&&!!shopAccess.customer();
+ const task=(async()=>{
+  let restored=source;
+  try{const r=await request(API+'?action=profile-book',{cache:'no-store'}),d=await r.json();if(r.ok)restored={...source,profile:{...d.profile,...(d.addresses?.[0]||{}),phone:d.addresses?.[0]?.phone||d.profile?.phone||d.phone||''}}}catch{}
+  if(!isCurrent())return;
+  profile=restored;
+  await shopShipping.applyProfile(restored.profile,{ifUntouched:true,ignoreRememberPreference:true,isCurrent});
+  const pending=shopShipping.pending?.();if(isCurrent()&&pending)window.dispatchEvent(new CustomEvent('vg-shipping-saved',{detail:pending}));
+ })();
+ restoreTask=task;
+ try{return await task}finally{if(restoreTask===task){restoreTask=null;restoreSource=null;}}
+}
 async function orders(append=false,silent=false){if(!profile||ordersBusy)return;ordersBusy=true;const identity=profile;try{const start=append?offset:0;if(!silent)el('customerStatus').textContent='Caricamento ordini…';const data=await action('orders&offset='+start);if(profile!==identity)return;recordOrderUpdates(data.orders);if(!append){offset=0;el('customerOrders').replaceChildren();}for(const o of data.orders){const card=document.createElement('article');card.className='customer-order';const date=new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',dateStyle:'short',timeStyle:'short'}).format(new Date(o.requestedAt));card.innerHTML='<strong>'+esc(o.number)+'</strong><p>'+esc(date)+' · ora italiana</p><p class="order-state">'+esc(o.displayStatus||({spedito:'Spedito',consegnato:'Consegnato',annullato:'Annullato'})[o.status]||(o.paid?'Pagamento confermato':'In attesa di conferma'))+'</p><ul>'+o.items.map(i=>'<li>'+esc(i.name)+' × '+esc(i.qty)+(i.size?' · Misura '+esc(i.size):'')+(i.color?' · '+esc(i.color):'')+' · '+esc(i.quality)+' · '+(i.priceHidden?'Info in privato':Number(i.price).toLocaleString('it-IT',{style:'currency',currency:'EUR'}))+'</li>').join('')+'</ul><strong>Totale: '+(o.total===null?'Info in privato':Number(o.total).toLocaleString('it-IT',{style:'currency',currency:'EUR'}))+'</strong>'+(o.tracking?'<p>Spedizione '+esc(o.carrier)+' · '+esc(o.tracking)+'</p>':'');if(o.editable){const edit=document.createElement('button');edit.type='button';edit.className='secondary amend-order';edit.textContent='Modifica ordine';edit.onclick=()=>window.dispatchEvent(new CustomEvent('vg-amend-order',{detail:o}));card.append(edit)}el('customerOrders').append(card)}offset+=data.orders.length;el('customerMore').hidden=!data.hasMore;el('customerStatus').textContent=offset?'':'Non hai ancora richieste collegate al tuo account. Accedi prima di inviare il prossimo ordine.'}catch(e){if(!silent)el('customerStatus').textContent=e.message}finally{ordersBusy=false}}
 
 function recordOrderUpdates(rows){
@@ -31,6 +49,6 @@ function show(open,navigate=true){if(open&&navigate)window.dispatchEvent(new Eve
 window.shopCustomer={fetch:request,restore,show};
 el('openCustomer').onclick=()=>show(true);el('checkoutAccount').onclick=()=>show(true);el('customerBack').onclick=()=>history.back();el('customerMore').onclick=()=>orders(true);
 el('customerLogout').onclick=()=>shopAccess.logout();
-window.addEventListener('vg-shipping-saved',e=>{clearTimeout(timer);if(!profile)return;const data=e.detail;if(!data)return;if(data&&!['name','phone','address','province','city','cap'].every(k=>String(data[k]||'').trim()))return;timer=setTimeout(()=>action('profile',{profile:data||{}}).catch(()=>{}),700)});
-window.addEventListener('vg-catalog-ready',restore);window.addEventListener('vg-customer-ready',restore);window.addEventListener('vg-order-sent',()=>{if(profile)profile.profile=shopShipping.current()});window.addEventListener('vg-shop-logout',()=>{profile=null;el('customerOrderUpdates')?.remove();clearTimeout(timer);el('customerOrders').replaceChildren();el('customerStatus').textContent='';shopShipping.clear();state()});state();
+window.addEventListener('vg-shipping-saved',e=>{clearTimeout(timer);if(!profile)return;const data=e.detail;if(!data)return;if(data&&!['name','phone','address','province','city','cap'].every(k=>String(data[k]||'').trim()))return;const revision=sessionRevision;timer=setTimeout(()=>{if(revision!==sessionRevision)return;action('profile',{profile:data||{}}).then(()=>{if(revision===sessionRevision)shopShipping.acknowledge?.(data)}).catch(()=>{})},700)});
+window.addEventListener('vg-catalog-ready',restore);window.addEventListener('vg-customer-ready',restore);window.addEventListener('vg-order-sent',()=>{if(profile)profile.profile=shopShipping.current()});window.addEventListener('vg-shop-logout',()=>{sessionRevision++;profileSource=null;restoreTask=null;restoreSource=null;profile=null;el('customerOrderUpdates')?.remove();clearTimeout(timer);el('customerOrders').replaceChildren();el('customerStatus').textContent='';shopShipping.clear();state()});state();
 })();

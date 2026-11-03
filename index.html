@@ -14273,6 +14273,7 @@ function refreshAutoCloudPull(){
 }
 async function autoCloudPullNow(reason='manual'){
   if(!cloudEnabled() || autoCloudPullRunning || cloudBusy || catalogPublicationWrites || document.hidden) return;
+  if(document.activeElement?.matches('input:not([readonly]),textarea:not([readonly]),select,[contenteditable=true]'))return;
   const now=Date.now();
   if(reason!=='focus' && reason!=='visible' && (now-autoCloudPullLastAt)<60000) return;
   autoCloudPullRunning=true;
@@ -15219,7 +15220,17 @@ if('serviceWorker' in navigator){
   }
  }
  removeDescriptionButtons();
- new MutationObserver(removeDescriptionButtons).observe(document.body,{childList:true,subtree:true});
+ // Only new buttons in the two article dialogs can need removal.
+ const observer=new MutationObserver(records=>{
+  for(const record of records){
+   const nodes=[record.target,...record.addedNodes].filter(node=>node.nodeType===1);
+   for(const node of nodes){
+    const buttons=node.matches('button')?[node]:[...node.querySelectorAll('button')];
+    for(const button of buttons)if(/^salva\s+descrizione$/i.test(button.textContent.trim()))button.remove();
+   }
+  }
+ });
+ for(const root of document.querySelectorAll('#mArtView,#mArtEdit'))observer.observe(root,{childList:true,subtree:true});
 })();
 </script>
 </body>

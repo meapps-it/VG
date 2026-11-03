@@ -5,6 +5,8 @@ on:
     paths:
       - 'catalogo-nuovo.html'
       - 'shop-*'
+      - 'customer-profile-ui.js'
+      - 'scripts/export-shop.py'
       - 'shop-icons/**'
       - 'shop-data/**'
       - 'supabase/functions/vg-shop-catalog/**'
@@ -33,23 +35,27 @@ jobs:
           NODE_PATH: '${{ runner.temp }}/vg-tests/node_modules'
           VG_CATALOG_SCREENSHOTS: '${{ runner.temp }}/vg-catalog-screenshots'
         run: |
-          node --test tests/customer-dossier.test.cjs tests/catalog-notices.test.cjs tests/editor-stability.test.cjs tests/save-feedback.test.cjs tests/catalog-promotions.test.cjs tests/catalog-customer.test.cjs tests/catalog-variants.test.cjs tests/catalog-api.test.cjs tests/catalog-access.test.cjs tests/catalog-order.test.cjs tests/catalog-push.test.cjs tests/catalog-registration-push.test.cjs tests/catalog-password-reset.test.cjs
-          node tests/catalog-auto-access.test.cjs
-          node tests/catalog-navigation.test.cjs
-          SHOP_NAV_BROWSER=webkit node tests/catalog-navigation.test.cjs
-          node tests/catalog-dom.test.cjs
-          node tests/catalog-boutique.test.cjs
-          node tests/catalog-boutique-browser.test.cjs
-          SHOP_NAV_BROWSER=webkit node tests/catalog-boutique-browser.test.cjs
-          node tests/catalog-shipping.test.cjs
-          node tests/catalog-feedback.test.cjs
-          node tests/catalog-editing.test.cjs
-          SHOP_NAV_BROWSER=webkit node tests/catalog-editing.test.cjs
-          node tests/catalog-customer-ui.test.cjs
-          node tests/catalog-customer-browser.test.cjs
-          SHOP_NAV_BROWSER=webkit node tests/catalog-customer-browser.test.cjs
-          node tests/catalog-gallery.test.cjs
-          node tests/catalog-contact.test.cjs
+          check_status=0
+          node --test tests/catalog-export.test.cjs tests/catalog-resource-usage.test.cjs tests/catalog-session-races.test.cjs || check_status=1
+          node --test tests/customer-dossier.test.cjs tests/catalog-notices.test.cjs tests/editor-stability.test.cjs tests/save-feedback.test.cjs tests/catalog-promotions.test.cjs tests/catalog-customer.test.cjs tests/catalog-variants.test.cjs tests/catalog-api.test.cjs tests/catalog-access.test.cjs tests/catalog-order.test.cjs tests/catalog-push.test.cjs tests/catalog-registration-push.test.cjs tests/catalog-password-reset.test.cjs || check_status=1
+          node tests/catalog-auto-access.test.cjs || check_status=1
+          node tests/catalog-navigation.test.cjs || check_status=1
+          SHOP_NAV_BROWSER=webkit node tests/catalog-navigation.test.cjs || check_status=1
+          node tests/catalog-dom.test.cjs || check_status=1
+          node tests/catalog-boutique.test.cjs || check_status=1
+          node tests/catalog-boutique-browser.test.cjs || check_status=1
+          SHOP_NAV_BROWSER=webkit node tests/catalog-boutique-browser.test.cjs || check_status=1
+          node tests/catalog-shipping.test.cjs || check_status=1
+          node tests/catalog-feedback.test.cjs || check_status=1
+          node tests/catalog-editing.test.cjs || check_status=1
+          SHOP_NAV_BROWSER=webkit node tests/catalog-editing.test.cjs || check_status=1
+          node tests/catalog-customer-ui.test.cjs || check_status=1
+          node tests/catalog-customer-browser.test.cjs || check_status=1
+          SHOP_NAV_BROWSER=webkit node tests/catalog-customer-browser.test.cjs || check_status=1
+          node tests/catalog-gallery.test.cjs || check_status=1
+          node tests/catalog-contact.test.cjs || check_status=1
+          exit "$check_status"
+
       - name: Verify the published catalog (read only)
         if: github.ref == 'refs/heads/main'
         env:

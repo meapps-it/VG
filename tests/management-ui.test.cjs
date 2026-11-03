@@ -29,6 +29,7 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   });
   await page.route('**/functions/v1/vg-shop-catalog**',route=>{
    const action=new URL(route.request().url()).searchParams.get('action');if(action==='customer-admin')return route.fulfill({contentType:'application/json',body:JSON.stringify({total:1,pending:1,unread:1,customers:[{id:'11111111-1111-4111-8111-111111111111',phone:'393330000000',status:'pending'}],notifications:[],hasMore:false,offset:0})});
+   if(action==='customer-client-links')return route.fulfill({contentType:'application/json',body:'{"accounts":[],"clients":[]}'});
    if(route.request().method()==='POST'){assert.equal(new URL(route.request().url()).searchParams.get('action'),'customer-authorize');assert.equal(route.request().postDataJSON().status,'approved');return route.fulfill({contentType:'application/json',body:'{"ok":true}'});}
    assert.equal(route.request().method(),'GET');assert.equal(route.request().headers().authorization,'Bearer isolated-owner-fixture');requests++;
    if(forbidden)return route.fulfill({status:403,contentType:'application/json',body:'{"error":"forbidden"}'});
@@ -52,11 +53,11 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
   assert.equal(await page.evaluate(async()=>{const faces=await document.fonts.load('700 16px "VG Admin Sans"','Èà€');return faces.filter(face=>face.status==='loaded').length}),1,'embedded bold font is decoded and loaded');
   assert(await page.locator('#vgCatalogStats').evaluate(d=>{const r=d.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight}));
   if(hybrid&&process.env.VG_UI_SCREENSHOTS)await page.screenshot({path:path.join(process.env.VG_UI_SCREENSHOTS,'statistics-'+width+'.png')});
-  await page.getByRole('button',{name:'30 giorni',exact:true}).click();assert.equal(await page.locator('#vgStatsBars li').count(),30);
+  const requestsBeforeRange=requests;await page.getByRole('button',{name:'30 giorni',exact:true}).click();assert.equal(await page.locator('#vgStatsBars li').count(),30);assert.equal(requests,requestsBeforeRange,'switching chart range reuses already loaded statistics');
   assert(await page.locator('#vgStatsClose').isVisible());await page.locator('#vgStatsClose').click();
   forbidden=true;await page.locator('#topMenuBtn').click();await page.locator('#vgCatalogStatsOpen').click();
   await page.getByText('Statistiche riservate al titolare del catalogo.',{exact:true}).waitFor();assert(await page.locator('#vgStatsResults').isHidden());
-  forbidden=false;await page.locator('#vgStatsRetry').click();await page.locator('#vgStatsResults:not([hidden])').waitFor();assert.equal(requests,4,'initial load, 30-day range, rejected access and explicit retry each make one request');
+  forbidden=false;await page.locator('#vgStatsRetry').click();await page.locator('#vgStatsResults:not([hidden])').waitFor();assert.equal(requests,3,'initial statistics load, rejected access and explicit retry each make one request');
   await page.locator('#vgStatsClose').click();
   await page.locator('#topMenuBtn').click();await page.locator('a[href="vgapp://password"]').click();
   await page.locator('#vgCustomersPanel').waitFor({state:'visible'});await page.locator('#vgCustomerList').getByRole('button',{name:'Autorizza',exact:true}).click();await page.locator('#vgCustomersClose').click();

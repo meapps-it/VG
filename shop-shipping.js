@@ -1,6 +1,7 @@
 (function(){
  'use strict';
  const el=id=>document.getElementById(id),form=el('orderForm'),field=name=>form.elements.namedItem(name);let directory=null,pending=null,edited=false,saveTimer=null;
+ const pendingKey='vg-shop-shipping-pending-v1';
  const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
  const manualCity=()=>field('province').value==='manual'||field('city').value==='manual';
  function syncManualCity(){
@@ -39,10 +40,14 @@
   save(options={}){
    const remember=field('rememberShipping').checked,saved={...address()};for(const name of ['name','phone','address'])saved[name]=field(name).value;
    try{localStorage.setItem('vg-shop-shipping-remember-v1',remember?'1':'0');remember?localStorage.setItem('vg-shop-shipping-v1',JSON.stringify(saved)):localStorage.removeItem('vg-shop-shipping-v1')}catch{}
+   try{if(!remember)localStorage.removeItem(pendingKey);else if(options.notify!==false)localStorage.setItem(pendingKey,JSON.stringify(saved))}catch{}
    if(options.notify!==false)window.dispatchEvent(new CustomEvent('vg-shipping-saved',{detail:remember?saved:null}));
   },
-  async applyProfile(saved,options={}){await this.load();if(options.ifUntouched){if(edited)return;try{if(!options.ignoreRememberPreference&&localStorage.getItem('vg-shop-shipping-remember-v1')==='0')return}catch{}}if(!saved||!Object.values(saved).some(Boolean))return;apply(saved);this.save({notify:false})},
-  clear(){form.reset();edited=false;updateCities();try{localStorage.removeItem('vg-shop-shipping-v1')}catch{}},
+  async applyProfile(saved,options={}){await this.load();if(options.isCurrent&&!options.isCurrent())return;if(options.ifUntouched){if(edited)return;try{if(!options.ignoreRememberPreference&&localStorage.getItem('vg-shop-shipping-remember-v1')==='0')return}catch{}}if(options.ifUntouched){const pending=this.pending();if(pending)saved={...(saved||{}),...pending}}if(!saved||!Object.values(saved).some(Boolean))return;if(!options.ifUntouched){try{localStorage.removeItem(pendingKey)}catch{}}apply(saved);this.save({notify:false})},
+  bindCustomer(customer){const identity=String(customer?.id||customer?.phone||customer?.email||'');if(!identity)return;try{const previous=localStorage.getItem('vg-shop-shipping-owner-v1');if(previous&&previous!==identity)this.clear();localStorage.setItem('vg-shop-shipping-owner-v1',identity)}catch{}},
+  pending(){try{const value=JSON.parse(localStorage.getItem(pendingKey)||'null');return value&&typeof value==='object'&&!Array.isArray(value)?value:null}catch{return null}},
+  acknowledge(saved){try{if(JSON.stringify(this.pending())===JSON.stringify(saved))localStorage.removeItem(pendingKey)}catch{}},
+  clear(){form.reset();edited=false;updateCities();try{localStorage.removeItem('vg-shop-shipping-v1');localStorage.removeItem(pendingKey);localStorage.removeItem('vg-shop-shipping-owner-v1')}catch{}},
   current(){return {name:field('name').value,phone:field('phone').value,address:field('address').value,...address()}},
   remembered(){return field('rememberShipping').checked}
 

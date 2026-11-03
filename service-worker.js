@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-admin-font-20261103';
+const VERSION = 'gestionale-vg-resource-audit-20261103';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json', './vg-quality-pricing.js', './vg-bold-theme.css?v=1.0.156', './vg-startup.js?v=1.0.156',
@@ -20,7 +20,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async()=>{
     const keys=await caches.keys();
-    await Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)));
+    await Promise.all(keys.filter(k=>k.startsWith('gestionale-runtime-')&&k!==CACHE).map(k=>caches.delete(k)));
     await self.clients.claim();
   })());
 });
@@ -45,6 +45,13 @@ self.addEventListener('fetch', event => {
   const url=new URL(req.url);
 
   if(req.mode==='navigate'){
+    const root=new URL('./',self.location.href).pathname;
+    const managementEntry=url.origin===self.location.origin&&(url.pathname===root||url.pathname===root+'index.html');
+    // Catalogue/other pages must never receive the admin font script or replace its offline entry.
+    if(!managementEntry){
+      event.respondWith(fetch(req,{cache:'no-store'}).catch(async()=>await caches.match(req)||Response.error()));
+      return;
+    }
     event.respondWith((async()=>{
       try{
         const fresh=await fetch(req,{cache:'no-store'});
@@ -60,6 +67,8 @@ self.addEventListener('fetch', event => {
 
   if(url.origin===self.location.origin &&
      (url.pathname.endsWith('manifest.json') ||
+      url.pathname.endsWith('customer-profile-ui.js') ||
+      /\/shop-[^/]+\.(?:js|css)$/.test(url.pathname) ||
       url.pathname.endsWith('supabaseClient.js') ||
       url.pathname.endsWith('vg-startup.js') ||
       url.pathname.endsWith('vg-bold-theme.css') ||

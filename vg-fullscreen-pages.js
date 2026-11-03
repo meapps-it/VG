@@ -20,7 +20,12 @@
    }
   });
  }
- const observer=new MutationObserver(()=>{preparePages();dialogs()});observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});
+ const observer=new MutationObserver(records=>{
+  // Text-only mutations (clock, validation, counters) do not create pages.
+  const added=records.some(record=>[...record.addedNodes].some(node=>node.nodeType===1&&(node.matches('.modalwrap,.modal,dialog.vgStatsDialog')||node.querySelector('.modalwrap,.modal,dialog.vgStatsDialog')||(node.matches('.h2,h2')&&node.parentElement?.matches('.modal')))));
+  if(added)preparePages();
+  if(added||records.some(record=>record.type==='attributes'&&record.target.matches('dialog.vgStatsDialog')))dialogs();
+ });observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});
  window.addEventListener('popstate',()=>{for(const id of [...openDialogs]){const dialog=document.getElementById(id);if(dialog?.open&&history.state?.vgFullPageDialog!==id)dialog.close()}});
  window.addEventListener('pagehide',()=>observer.disconnect());
  window.addEventListener('pageshow',()=>{observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});preparePages();dialogs()});
