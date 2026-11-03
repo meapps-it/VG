@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-fast-customers-bold-20261103';
+const VERSION = 'gestionale-vg-android-bold-20261103';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json', './vg-quality-pricing.js', './vg-bold-theme.css?v=1.0.156', './vg-startup.js?v=1.0.156',
@@ -72,6 +72,7 @@ self.addEventListener('fetch', event => {
       url.pathname.endsWith('supabaseClient.js') ||
       url.pathname.endsWith('vg-startup.js') ||
       url.pathname.endsWith('vg-bold-theme.css') ||
+      url.pathname.endsWith('vg-admin-typography.css') ||
       url.pathname.endsWith('vg-catalog-stats.js') ||
       url.pathname.endsWith('vg-dashboard-alerts.js') ||
       url.pathname.endsWith('vg-promotions.js') ||
