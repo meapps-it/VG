@@ -68,3 +68,11 @@ test('unsynced shipping edits survive reopening and an old acknowledgement canno
   w.shopShipping.save();w.shopShipping.clear();assert.equal(w.shopShipping.pending(),null,'logout removes the old account draft');
  }finally{w.close()}
 });
+test('shipping drafts remain bound to their customer even if an expired session is replaced without logout',()=>{
+ const d=new JSDOM(html,{url:'https://example.test',runScripts:'outside-only'}),w=d.window;try{
+  w.eval(fs.readFileSync(__dirname+'/../shop-shipping.js','utf8'));w.shopShipping.bindCustomer({id:'customer-one'});
+  w.document.querySelector('#orderForm [name=address]').value='Private address';w.shopShipping.save();assert(w.shopShipping.pending());
+  w.shopShipping.bindCustomer({id:'customer-two'});assert.equal(w.shopShipping.pending(),null);assert.equal(w.shopShipping.current().address,'');
+  assert.equal(w.localStorage.getItem('vg-shop-shipping-owner-v1'),'customer-two');
+ }finally{w.close()}
+});

@@ -44,9 +44,10 @@
    if(options.notify!==false)window.dispatchEvent(new CustomEvent('vg-shipping-saved',{detail:remember?saved:null}));
   },
   async applyProfile(saved,options={}){await this.load();if(options.isCurrent&&!options.isCurrent())return;if(options.ifUntouched){if(edited)return;try{if(!options.ignoreRememberPreference&&localStorage.getItem('vg-shop-shipping-remember-v1')==='0')return}catch{}}if(options.ifUntouched){const pending=this.pending();if(pending)saved={...(saved||{}),...pending}}if(!saved||!Object.values(saved).some(Boolean))return;if(!options.ifUntouched){try{localStorage.removeItem(pendingKey)}catch{}}apply(saved);this.save({notify:false})},
+  bindCustomer(customer){const identity=String(customer?.id||customer?.phone||customer?.email||'');if(!identity)return;try{const previous=localStorage.getItem('vg-shop-shipping-owner-v1');if(previous&&previous!==identity)this.clear();localStorage.setItem('vg-shop-shipping-owner-v1',identity)}catch{}},
   pending(){try{const value=JSON.parse(localStorage.getItem(pendingKey)||'null');return value&&typeof value==='object'&&!Array.isArray(value)?value:null}catch{return null}},
   acknowledge(saved){try{if(JSON.stringify(this.pending())===JSON.stringify(saved))localStorage.removeItem(pendingKey)}catch{}},
-  clear(){form.reset();edited=false;updateCities();try{localStorage.removeItem('vg-shop-shipping-v1');localStorage.removeItem(pendingKey)}catch{}},
+  clear(){form.reset();edited=false;updateCities();try{localStorage.removeItem('vg-shop-shipping-v1');localStorage.removeItem(pendingKey);localStorage.removeItem('vg-shop-shipping-owner-v1')}catch{}},
   current(){return {name:field('name').value,phone:field('phone').value,address:field('address').value,...address()}},
   remembered(){return field('rememberShipping').checked}
 

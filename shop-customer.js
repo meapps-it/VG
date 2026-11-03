@@ -9,7 +9,7 @@ async function action(name,body){const r=await request(API+'?action=customer-'+n
 let restoreTask=null,restoreSource=null,profileSource=null,sessionRevision=0;
 async function restore(){
  const source=shopAccess.customer();
- if(source!==profileSource){profileSource=source;profile=source;sessionRevision++;}
+ if(source!==profileSource){profileSource=source;profile=source;sessionRevision++;if(source)shopShipping.bindCustomer?.(source);}
  state();if(!source)return;
  if(restoreTask&&restoreSource===source)return restoreTask;
  const revision=sessionRevision;restoreSource=source;
