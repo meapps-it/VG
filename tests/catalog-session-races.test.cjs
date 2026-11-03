@@ -27,3 +27,31 @@ test('shipping restoration checks session again after awaiting the address direc
   assert.equal(w.localStorage.getItem('vg-shop-shipping-v1'),null);
  }finally{w.close()}
 });
+test('profile-page replies from a closed session cannot create a form in the next account',async()=>{
+ const d=new JSDOM(html,{url:'https://example.test',runScripts:'outside-only',pretendToBeVisual:true}),w=d.window,pending=[];
+ w.crypto.randomUUID=()=> 'fixture-id';w.fetch=async()=>({ok:true,json:async()=>({provinces:{},municipalities:[]})});
+ w.shopAccess={fetch:()=>new Promise(resolve=>pending.push(resolve))};
+ try{
+  w.eval(fs.readFileSync(__dirname+'/../customer-profile-ui.js','utf8'));
+  const account=w.document.getElementById('customerAccount'),view=w.document.getElementById('customerView');
+  account.hidden=false;view.classList.add('open');await tick();assert.equal(pending.length,1);
+  account.hidden=true;view.classList.remove('open');w.dispatchEvent(new w.Event('vg-shop-logout'));
+  pending[0]({ok:true,json:async()=>({profile:{name:'Old account'},addresses:[]})});await tick();await tick();
+  assert.equal(account.querySelector('.profile-panel form'),null,'old reply must not create a profile form after logout');
+  account.hidden=false;view.classList.add('open');await tick();assert.equal(pending.length,2);
+  pending[1]({ok:true,json:async()=>({profile:{name:'New account'},addresses:[]})});await tick();await tick();
+  assert.match(account.querySelector('.profile-summary').textContent,/New account/);assert.doesNotMatch(account.textContent,/Old account/);
+ }finally{w.close()}
+});
+test('logout between the two profile saves prevents a write using the next account session',async()=>{
+ const d=new JSDOM(html,{url:'https://example.test',runScripts:'outside-only',pretendToBeVisual:true}),w=d.window,calls=[];let release,lastTask;
+ w.crypto.randomUUID=()=> 'fixture-id';w.fetch=async()=>({ok:true,json:async()=>({provinces:{},municipalities:[]})});
+ w.vgSaveFeedback={run(button,task){lastTask=task();return lastTask.catch(()=>({ok:false}))}};
+ w.shopAccess={fetch:async(url,options)=>{const action=new URL(url).searchParams.get('action');calls.push([action,options.method]);if(action==='profile-book'&&options.method==='POST')return new Promise(r=>release=r);return {ok:true,json:async()=>({profile:{name:'Old account'},addresses:[]})}}};
+ try{
+  w.eval(fs.readFileSync(__dirname+'/../customer-profile-ui.js','utf8'));w.document.getElementById('customerAccount').hidden=false;w.document.getElementById('customerView').classList.add('open');await tick();await tick();
+  const form=w.document.querySelector('.profile-panel form');assert(form);form.dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();assert(release);
+  w.dispatchEvent(new w.Event('vg-shop-logout'));release({ok:true,json:async()=>({ok:true})});await assert.rejects(lastTask,/sessione è cambiata/);
+  assert.equal(calls.filter(([action])=>action==='customer-profile').length,0,'old form must not send the second save after logout');
+ }finally{w.close()}
+});
