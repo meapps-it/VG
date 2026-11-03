@@ -217,3 +217,14 @@ body .item .price .old{font-size:11px!important}
 .shop-promo-products img{width:60px;height:70px;grid-row:span 2;object-fit:contain}.shop-promo-products span{grid-column:2}.shop-promo-products button:not(:has(img)){grid-template-columns:1fr}.shop-promo-products button:not(:has(img)) span{grid-column:1}
 .shop-promo-banner{max-height:260px;margin:14px 0}.shop-promo-controls{display:flex;flex-wrap:wrap;gap:8px}.shop-promo-controls button{padding:9px 12px;border:1px solid #bacbe4;background:#fff;color:#18335d;border-radius:12px;font:inherit;font-size:12px;cursor:pointer}
 @media(prefers-reduced-motion:reduce){.shop-promo-products{scroll-behavior:auto}}
+
+/* Promotions occupy the existing hero image area, not a separate leading block. */
+.collection-heading.has-promotion .collection-mosaic{display:none!important}
+.collection-promotion{position:relative;min-width:0;align-self:center;display:grid;gap:8px}
+.collection-promo-media{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:18px;background:#f6f4ef}
+.collection-promo-media::-webkit-scrollbar{display:none}.collection-promo-slide{flex:0 0 100%;width:100%;height:300px;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;border:0;padding:0;background:transparent;font:inherit;font-weight:700;color:#18335d;cursor:pointer}
+.collection-promo-slide img{width:100%;height:100%;display:block;object-fit:contain}
+.collection-promo-open{border:0;border-radius:12px;background:#285fc1;color:#fff;font:inherit;font-size:12px;font-weight:750;padding:11px 8px;cursor:pointer}.collection-promo-pause{position:absolute;right:6px;top:6px;width:28px;height:28px;border:1px solid #bbc8dd;border-radius:50%;background:#fffffff0;color:#18335d;cursor:pointer}
+.shop-promo-dialog{width:min(680px,calc(100vw - 24px));max-height:85dvh;box-sizing:border-box;overflow:auto;padding:18px;border:1px solid #bdcce3;border-radius:24px;background:#fff;color:#18335d}.shop-promo-dialog::backdrop{background:#0b1c38a6}.shop-promo-dialog .shop-promotions{margin:12px 0 0;padding:16px;border:0;box-shadow:none;background:#f4f7fc}.shop-promo-close{display:block;margin-left:auto;border:1px solid #bbcbe3;background:#fff;color:inherit;border-radius:12px;padding:10px 14px;font:inherit;cursor:pointer}
+.shop-promo-dialog .shop-promo-products button{flex-basis:180px}.shop-promo-dialog .shop-promo-controls button{font-size:11px;padding:6px 9px}
+@media(max-width:650px){.collection-promo-slide{height:210px}.collection-promo-open{font-size:10px;padding:10px 5px}.collection-promo-media{border-radius:12px}}

@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-promo-gallery-20261104';
+const VERSION = 'gestionale-vg-hero-promo-20261104';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json', './vg-quality-pricing.js', './vg-bold-theme.css?v=1.0.156', './vg-startup.js?v=1.0.156',
