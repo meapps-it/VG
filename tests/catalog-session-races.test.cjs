@@ -55,3 +55,16 @@ test('logout between the two profile saves prevents a write using the next accou
   assert.equal(calls.filter(([action])=>action==='customer-profile').length,0,'old form must not send the second save after logout');
  }finally{w.close()}
 });
+test('unsynced shipping edits survive reopening and an old acknowledgement cannot clear newer edits',async()=>{
+ const seed={name:'Nome locale',phone:'3330000000',address:'Via nuova 10',province:'CN',city:'Beinette',cap:'12081'};
+ const d=new JSDOM(html,{url:'https://example.test',runScripts:'outside-only'}),w=d.window;try{
+  w.localStorage.setItem('vg-shop-shipping-v1',JSON.stringify(seed));w.localStorage.setItem('vg-shop-shipping-pending-v1',JSON.stringify(seed));
+  w.eval(fs.readFileSync(__dirname+'/../shop-shipping.js','utf8'));w.shopShipping.load=async()=>{};
+  await w.shopShipping.applyProfile({...seed,address:'Via vecchia 1',city:'Cuneo'},{ifUntouched:true});
+  assert.equal(w.shopShipping.current().address,'Via nuova 10');assert.equal(w.shopShipping.current().city,'Beinette');
+  w.document.querySelector('#orderForm [name=address]').value='Via più recente 20';w.shopShipping.save();const latest=w.shopShipping.pending();
+  w.shopShipping.acknowledge(seed);assert.equal(w.shopShipping.pending().address,'Via più recente 20');
+  w.shopShipping.acknowledge(latest);assert.equal(w.shopShipping.pending(),null);
+  w.shopShipping.save();w.shopShipping.clear();assert.equal(w.shopShipping.pending(),null,'logout removes the old account draft');
+ }finally{w.close()}
+});

@@ -20,6 +20,7 @@ async function restore(){
   if(!isCurrent())return;
   profile=restored;
   await shopShipping.applyProfile(restored.profile,{ifUntouched:true,ignoreRememberPreference:true,isCurrent});
+  const pending=shopShipping.pending?.();if(isCurrent()&&pending)window.dispatchEvent(new CustomEvent('vg-shipping-saved',{detail:pending}));
  })();
  restoreTask=task;
  try{return await task}finally{if(restoreTask===task){restoreTask=null;restoreSource=null;}}
@@ -48,6 +49,6 @@ function show(open,navigate=true){if(open&&navigate)window.dispatchEvent(new Eve
 window.shopCustomer={fetch:request,restore,show};
 el('openCustomer').onclick=()=>show(true);el('checkoutAccount').onclick=()=>show(true);el('customerBack').onclick=()=>history.back();el('customerMore').onclick=()=>orders(true);
 el('customerLogout').onclick=()=>shopAccess.logout();
-window.addEventListener('vg-shipping-saved',e=>{clearTimeout(timer);if(!profile)return;const data=e.detail;if(!data)return;if(data&&!['name','phone','address','province','city','cap'].every(k=>String(data[k]||'').trim()))return;timer=setTimeout(()=>action('profile',{profile:data||{}}).catch(()=>{}),700)});
+window.addEventListener('vg-shipping-saved',e=>{clearTimeout(timer);if(!profile)return;const data=e.detail;if(!data)return;if(data&&!['name','phone','address','province','city','cap'].every(k=>String(data[k]||'').trim()))return;const revision=sessionRevision;timer=setTimeout(()=>{if(revision!==sessionRevision)return;action('profile',{profile:data||{}}).then(()=>{if(revision===sessionRevision)shopShipping.acknowledge?.(data)}).catch(()=>{})},700)});
 window.addEventListener('vg-catalog-ready',restore);window.addEventListener('vg-customer-ready',restore);window.addEventListener('vg-order-sent',()=>{if(profile)profile.profile=shopShipping.current()});window.addEventListener('vg-shop-logout',()=>{sessionRevision++;profileSource=null;restoreTask=null;restoreSource=null;profile=null;el('customerOrderUpdates')?.remove();clearTimeout(timer);el('customerOrders').replaceChildren();el('customerStatus').textContent='';shopShipping.clear();state()});state();
 })();
