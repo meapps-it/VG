@@ -59,7 +59,6 @@ Deno.serve(async(req)=>{
     // Merge those associated references after the ordered photo rows; never guess files.
     for(const p of data||[]){
       const meta=articleMetadata(p);
-      const promotionDetails=articlePromotionDetails(p);
       const legacy=Array.isArray(meta.foto)?meta.foto:Array.isArray(meta.fotoCloud)?meta.fotoCloud:[];
       const associated=legacy.filter((path:unknown)=>typeof path==="string"&&!path.includes("..")&&!path.includes("://")&&(path.startsWith(String(p.sku)+"/")||path.startsWith(OWNER+"/")));
       photoMap.set(p.id,[...new Set([...(photoMap.get(p.id)||[]),...associated])]);
@@ -75,13 +74,16 @@ Deno.serve(async(req)=>{
         if(photo.path&&photo.signedUrl&&!photo.error)signed.set(photo.path,photo.signedUrl);
       }
     }
+    const promo=await db.from('vg_shop_promotion').select('enabled,title,body,image_url,product_ids').eq('owner_id',OWNER).eq('enabled',true).maybeSingle();
+    if(promo.error)throw promo.error;
+    const selectedPromoIds=new Set(promo.data?.product_ids||[]);
     const items=(data||[]).map((p:any)=>{
       const images=(photoMap.get(p.id)||[]).map(path=>signed.get(path)||"").filter(Boolean);
       const image=images[0]||"";
       const promo=Boolean(p.in_promozione)&&Number(p.prezzo_promozionale)>0&&Number(p.prezzo_promozionale)<Number(p.prezzo_vendita);
       const rawDescription=String(p.descrizione_app||p.descrizione||"");
       const meta=articleMetadata(p);
-      const promotionDetails=articlePromotionDetails(p);
+      const promotionDetails=articlePromotionDetails(p,undefined,selectedPromoIds.has(p.id));
       const brand=valid(p.marca||meta?.brand||"",100);
       const supplier=String(p.fornitore||meta?.fornitore||"").trim().toLowerCase();
       const quality=supplier==="jayden"?"ORIGINALE":"STANDARD";
@@ -90,8 +92,6 @@ Deno.serve(async(req)=>{
       return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p),priceHidden:meta.nascondiPrezzo===true,price:meta.nascondiPrezzo===true?null:(promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita)),originalPrice:meta.nascondiPrezzo===true?null:Number(p.prezzo_vendita),promotion:meta.nascondiPrezzo===true?false:promo,promotionActive:promotionDetails.active,promotionEndsAt:promotionDetails.endsAt,image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
     });
     await trackVisit(db,OWNER,viewer);
-    const promo=await db.from('vg_shop_promotion').select('enabled,title,body,image_url,product_ids').eq('owner_id',OWNER).eq('enabled',true).maybeSingle();
-    if(promo.error)throw promo.error;
     let promotion=promo.data?{...promo.data,product_ids:promo.data.product_ids.filter((id:string)=>(data||[]).some((p:any)=>p.id===id&&articleHasActivePromo(p)))}:null;
     if(promotion?.image_url){
       const prefix='https://qfjwtawsqfwmsmrrgqfi.supabase.co/storage/v1/object/public/articoli/'+OWNER+'/catalog-promotions/';

@@ -225,7 +225,7 @@ function renderProductPromo(p,today=new Intl.DateTimeFormat('en-CA',{timeZone:'E
  const badge=el('productPromoBadge'),end=String(p.promotionEndsAt||'');
  const valid=/^\d{4}-\d{2}-\d{2}$/.test(end)&&!Number.isNaN(Date.parse(end+'T12:00:00Z'))&&new Date(end+'T12:00:00Z').toISOString().slice(0,10)===end;
  badge.hidden=!(p.promotionActive??p.promotion)||(valid&&end<today);
- el('productPromoEnd').textContent=badge.hidden?'':valid?'Fino al '+end.slice(8,10)+'/'+end.slice(5,7)+'/'+end.slice(0,4)+' compreso':'Scadenza non comunicata';
+ el('productPromoEnd').textContent=!badge.hidden&&valid?'Fino al '+end.slice(8,10)+'/'+end.slice(5,7)+'/'+end.slice(0,4)+' compreso':'';
 }
 function showProduct(id,navigate=true){
  const p=products.find(x=>x.id===id);if(!p)return;if(!editingCartKey)el('productAdd').textContent='Aggiungi al carrello';

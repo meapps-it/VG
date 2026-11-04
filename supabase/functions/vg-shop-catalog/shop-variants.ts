@@ -37,14 +37,14 @@ export function requestedVariant(p:any,entry:any){
 }
 
 // Same active-promotion rules as the administration's Promo badge.
-export function articlePromotionDetails(p:any,today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())){
+export function articlePromotionDetails(p:any,today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),allowLegacySupplier=true){
  const m=articleMetadata(p),live=(end:any)=>!/^\d{4}-\d{2}-\d{2}$/.test(String(end||''))||String(end)>=today;
  const personalEnd=String(m.scadenzaPromoPersonale||m.scadenzaPromo||'');
  const personal=!!m.promoAttiva&&Number(m.prezzoPromo)>0&&live(personalEnd);
  const values=[m.costoUsdPromo,m.costoUSDPromo,m.prezzoFornitorePromoUsd,m.promoCostoUsd];
  const supplierCost=values.find(v=>v!==undefined&&v!==null&&v!==''&&Number.isFinite(Number(v)));
  const supplierEnd=String(m.scadenzaPromoFornitore||'');
- const supplier=Number(supplierCost)>0&&m.promoFornitoreAttiva!==false&&live(supplierEnd);
+ const supplier=Number(supplierCost)>0&&(m.promoFornitoreAttiva===true||(allowLegacySupplier&&m.promoFornitoreAttiva!==false))&&live(supplierEnd);
  const end=personal?personalEnd:supplier?supplierEnd:'';
  const valid=/^\d{4}-\d{2}-\d{2}$/.test(end)&&!Number.isNaN(Date.parse(end+'T12:00:00Z'))&&new Date(end+'T12:00:00Z').toISOString().slice(0,10)===end;
  return {active:personal||supplier,endsAt:valid?end:''};
