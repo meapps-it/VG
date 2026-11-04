@@ -1,7 +1,7 @@
 import {dossierAction} from './customer-dossier.ts';
 import {passwordResetAction} from './shop-password-reset.ts';
 import {customerAdminAction} from './shop-customer-admin.ts';
-import {articleOptions,requestedVariant,articleMetadata,articleHasActivePromo,articlePromotionDetails} from "./shop-variants.ts";
+import {articleOptions,requestedVariant,articleMetadata,articlePromotionDetails} from "./shop-variants.ts";
 import {customerAction,customerSession,shippingProfile} from "./shop-customers.ts";
 import {accessAction,catalogSession,trackVisit} from "./shop-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
@@ -74,7 +74,7 @@ Deno.serve(async(req)=>{
         if(photo.path&&photo.signedUrl&&!photo.error)signed.set(photo.path,photo.signedUrl);
       }
     }
-    const promo=await db.from('vg_shop_promotion').select('enabled,title,body,image_url,product_ids').eq('owner_id',OWNER).eq('enabled',true).maybeSingle();
+    const promo=await db.from('vg_shop_promotion').select('enabled,title,body,image_url,product_ids,excluded_product_ids').eq('owner_id',OWNER).eq('enabled',true).maybeSingle();
     if(promo.error)throw promo.error;
     const selectedPromoIds=new Set(promo.data?.product_ids||[]);
     const items=(data||[]).map((p:any)=>{
@@ -92,7 +92,12 @@ Deno.serve(async(req)=>{
       return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p),priceHidden:meta.nascondiPrezzo===true,price:meta.nascondiPrezzo===true?null:(promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita)),originalPrice:meta.nascondiPrezzo===true?null:Number(p.prezzo_vendita),promotion:meta.nascondiPrezzo===true?false:promo,promotionActive:promotionDetails.active,promotionEndsAt:promotionDetails.endsAt,image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
     });
     await trackVisit(db,OWNER,viewer);
-    let promotion=promo.data?{...promo.data,product_ids:promo.data.product_ids.filter((id:string)=>(data||[]).some((p:any)=>p.id===id&&articleHasActivePromo(p)))}:null;
+    const campaign=promo.data;
+    const excluded=new Set(campaign?.excluded_product_ids||[]);
+    let promotion=campaign?{
+      enabled:campaign.enabled,title:campaign.title,body:campaign.body,image_url:campaign.image_url,
+      product_ids:items.filter(item=>item.promotionActive&&!excluded.has(item.id)).map(item=>item.id)
+    }:null;
     if(promotion?.image_url){
       const prefix='https://qfjwtawsqfwmsmrrgqfi.supabase.co/storage/v1/object/public/articoli/'+OWNER+'/catalog-promotions/';
       if(promotion.image_url.startsWith(prefix)){
