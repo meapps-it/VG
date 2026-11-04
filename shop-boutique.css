@@ -249,3 +249,19 @@ body .item .price .old{font-size:11px!important}
 #catalogSection.has-promo-artwork .collection-promo-media{width:100%;border-radius:14px;background:transparent}
 #catalogSection.has-promo-artwork .collection-promo-slide{display:block;width:100%;height:auto;aspect-ratio:auto;min-height:0;max-height:none;padding:0;border:0}
 #catalogSection.has-promo-artwork .collection-promo-slide img{display:block;width:100%;height:auto;min-height:0;max-height:none;object-fit:contain}
+
+/* Readable, stationary offers sheet; only the outside banner may rotate. */
+.shop-promo-dialog{width:min(720px,calc(100vw - 20px));max-height:calc(100dvh - 24px);padding:0;border:1px solid #d4deec;border-radius:24px;overscroll-behavior:contain}
+.shop-promo-header{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:17px 18px;background:#fff;border-bottom:1px solid #e2e8f2}
+.shop-promo-header h2{margin:0;font-size:22px;line-height:1.2;overflow-wrap:anywhere;color:#18335d}.shop-promo-header .shop-promo-close{flex-shrink:0;margin:0;padding:10px 12px;min-height:42px;font-size:12px;background:#edf3ff;border-color:#cedbf0}
+.shop-promo-dialog #shopPromotions{margin:0;padding:16px;background:#fff;border-radius:0}
+.shop-promo-description{margin:0 0 14px;font-size:13px;line-height:1.5;color:#50627c}.shop-promo-count{margin:0 0 14px!important;font-size:12px;font-weight:700;color:#50627c}
+.shop-promo-dialog .shop-promo-products{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0;padding:0;overflow:visible;scroll-snap-type:none}
+.shop-promo-dialog .shop-promo-products button{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%;min-width:0;padding:10px;border:1px solid #dce4ef;border-radius:18px;background:#fff;text-align:left;white-space:normal;font-size:13px;line-height:1.35;box-shadow:0 2px 0 #edf1f7}
+.shop-promo-photo{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1;width:100%;box-sizing:border-box;padding:7px;background:#f5f7fb;border-radius:12px;overflow:hidden;font-size:10px;color:#69798e}
+.shop-promo-dialog .shop-promo-photo img{position:absolute;inset:7px;display:block;grid-row:auto;width:calc(100% - 14px);height:calc(100% - 14px);aspect-ratio:auto;object-fit:contain;border-radius:8px}
+.shop-promo-dialog .shop-promo-products strong{min-height:2.7em;font-size:13px;line-height:1.35;overflow-wrap:anywhere;color:#18335d}
+.shop-promo-dialog .shop-promo-products .shop-promo-price{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;margin-top:auto;font-size:17px;font-weight:800;color:#245ac0;grid-column:auto}
+.shop-promo-price del{font-size:11px;font-weight:500;color:#77859b}
+@media(min-width:900px){.shop-promo-dialog .shop-promo-products{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:380px){.shop-promo-header{padding:14px}.shop-promo-header h2{font-size:20px}.shop-promo-dialog #shopPromotions{padding:12px}.shop-promo-dialog .shop-promo-products{gap:10px}.shop-promo-dialog .shop-promo-products button{padding:8px}}
