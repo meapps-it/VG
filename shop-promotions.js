@@ -2,7 +2,7 @@
  let cleanup=()=>{};
  function render(p,items=[]){
   cleanup();cleanup=()=>{};
-  const hero=document.querySelector('.collection-heading');
+  const hero=document.getElementById('catalogSection');
   hero?.classList.remove('has-promotion');hero?.querySelector('.collection-promotion')?.remove();
   let dialog=document.getElementById('shopPromoDialog'),root=document.getElementById('shopPromotions');
   if(!dialog){dialog=document.createElement('dialog');dialog.id='shopPromoDialog';dialog.className='shop-promo-dialog';dialog.setAttribute('aria-labelledby','shopPromoTitle');const close=document.createElement('button');close.type='button';close.className='shop-promo-close';close.textContent='Chiudi offerte';close.onclick=()=>dialog.close();root=document.createElement('section');root.id='shopPromotions';root.className='shop-promotions';root.setAttribute('aria-labelledby','shopPromoTitle');root.addEventListener('click',e=>{if(e.target.closest('[data-detail]'))dialog.close()});dialog.append(close,root);document.querySelector('main.container')?.append(dialog)}
