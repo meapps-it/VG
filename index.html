@@ -3074,7 +3074,7 @@ function collectArticleDraft(){
       costoUsdPromo:document.getElementById('a_usd_promo')?.value||'',
       costoNormaleSconosciuto:!!document.getElementById('a_std_cost_unknown')?.checked,
       costoEstimate:currentArticleCostEstimate ? {...currentArticleCostEstimate} : null,
-      prezzoScelto:document.getElementById('a_sell')?.value||'',
+      prezzoScelto:articleBaseSaleInput()||'',
       prezzoSceltoManuale:!!currentArtPriceManuallySet,
       promoAttiva:!!document.getElementById('a_promo_on')?.checked,
       prezzoPromo:document.getElementById('a_promo_price')?.value||'',
@@ -11389,6 +11389,10 @@ function syncPromoCheckboxesFromAmounts(){
   if(supplierCheck && !(Number.isFinite(supplierAmount) && supplierAmount>0)) supplierCheck.checked=false;
   if(personalCheck && !(Number.isFinite(personalAmount) && personalAmount>0)) personalCheck.checked=false;
 }
+function articleBaseSaleInput(){
+  const input=document.getElementById('a_sell');
+  return input?.dataset.promoDisplay==='1'?Number(currentArtChosenPrice||0):Number(input?.value||0);
+}
 function renderArtAutoFields(){
   updateArticleColorModeUI();
   syncPromoCheckboxesFromAmounts();
@@ -11405,6 +11409,7 @@ function renderArtAutoFields(){
   const acceptedEstimate=acceptedArticleCostEstimate();
   const hasAcceptedEstimate=!!acceptedEstimate && !hasUsd && !hasPromoUsd;
   const sellInput=document.getElementById('a_sell');
+  if(sellInput) sellInput.dataset.promoDisplay='0';
   const sellLabel=document.getElementById('a_sell_label');
   const sellHint=document.getElementById('a_sell_hint');
   if(sellInput) sellInput.readOnly=loadPricingSettings().mode!=='manual';
@@ -11503,8 +11508,12 @@ function renderArtAutoFields(){
   if(document.getElementById('a_supplier_promo_on')) document.getElementById('a_supplier_promo_on').checked=!!a.promoFornitoreAttiva;
   const finalPrice = a.prezzoVendita ? Number(currentPrice(a)||0) : 0;
   document.getElementById('a_final').value = finalPrice ? String(finalPrice) : '';
+  if(sellInput) sellInput.dataset.promoDisplay=promoValid(a)?'1':'0';
+  if(sellInput && document.activeElement!==sellInput) sellInput.value=finalPrice>0?String(finalPrice):'';
+  if(sellLabel && promoValid(a)) sellLabel.textContent='Prezzo di vendita · Promo';
+  if(sellHint && promoValid(a) && !hasAcceptedEstimate){sellHint.style.display='block';sellHint.textContent='Prezzo normale: € '+money(chosenSale)+'. Si ripristina disattivando la promo.';}
   const costForMargin = hasAcceptedEstimate ? Number(acceptedEstimate.estimatedCost||0) : (currentCost(a) || Number(r.costo)||0);
-  const margin = Math.max(0, chosenSale - costForMargin);
+  const margin = Math.max(0, finalPrice - costForMargin);
   document.getElementById('a_margin').value = margin ? money(margin) : '';
   document.getElementById('a_margin_pct').textContent='';
   const highRule=document.getElementById('a_high_cost_rule');
@@ -11734,7 +11743,7 @@ async function saveArt(){
     const r=usd>0 ? calcFromUsd(usd, qual) : (acceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,qual) : {costo:0,sell:0,marg:0});
     const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0,theoretical:0};
     if((r.needsQuality||rPromo.needsQuality)&&loadPricingSettings().mode==='quality'&&!(currentArtPriceManuallySet&&Number(document.getElementById('a_sell')?.value||0)>0)){toast('Scegli la qualità: Original oppure Top/Standard');document.getElementById('a_qual')?.focus();return;}
-    const chosenSale=Number(document.getElementById('a_sell')?.value||0) || Number(r.sell||rPromo.sell||0);
+    const chosenSale=articleBaseSaleInput() || Number(r.sell||rPromo.sell||0);
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
     const keptPhotoIds=currentArtPhotosCleared ? [] : (Array.isArray(old?.photoIds) ? old.photoIds.filter(Boolean).slice() : []);
