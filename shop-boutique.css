@@ -241,3 +241,11 @@ body .item .price .old{font-size:11px!important}
 #catalogSection .collection-promo-media{min-width:0;border-radius:10px;background:#ffffff90}#catalogSection .collection-promo-slide{height:54px;padding:2px}
 #catalogSection .collection-promo-pause{width:20px;height:20px;top:-4px;right:-4px;font-size:10px;padding:0}
 @media(max-width:650px){#catalogSection .collection-promotion{grid-template-columns:minmax(0,1fr) 58px;gap:8px}#catalogSection .collection-promo-copy{column-gap:8px}#catalogSection .collection-promo-copy h2{font-size:15px}#catalogSection .collection-promo-open{font-size:9px;padding:9px 7px}#catalogSection .collection-promo-slide{height:50px}#catalogSection.has-promotion{padding:10px;margin:14px 0}}
+
+/* Uploaded campaign artwork is the entire clickable strip. */
+#catalogSection.has-promo-artwork{padding:0;overflow:hidden;background:transparent;box-shadow:none}
+#catalogSection.has-promo-artwork .collection-promotion{display:block}
+#catalogSection.has-promo-artwork .collection-promo-copy{display:none}
+#catalogSection.has-promo-artwork .collection-promo-media{width:100%;border-radius:14px;background:transparent}
+#catalogSection.has-promo-artwork .collection-promo-slide{height:auto;aspect-ratio:5/1;min-height:60px;max-height:130px;padding:0}
+#catalogSection.has-promo-artwork .collection-promo-slide img{width:100%;height:100%;object-fit:contain}
