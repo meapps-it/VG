@@ -6,7 +6,7 @@ test('promotion is hidden when disabled, renders safe copy and only existing lin
  w.eval(source('shop-promotions.js'));const render=w.shopPromotions.render;
  render(null,[]);assert(w.document.querySelector('#shopPromotions').hidden);
  render({enabled:true,title:'<img onerror=alert(1)>',body:'Offerte',image_url:'javascript:alert(1)',product_ids:['a','private']},[{id:'a',name:'Borsa',price:99,promotion:true}]);
- const root=w.document.querySelector('#shopPromotions');assert(!root.hidden);assert.equal(root.querySelector('h2').textContent,'<img onerror=alert(1)>');assert.equal(root.querySelectorAll('button').length,1);assert.equal(root.querySelector('button').dataset.detail,'a');assert(!root.querySelector('.shop-promo-banner'));assert.equal(root.parentNode.id,'shopPromoDialog');
+ const root=w.document.querySelector('#shopPromotions');assert(!root.hidden);assert.equal(root.closest('dialog').querySelector('h2').textContent,'<img onerror=alert(1)>');assert.equal(root.querySelectorAll('button').length,1);assert.equal(root.querySelector('button').dataset.detail,'a');assert(!root.querySelector('.shop-promo-banner'));assert.equal(root.parentNode.id,'shopPromoDialog');
  render({enabled:false,title:'Hidden'},[]);assert(root.hidden);assert.equal(root.children.length,0);
  render({enabled:true,title:'Promo'},[]);w.dispatchEvent(new w.Event('vg-shop-logout'));assert(root.hidden);w.close();
 });

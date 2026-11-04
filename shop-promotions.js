@@ -5,25 +5,22 @@
   const hero=document.getElementById('catalogSection');
   hero?.classList.remove('has-promotion','has-promo-artwork');hero?.querySelector('.collection-promotion')?.remove();
   let dialog=document.getElementById('shopPromoDialog'),root=document.getElementById('shopPromotions');
-  if(!dialog){dialog=document.createElement('dialog');dialog.id='shopPromoDialog';dialog.className='shop-promo-dialog';dialog.setAttribute('aria-labelledby','shopPromoTitle');const close=document.createElement('button');close.type='button';close.className='shop-promo-close';close.textContent='Chiudi offerte';close.onclick=()=>dialog.close();root=document.createElement('section');root.id='shopPromotions';root.className='shop-promotions';root.setAttribute('aria-labelledby','shopPromoTitle');root.addEventListener('click',e=>{if(e.target.closest('[data-detail]'))dialog.close()});dialog.append(close,root);document.querySelector('main.container')?.append(dialog)}
+  if(!dialog){dialog=document.createElement('dialog');dialog.id='shopPromoDialog';dialog.className='shop-promo-dialog';dialog.setAttribute('aria-labelledby','shopPromoTitle');const close=document.createElement('button');close.type='button';close.className='shop-promo-close';close.textContent='Chiudi ×';close.setAttribute('aria-label','Chiudi offerte');close.onclick=()=>dialog.close();root=document.createElement('section');root.id='shopPromotions';root.className='shop-promotions';root.setAttribute('aria-labelledby','shopPromoTitle');root.addEventListener('click',e=>{if(e.target.closest('[data-detail]'))dialog.close()});const header=document.createElement('header');header.className='shop-promo-header';const heading=document.createElement('h2');heading.id='shopPromoTitle';header.append(heading,close);dialog.append(header,root);document.querySelector('main.container')?.append(dialog)}
   if(dialog.open)dialog.close();root.replaceChildren();root.hidden=true;if(!p?.enabled)return;
-  const copy=document.createElement('div'),tag=document.createElement('span'),title=document.createElement('h2');tag.className='section-kicker';tag.textContent='PROMO IN PRIMO PIANO';title.id='shopPromoTitle';title.textContent=p.title||'Promozioni';copy.append(tag,title);
-  if(p.body){const text=document.createElement('p');text.textContent=p.body;copy.append(text)}root.append(copy);
+  dialog.querySelector('#shopPromoTitle').textContent=p.title||'Promozioni';
+  if(p.body){const text=document.createElement('p');text.className='shop-promo-description';text.textContent=p.body;root.append(text)}
   const selected=new Set(p.product_ids||[]),products=items.filter(x=>selected.has(x.id)&&(x.promotionActive??x.promotion)===true).slice(0,12);
   if(products.length){
    const grid=document.createElement('div');grid.className='shop-promo-products';grid.id='shopPromoProducts';grid.setAttribute('aria-label','Articoli in promozione');
-   for(const product of products){const b=document.createElement('button');b.type='button';b.dataset.detail=product.id;if(product.image){const img=document.createElement('img');img.src=product.image;img.alt='';img.loading='lazy';b.append(img)}const name=document.createElement('strong'),price=document.createElement('span');name.textContent=product.name;price.textContent=product.priceHidden?'Info in privato':Number(product.price).toLocaleString('it-IT',{style:'currency',currency:'EUR'});b.append(name,price);grid.append(b)}root.append(grid);
-   if(products.length>1){
-    const controls=document.createElement('div');controls.className='shop-promo-controls';let index=0,timer,paused=false,hover=false,visible=true;
-    const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    function move(step){index=(index+step+products.length)%products.length;const card=grid.children[index];grid.scrollTo?.({left:card.offsetLeft-grid.children[0].offsetLeft,behavior:reduced?.matches?'instant':'smooth'})}
-    function sync(){clearInterval(timer);if(dialog.open&&!paused&&!hover&&!document.hidden&&visible&&!root.contains(document.activeElement)&&!reduced?.matches)timer=setInterval(()=>move(1),4500)}
-    const toggle=document.createElement('button');toggle.type='button';toggle.textContent='Pausa scorrimento';toggle.onclick=()=>{paused=!paused;toggle.textContent=paused?'Riprendi scorrimento':'Pausa scorrimento';sync()};controls.append(toggle);root.append(controls);
-    const enter=()=>{hover=true;sync()},leave=()=>{hover=false;sync()};root.addEventListener('pointerenter',enter);root.addEventListener('pointerleave',leave);root.addEventListener('focusin',sync);root.addEventListener('focusout',sync);dialog.addEventListener('close',sync);dialog.addEventListener('toggle',sync);document.addEventListener('visibilitychange',sync);reduced?.addEventListener?.('change',sync);
-    let observer;if(window.IntersectionObserver){observer=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;sync()});observer.observe(root)}sync();
-    cleanup=()=>{clearInterval(timer);observer?.disconnect();root.removeEventListener('pointerenter',enter);root.removeEventListener('pointerleave',leave);root.removeEventListener('focusin',sync);root.removeEventListener('focusout',sync);dialog.removeEventListener('close',sync);dialog.removeEventListener('toggle',sync);document.removeEventListener('visibilitychange',sync);reduced?.removeEventListener?.('change',sync)};
-   }
-  }
+   const count=document.createElement('p');count.className='shop-promo-count';count.textContent=products.length+' '+(products.length===1?'articolo in offerta':'articoli in offerta');root.prepend(count);
+   for(const product of products){
+    const b=document.createElement('button');b.type='button';b.dataset.detail=product.id;b.setAttribute('aria-label','Apri '+(product.name||'articolo in offerta'));
+    const photo=document.createElement('span');photo.className='shop-promo-photo';if(product.image){const img=document.createElement('img');img.src=product.image;img.alt='';img.loading='lazy';photo.append(img)}else photo.textContent='Foto non disponibile';
+    const name=document.createElement('strong'),price=document.createElement('span');name.textContent=product.name;price.className='shop-promo-price';price.textContent=product.priceHidden?'Info in privato':Number(product.price).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
+    if(!product.priceHidden&&Number(product.originalPrice)>Number(product.price)){const old=document.createElement('del');old.textContent=Number(product.originalPrice).toLocaleString('it-IT',{style:'currency',currency:'EUR'});price.append(old)}
+    b.append(photo,name,price);grid.append(b);
+   }root.append(grid);
+  }else{const empty=document.createElement('p');empty.textContent='Al momento non ci sono articoli in promozione attiva.';root.append(empty)}
   if(hero){
    hero.classList.add('has-promotion');const panel=document.createElement('div');panel.className='collection-promotion';const media=document.createElement('div');media.className='collection-promo-media';media.setAttribute('aria-label',p.title||'Promozioni');
    const productPhotos=products.filter(x=>x.image).map(x=>({image:x.image,name:x.name}));
