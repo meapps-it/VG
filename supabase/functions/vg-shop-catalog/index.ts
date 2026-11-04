@@ -1,7 +1,7 @@
 import {dossierAction} from './customer-dossier.ts';
 import {passwordResetAction} from './shop-password-reset.ts';
 import {customerAdminAction} from './shop-customer-admin.ts';
-import {articleOptions,requestedVariant,articleMetadata,articleHasActivePromo} from "./shop-variants.ts";
+import {articleOptions,requestedVariant,articleMetadata,articleHasActivePromo,articlePromotionDetails} from "./shop-variants.ts";
 import {customerAction,customerSession,shippingProfile} from "./shop-customers.ts";
 import {accessAction,catalogSession,trackVisit} from "./shop-access.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
@@ -59,6 +59,7 @@ Deno.serve(async(req)=>{
     // Merge those associated references after the ordered photo rows; never guess files.
     for(const p of data||[]){
       const meta=articleMetadata(p);
+      const promotionDetails=articlePromotionDetails(p);
       const legacy=Array.isArray(meta.foto)?meta.foto:Array.isArray(meta.fotoCloud)?meta.fotoCloud:[];
       const associated=legacy.filter((path:unknown)=>typeof path==="string"&&!path.includes("..")&&!path.includes("://")&&(path.startsWith(String(p.sku)+"/")||path.startsWith(OWNER+"/")));
       photoMap.set(p.id,[...new Set([...(photoMap.get(p.id)||[]),...associated])]);
@@ -80,12 +81,13 @@ Deno.serve(async(req)=>{
       const promo=Boolean(p.in_promozione)&&Number(p.prezzo_promozionale)>0&&Number(p.prezzo_promozionale)<Number(p.prezzo_vendita);
       const rawDescription=String(p.descrizione_app||p.descrizione||"");
       const meta=articleMetadata(p);
+      const promotionDetails=articlePromotionDetails(p);
       const brand=valid(p.marca||meta?.brand||"",100);
       const supplier=String(p.fornitore||meta?.fornitore||"").trim().toLowerCase();
       const quality=supplier==="jayden"?"ORIGINALE":"STANDARD";
       const publicRaw=String(p.descrizione_app||((typeof meta.descrizione==='string'&&meta.descrizione)?meta.descrizione:rawDescription));
       const description=publicRaw.replace(/\[VGMETA\][\s\S]*?\[\/VGMETA\]/gi,' ').replace(/\[VGMETA\][\s\S]*$/gi,'').replace(/\\n/g,'\n').split(/\r?\n/).filter(line=>!/(?:costo|prezzo).*?(?:\busd\b|fornitor|jayden)/i.test(line)).join('\n').trim();
-      return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p),priceHidden:meta.nascondiPrezzo===true,price:meta.nascondiPrezzo===true?null:(promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita)),originalPrice:meta.nascondiPrezzo===true?null:Number(p.prezzo_vendita),promotion:meta.nascondiPrezzo===true?false:promo,promotionActive:articleHasActivePromo(p),image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
+      return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p),priceHidden:meta.nascondiPrezzo===true,price:meta.nascondiPrezzo===true?null:(promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita)),originalPrice:meta.nascondiPrezzo===true?null:Number(p.prezzo_vendita),promotion:meta.nascondiPrezzo===true?false:promo,promotionActive:promotionDetails.active,promotionEndsAt:promotionDetails.endsAt,image,images,availability:p.giacenza>0?"disponibile":"su richiesta"};
     });
     await trackVisit(db,OWNER,viewer);
     const promo=await db.from('vg_shop_promotion').select('enabled,title,body,image_url,product_ids').eq('owner_id',OWNER).eq('enabled',true).maybeSingle();

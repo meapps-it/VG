@@ -265,3 +265,6 @@ body .item .price .old{font-size:11px!important}
 .shop-promo-price del{font-size:11px;font-weight:500;color:#77859b}
 @media(min-width:900px){.shop-promo-dialog .shop-promo-products{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:380px){.shop-promo-header{padding:14px}.shop-promo-header h2{font-size:20px}.shop-promo-dialog #shopPromotions{padding:12px}.shop-promo-dialog .shop-promo-products{gap:10px}.shop-promo-dialog .shop-promo-products button{padding:8px}}
+
+.product-promo-badge{display:flex;align-items:center;gap:10px;width:fit-content;max-width:100%;box-sizing:border-box;margin-top:12px;padding:10px 14px;border:1px solid #e5b753;border-radius:14px;background:linear-gradient(115deg,#fff0bc,#fff7e5);color:#8a4108}
+.product-promo-badge[hidden]{display:none!important}.product-promo-badge svg{flex:0 0 34px;width:34px;height:34px;color:#db7215}.product-promo-badge strong{display:block;font-size:13px;line-height:1.2;letter-spacing:.04em}.product-promo-badge span{display:block;margin-top:4px;font-size:11px;line-height:1.4;overflow-wrap:anywhere}
