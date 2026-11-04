@@ -608,7 +608,7 @@ window.addEventListener('error',e=>{
 <link rel="stylesheet" href="./vg-fullscreen-pages.css?v=compact-header-20261030">
 <script src="./vg-fullscreen-pages.js?v=compact-header-20261030" defer></script>
 <link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.160">
-<script src="./vg-catalog-stats.js?v=client-integration-20261031" defer></script>
+<script src="./vg-catalog-stats.js?v=promo-sync-20261104" defer></script>
 </head>
 <body class="auth-locked">
 <script>window.SimplexClientConfig={status:'active',modules:{clienti:true,ordini:true,magazzino:true,statistiche:true}};window.SimplexLicense={refresh:()=>{},clear:()=>{},getKey:()=>''};</script>
@@ -7707,6 +7707,11 @@ function buildCloudArticleMeta(art){
     hCintura: art?.hCintura||art?.altezzaCintura||'',
     costoUsd: Number(art?.costoUsd||0),
     costoUsdPromo: Number(art?.costoUsdPromo||0),
+    promoFornitoreAttiva: art?.promoFornitoreAttiva===true,
+    scadenzaPromoFornitore: supplierPromoEnd(art),
+    dataInizioPromoFornitore: normalizePromoStartDate(art?.dataInizioPromoFornitore||''),
+    promoFornitoreDataSconosciuta: art?.promoFornitoreDataSconosciuta===true,
+    scadenzaPromoPersonale: personalPromoEnd(art),
     costoEur: Number(art?.costoEur||0),
     costoEurPromo: Number(art?.costoEurPromo||0),
     costoStimatoAttivo: !!(art?.costoStimatoAttivo||art?.costoIpotetico),
