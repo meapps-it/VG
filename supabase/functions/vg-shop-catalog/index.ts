@@ -10,7 +10,7 @@ const KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(PROJECT, KEY, { auth:{persistSession:false} });
 const OWNER = "a51e2715-3b5e-4ad3-906e-c664fcdd486d";
 const SITE = "https://meapps-it.github.io";
-const ALLOWED_ORIGINS=new Set([SITE,"https://simplexapp.it"]);
+const ALLOWED_ORIGINS=new Set([SITE,"https://simplexapp.it","https://veglamour.cloud","https://www.veglamour.cloud"]);
 function valid(value:unknown,max:number){return typeof value==="string"?value.trim().slice(0,max):""}
 const published=(q:any)=>q.eq("user_id",OWNER).eq("attivo",true).eq("disponibile",true).eq("stato_pubblicazione","pubblicato").eq("is_demo",false);
 Deno.serve(async(req)=>{
