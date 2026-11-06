@@ -4,7 +4,7 @@ import {JWT} from 'npm:google-auth-library@9.15.1';
 import {requireOwner} from './shop-access.ts';
 const project=Deno.env.get('SUPABASE_URL')!,key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const db=createClient(project,key,{auth:{persistSession:false}}),owner='a51e2715-3b5e-4ad3-906e-c664fcdd486d';
-const origins=new Set(['https://meapps-it.github.io','https://simplexapp.it']);
+const origins=new Set(['https://meapps-it.github.io','https://simplexapp.it','https://veglamour.cloud','https://www.veglamour.cloud']);
 function clientConfig(){try{const value=JSON.parse(Deno.env.get('FCM_CLIENT_CONFIG')||'null');if(!value)return null;const client=value.client?.find((c:any)=>c.client_info?.android_client_info?.package_name==='com.vg.gestionale.seconda');const clean={projectId:value.projectId||value.project_info?.project_id,applicationId:value.applicationId||client?.client_info?.mobilesdk_app_id,senderId:value.senderId||value.project_info?.project_number,apiKey:value.apiKey||client?.api_key?.[0]?.current_key};return Object.values(clean).every(v=>typeof v==='string'&&v.length>0)?clean:null}catch{return null}}
 async function dispatch(orderId:string){
  const pending=await db.from('vg_shop_notification_outbox').select('order_id,sent_at').eq('owner_id',owner).eq('order_id',orderId).single();if(pending.error)throw pending.error;if(pending.data.sent_at)return {sent:true};
