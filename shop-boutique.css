@@ -276,3 +276,11 @@ body .item .price .old{font-size:11px!important}
   .brand-stage .top-inner .logo { width: 100%; height: auto; object-fit: contain; }
   .brand-stage .header-actions { gap: 5px; }
 }
+
+/* Logo ben più grande su mobile: riga dedicata, comandi intatti. */
+@media (max-width: 650px) {
+  .brand-stage .top-inner { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:4px; padding:8px 12px 10px; }
+  .brand-stage .top-inner > a { display:block; flex:0 0 auto; width:min(300px, 88vw); max-width:88vw; margin:0 auto; }
+  .brand-stage .top-inner .logo { display:block; width:100%; max-width:none; height:auto; }
+  .brand-stage .header-actions { width:100%; justify-content:center; gap:9px; }
+}
