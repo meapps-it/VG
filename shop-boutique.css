@@ -277,10 +277,10 @@ body .item .price .old{font-size:11px!important}
   .brand-stage .header-actions { gap: 5px; }
 }
 
-/* Logo ben più grande su mobile: riga dedicata, comandi intatti. */
-@media (max-width: 650px) {
-  .brand-stage .top-inner { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:4px; padding:8px 12px 10px; }
-  .brand-stage .top-inner > a { display:block; flex:0 0 auto; width:min(300px, 88vw); max-width:88vw; margin:0 auto; }
-  .brand-stage .top-inner .logo { display:block; width:100%; max-width:none; height:auto; }
-  .brand-stage .header-actions { width:100%; justify-content:center; gap:9px; }
+/* Logo compatto sulla stessa riga delle azioni, anche su smartphone. */
+@media (max-width:650px) {
+  .brand-stage .top-inner {display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;}
+  .brand-stage .top-inner > a {display:block;flex:0 1 155px;width:155px;max-width:calc(100% - 145px);margin:0;min-width:0;}
+  .brand-stage .top-inner .logo {display:block;width:100%;height:auto;max-height:60px;object-fit:contain;object-position:left center;}
+  .brand-stage .header-actions {width:auto;flex:0 0 auto;justify-content:flex-end;gap:5px;}
 }
