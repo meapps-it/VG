@@ -1,0 +1,25 @@
+{
+  "id": "/catalogo-nuovo.html",
+  "name": "Vanity & Glamour - Catalogo",
+  "short_name": "Vanity & Glamour",
+  "description": "Catalogo Vanity & Glamour",
+  "start_url": "/catalogo-nuovo.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/shop-icons/vg-pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/shop-icons/vg-pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
