@@ -1,0 +1,19 @@
+{
+  "id": "/catalogo-nuovo.html",
+  "name": "Vanity & Glamour - Catalogo",
+  "short_name": "Vanity & Glamour",
+  "description": "Catalogo Vanity & Glamour",
+  "start_url": "/catalogo-nuovo.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/shop-vanity-glamour.webp",
+      "sizes": "any",
+      "type": "image/webp",
+      "purpose": "any"
+    }
+  ]
+}
