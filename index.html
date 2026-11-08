@@ -10055,6 +10055,7 @@ async function fetchClientMergeLinks(sb){
   const links=[];
   for(let offset=0;;offset+=500){
     const result=await sb.from('vg_client_merges').select('removed_id,kept_id').order('removed_id').range(offset,offset+499);
+    if(result.error?.code==='PGRST205')return links; // Backend non ancora aggiornato.
     if(result.error)throw result.error;
     links.push(...(result.data||[]));
     if((result.data||[]).length<500)return links;
@@ -10075,6 +10076,7 @@ async function mergeDuplicateClients(keepId,removeId){
     if(inCloud){
       const sb=await ensureCloud();
       const {data,error}=await sb.rpc('vg_merge_duplicate_clients',{p_keep:keepId,p_remove:removeId});
+      if(error?.code==='PGRST202')throw new Error('L’unione delle schede cloud è in attesa di attivazione.');
       if(error)throw error;
       if(data?.id!==keepId)throw new Error('Il server non ha confermato l’unione. Riprova.');
       cloudConfirmed=true;client=cloudClientRowAsLocal(data);

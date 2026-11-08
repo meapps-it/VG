@@ -67,6 +67,11 @@ test('homonyms are flagged and a manual merge preserves orders and alternate con
  const before=structuredClone(db);
  await assert.rejects(context.mergeDuplicateClients('cloud-1','cloud-2'),/Offline/);
  assert.deepEqual(db,before);
+ context.ensureCloud=async()=>({rpc:async()=>({error:{code:'PGRST202'}})});
+ await assert.rejects(context.mergeDuplicateClients('cloud-1','cloud-2'),/attesa di attivazione/);
+ assert.deepEqual(db,before);
+ const query={select(){return this},order(){return this},async range(){return {error:{code:'PGRST205'}}}};
+ assert.equal((await context.fetchClientMergeLinks({from:()=>query})).length,0);
  context.applyClientMergeLinks(db,[{removed_id:'cloud-2',kept_id:'cloud-1'}]);
  assert.deepEqual(db.clienti.map(client=>client.id),['cloud-1']);
 });
