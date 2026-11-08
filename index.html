@@ -11502,7 +11502,7 @@ function syncPromoCheckboxesFromAmounts(){
 }
 function articleBaseSaleInput(){
   const input=document.getElementById('a_sell');
-  return input?.dataset.promoDisplay==='1'?Number(currentArtChosenPrice||0):Number(input?.value||0);
+  return parseFlexibleAmount(input?.value);
 }
 function renderArtAutoFields(){
   updateArticleColorModeUI();
@@ -11520,10 +11520,8 @@ function renderArtAutoFields(){
   const acceptedEstimate=acceptedArticleCostEstimate();
   const hasAcceptedEstimate=!!acceptedEstimate && !hasUsd && !hasPromoUsd;
   const sellInput=document.getElementById('a_sell');
-  if(sellInput) sellInput.dataset.promoDisplay='0';
   const sellLabel=document.getElementById('a_sell_label');
   const sellHint=document.getElementById('a_sell_hint');
-  if(sellInput) sellInput.readOnly=loadPricingSettings().mode!=='manual';
   if(sellLabel) sellLabel.textContent=loadPricingSettings().mode==='manual'?'Prezzo manuale':'Prezzo di vendita';
   if(sellHint){ sellHint.style.display=hasAcceptedEstimate?'block':'none'; sellHint.textContent=hasAcceptedEstimate?'Costo stimato: il guadagno non è verificato.':''; }
 
@@ -11619,10 +11617,10 @@ function renderArtAutoFields(){
   if(document.getElementById('a_supplier_promo_on')) document.getElementById('a_supplier_promo_on').checked=!!a.promoFornitoreAttiva;
   const finalPrice = a.prezzoVendita ? Number(currentPrice(a)||0) : 0;
   document.getElementById('a_final').value = finalPrice ? String(finalPrice) : '';
-  if(sellInput) sellInput.dataset.promoDisplay=promoValid(a)?'1':'0';
-  if(sellInput && document.activeElement!==sellInput) sellInput.value=finalPrice>0?String(finalPrice):'';
-  if(sellLabel && promoValid(a)) sellLabel.textContent='Prezzo di vendita · Promo';
-  if(sellHint && promoValid(a) && !hasAcceptedEstimate){sellHint.style.display='block';sellHint.textContent='Prezzo normale: € '+money(chosenSale)+'. Si ripristina disattivando la promo.';}
+  if(promoValid(a)){
+    if(sellLabel) sellLabel.textContent='Prezzo di vendita normale';
+    if(sellHint && !hasAcceptedEstimate){sellHint.style.display='block';sellHint.textContent='Prezzo con promo attiva: € '+money(finalPrice)+'.';}
+  }
   const costForMargin = hasAcceptedEstimate ? Number(acceptedEstimate.estimatedCost||0) : (currentCost(a) || Number(r.costo)||0);
   const margin = Math.max(0, finalPrice - costForMargin);
   document.getElementById('a_margin').value = margin ? money(margin) : '';
@@ -11853,7 +11851,7 @@ async function saveArt(){
     const acceptedEstimate=(!usd && !promoUsd) ? acceptedArticleCostEstimate() : null;
     const r=usd>0 ? calcFromUsd(usd, qual) : (acceptedEstimate ? calcSellFromEurCost(acceptedEstimate.estimatedCost,qual) : {costo:0,sell:0,marg:0});
     const rPromo=promoUsd>0 ? calcFromUsd(promoUsd, qual) : {costo:0, sell:0, marg:0,theoretical:0};
-    if((r.needsQuality||rPromo.needsQuality)&&loadPricingSettings().mode==='quality'&&!(currentArtPriceManuallySet&&Number(document.getElementById('a_sell')?.value||0)>0)){toast('Scegli la qualità: Original oppure Top/Standard');document.getElementById('a_qual')?.focus();return;}
+    if((r.needsQuality||rPromo.needsQuality)&&loadPricingSettings().mode==='quality'&&!(currentArtPriceManuallySet&&articleBaseSaleInput()>0)){toast('Scegli la qualità: Original oppure Top/Standard');document.getElementById('a_qual')?.focus();return;}
     const chosenSale=articleBaseSaleInput() || Number(r.sell||rPromo.sell||0);
     const old=currentArtId?db.articoli.find(x=>x.id===currentArtId):(currentArtDuplicateData||null);
     const keptFoto=currentArtPhotosCleared ? [] : (Array.isArray(old?.foto) ? old.foto.filter(x=>typeof x==='string' && !String(x).startsWith('data:')).slice() : []);
@@ -14295,8 +14293,7 @@ document.getElementById('a_promo_price')?.addEventListener('input', ()=>{
   if(check && Number.isFinite(amount) && amount>0) check.checked=true;
 });
 document.getElementById('a_sell')?.addEventListener('input', ()=>{
-  const amount=firstFiniteNumber(document.getElementById('a_sell')?.value,0);
-  currentArtChosenPrice=Number.isFinite(amount)&&amount>0 ? amount : 0;
+  currentArtChosenPrice=articleBaseSaleInput();
   currentArtPriceManuallySet=currentArtChosenPrice>0;
   const est=acceptedArticleCostEstimate();
   if(est && currentArtChosenPrice>0) currentArticleCostEstimate.salePrice=currentArtChosenPrice;
