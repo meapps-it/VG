@@ -13,7 +13,7 @@ ${renderHome}
 renderHome();
 `;
 let html=source.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
-html=html.replace(/<body[^>]*>[\s\S]*?(?=<div class="top">)/,'<body>');
+html=html.replace(/<body[^>]*>[\s\S]*?(?=<div class="top">)/,'<body class="vg-workspace">');
 html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catalog-stats.js?v=test"></script></body>');
 (async()=>{
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
@@ -39,7 +39,17 @@ html=html.replace('</body>','<script>'+fixture+'</script><script src="./vg-catal
    return route.fulfill({contentType:'application/json',body:JSON.stringify({today:6,week:24,month:24,devicesMonth:9,daily,customerStats:{summary:{registeredCustomers:2,catalogOrders:4,pendingOrders:1},customers:[{id:'c1',phone:'393330000000',profile:{name:'Cliente statistiche',address:'Via Roma 1',city:'Beinette',province:'CN',cap:'12081'},registeredAt:'2026-10-26T09:00:00Z',lastLoginAt:'2026-10-26T10:00:00Z',orders:1}],orders:[{number:'WEB-STATS',requestedAt:'2026-10-26T10:00:00Z',status:'in_lavorazione',total:140,customer:{nome:'Cliente statistiche',telefono:'3330000000'},items:[{name:'Scarpe',qty:1,price:140,size:'36',color:'Nero',quality:'Standard'}]}],hasMoreCustomers:false,hasMoreOrders:false},definition:'Una visita per dispositivo ogni 30 minuti.'})});
   });
   await page.goto('https://meapps-it.github.io/VG/');
-  assert.equal(await page.locator('#homeSpark .sparkBar').count(),6);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'management must not overflow');const navStrip=page.locator('.navBottom .inner');assert(await navStrip.evaluate(e=>getComputedStyle(e).overflowX==='auto'),'navigation scrolls horizontally');assert(await page.locator('.navBottom button').evaluateAll(nodes=>nodes.every(n=>n.offsetWidth>=102)),'navigation labels keep readable widths');await page.locator('.navBottom button').last().scrollIntoViewIfNeeded();assert(await navStrip.evaluate(e=>e.scrollLeft>0),'last destination is reachable by scrolling');await page.locator('.navBottom button').first().scrollIntoViewIfNeeded();assert(await page.locator('#homeSpark .sparkBar').evaluateAll(nodes=>nodes.every(n=>n.getBoundingClientRect().width<n.parentElement.getBoundingClientRect().width*.8)),'chart columns are narrower than their touch targets');assert.equal(await page.locator('.stat').first().evaluate(e=>getComputedStyle(e).borderTopWidth),'2px');assert.equal(await page.locator('.stat').first().evaluate(e=>getComputedStyle(e).borderTopColor),'rgb(82, 103, 126)');
+  assert.equal(await page.locator('#homeSpark .sparkBar').count(),6);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'management must not overflow');const navStrip=page.locator('.navBottom .inner');
+  const buttons=page.locator('.navBottom button');
+  assert.equal(await buttons.count(),6);
+  assert(await buttons.evaluateAll(nodes=>nodes.every(n=>n.offsetWidth>=44&&n.offsetHeight>=44)),'all navigation destinations have usable touch targets');
+  const layout=await navStrip.evaluate(e=>({scroll:e.scrollWidth,width:e.clientWidth,columns:getComputedStyle(e).gridTemplateColumns.split(' ').length}));
+  assert.equal(layout.columns,width>=1080?1:6);
+  assert(layout.scroll<=layout.width,'navigation fits without horizontal scrolling');
+  assert(await page.locator('.vgWorkspaceLogo').isVisible());
+  assert(await page.locator('.vgQuickActions').isVisible());
+  assert(await page.locator('.vgCatalogTools').isVisible());
+  assert(await page.locator('#homeSpark .sparkBar').evaluateAll(nodes=>nodes.every(n=>n.getBoundingClientRect().width<n.parentElement.getBoundingClientRect().width*.8)),'chart columns are narrower than their touch targets');assert.equal(await page.locator('.stat').first().evaluate(e=>getComputedStyle(e).borderTopWidth),'1px');
   assert(await page.locator('#homeSpark .sparkBar').evaluateAll(bars=>bars.every(b=>b.getBoundingClientRect().height>0)),'six-month sales columns remain visible');
   assert.equal(await page.locator('.vgNativeAction:not([hidden])').count(),hybrid?4:1);
   if(hybrid&&process.env.VG_UI_SCREENSHOTS){fs.mkdirSync(process.env.VG_UI_SCREENSHOTS,{recursive:true});await page.screenshot({path:path.join(process.env.VG_UI_SCREENSHOTS,'dashboard-'+width+'.png')});}

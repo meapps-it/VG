@@ -608,9 +608,10 @@ window.addEventListener('error',e=>{
 <link rel="stylesheet" href="./vg-fullscreen-pages.css?v=compact-header-20261030">
 <script src="./vg-fullscreen-pages.js?v=compact-header-20261030" defer></script>
 <link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.160">
-<script src="./vg-catalog-stats.js?v=promo-sync-20261104" defer></script>
+<script src="./vg-catalog-stats.js?v=workspace-20261108" defer></script>
+<link rel="stylesheet" href="./vg-admin-workspace.css?v=20261108">
 </head>
-<body class="auth-locked">
+<body class="auth-locked vg-workspace">
 <script>window.SimplexClientConfig={status:'active',modules:{clienti:true,ordini:true,magazzino:true,statistiche:true}};window.SimplexLicense={refresh:()=>{},clear:()=>{},getKey:()=>''};</script>
 <div id="simplexLicenseGate" class="hidden">
   <div class="box">
@@ -650,9 +651,12 @@ window.addEventListener('error',e=>{
 <div class="top">
   <div class="topRow">
     <div class="topMain">
-      <h1 class="vgBrand vgAdminTitle">Pannello Amministratore</h1>
-      <span id="appTitle" class="vgOriginalTitle">Gestionale</span>
-      <div id="dateLine" class="date">--/--/----</div>
+      <img class="vgWorkspaceLogo" src="./shop-vanity-glamour.webp" width="1000" height="356" alt="Vanity &amp; Glamour">
+      <div class="vgWorkspaceIdentity">
+        <h1 class="vgBrand vgAdminTitle">Pannello Amministratore</h1>
+        <span id="appTitle" class="vgOriginalTitle">Gestionale</span>
+        <div id="dateLine" class="date">--/--/----</div>
+      </div>
     </div>
     <button id="topMenuBtn" class="topMenuBtn" type="button" aria-label="Apri menu" aria-expanded="false" data-action="toggleTopMenu">
       <span class="topMenuBtnInner" aria-hidden="true">
@@ -677,52 +681,56 @@ window.addEventListener('error',e=>{
 <div class="app">
 
   <div id="sec_home" class="section active">
-    <div class="heroSpot" data-action="openDashboardMood" role="button" tabindex="0">
-      <div class="eyebrow">Novità in primo piano</div>
-      <div id="homeMood" class="title">Si parte bene</div>
-      <div id="homeMoodSub" class="desc">Panoramica vendite del momento.</div>
-      <div class="sparkTitle"><span>Andamento ultimi 6 mesi</span><span id="sparkHint">incassato</span></div>
-      <div id="homeSpark" class="sparkBars"></div>
-    </div>
-
-    <section id="vgDashboardAlerts" aria-label="Nuove registrazioni e nuovi ordini"></section>
+    <header class="vgDashboardIntro">
+      <div><p>Gestione del negozio</p><h2>Panoramica</h2><span>Ordini, catalogo e attività da seguire.</span></div>
+      <a href="https://veglamour.cloud/" target="_blank" rel="noopener noreferrer">Apri catalogo <span aria-hidden="true">↗</span></a>
+    </header>
+    <section class="vgQuickActions" aria-label="Azioni rapide">
+      <button type="button" class="btn primary" data-action="newArt"><span aria-hidden="true">+</span> Nuovo articolo</button>
+      <button type="button" class="btn" data-action="newOrd"><span aria-hidden="true">+</span> Nuovo ordine</button>
+      <button type="button" class="btn" data-action="newCli"><span aria-hidden="true">+</span> Nuovo cliente</button>
+    </section>
+    <div class="vgDashboardOverview">
+      <div class="vgDashboardMetrics">
     <div class="cards dashMain">
       <div class="stat" data-action="openCurrentOrders" role="button" tabindex="0"><div class="k">Ordini in corso</div><div id="c_open_orders" class="v big">0</div><div class="sub">non ancora consegnati</div></div>
       <div class="stat" data-go="finanze"><div class="k">Guadagno mese</div><div id="c_profit_month" class="v big">0</div><div class="sub">margine del mese corrente</div></div>
       <div class="stat" id="catalogCustomersStat" role="button" tabindex="0" aria-label="Apri clienti registrati al catalogo"><div class="k">Clienti catalogo</div><div id="c_catalog_customers" class="v big">…</div><div id="c_catalog_last_access" class="sub">Caricamento ultimo accesso…</div></div>
       <div class="stat" data-go="finanze"><div class="k">Guadagno totale</div><div id="c_profit_total" class="v big">0</div><div class="sub">margine complessivo</div></div>
     </div>
-
-    <div class="card" style="margin-top:12px">
-      <div class="h2">Da fare</div>
-      <div id="dashUrgent" class="urgentBoard"><div class="urgentEmpty">Nessuna urgenza in evidenza.</div></div>
-    </div>
-
-    <div class="card quickCard">
-      <div class="h2">Azioni rapide</div>
-      <div class="btnGrid">
-        <button class="btnBig primary" data-action="newArt">Nuovo articolo</button>
-        <button class="btnBig gray" data-action="newOrd">Nuovo ordine</button>
-        <button class="btnBig gray" data-action="newCli">Nuovo cliente</button>
-        <button class="btnBig gray" data-go="impostazioni">Impostazioni</button>
-      </div>
-      <div class="substats">
+    <div class="substats">
         <div class="micro" data-go="finanze"><div class="k">Incassato mese</div><div id="c_inc_month" class="v">0</div></div>
         <div class="micro" data-go="ordini"><div class="k">Da incassare</div><div id="c_due_total" class="v">0</div></div>
       </div>
+      </div>
+        <div class="heroSpot" data-action="openDashboardMood" role="button" tabindex="0">
+      <div class="eyebrow">Vendite</div>
+      <div id="homeMood" class="title">Si parte bene</div>
+      <div id="homeMoodSub" class="desc">Panoramica vendite del momento.</div>
+      <div class="sparkTitle"><span>Andamento ultimi 6 mesi</span><span id="sparkHint">incassato</span></div>
+      <div id="homeSpark" class="sparkBars"></div>
     </div>
-
-    <div class="card" style="margin-top:12px">
+    </div>
+    <section id="vgDashboardAlerts" aria-label="Nuove registrazioni e nuovi ordini"></section>
+    <section class="vgCatalogTools card" aria-labelledby="vgCatalogToolsTitle">
+      <h2 class="h2" id="vgCatalogToolsTitle">Gestione catalogo</h2>
+      <div>
+        <button type="button" class="btn" data-action="openVgCatalogTool" data-target="vgPromotionsOpen">Promozioni</button>
+        <button type="button" class="btn" data-action="openVgCatalogTool" data-target="vgNoticesOpen">Comunicazioni</button>
+        <button type="button" class="btn" data-action="openVgCatalogTool" data-target="vgCatalogStatsOpen">Statistiche</button>
+      </div>
+    </section>
+    <div class="vgDashboardColumns">
+      <div class="vgDashboardColumn">
+        <div class="card" style="margin-top:12px">
+      <div class="h2">Da fare</div>
+      <div id="dashUrgent" class="urgentBoard"><div class="urgentEmpty">Nessuna urgenza in evidenza.</div></div>
+    </div>
+        <div class="card" style="margin-top:12px">
       <div class="h2">Avvisi spedizioni</div>
       <div id="shipAlerts" class="shipAlerts"><div class="shipAlertEmpty">Nessun aggiornamento spedizioni.</div></div>
     </div>
-
-    <div class="card" style="margin-top:12px">
-      <div class="h2">Info rapide</div>
-      <div id="dashList" class="list"></div>
-    </div>
-
-    <div class="card" style="margin-top:12px">
+        <div class="card" style="margin-top:12px">
       <div class="h2">Agenda e scadenze</div>
       <div class="agendaComposer" style="margin-top:8px">
         <input id="agendaText" class="full" placeholder="Scrivi cosa devi fare..." autocomplete="off" autocapitalize="off" spellcheck="false"/>
@@ -742,6 +750,14 @@ window.addEventListener('error',e=>{
         <button class="agendaMiniBtn" type="button" data-action="addAgenda">Aggiungi</button>
       </div>
       <div id="dashAgenda" class="agendaList" style="margin-top:10px"></div>
+    </div>
+      </div>
+      <div class="vgDashboardColumn">
+        <div class="card" style="margin-top:12px">
+      <div class="h2">Info rapide</div>
+      <div id="dashList" class="list"></div>
+    </div>
+      </div>
     </div>
   </div>
 
@@ -869,9 +885,24 @@ window.addEventListener('error',e=>{
 
   <!-- SEZIONE SOCIAL MEDIA -->
   <div id="sec_impostazioni" class="section">
+    <header class="vgSettingsIntro"><h2>Impostazioni</h2><p>Account, archivio e preferenze del gestionale.</p></header>
+      <div class="card" style="margin-top:12px">
+        <div class="h2">Account e sincronizzazione</div>
+        <div class="small">Accedi per sincronizzare i dati con il cloud.</div>
+        <div id="cloudBar" class="date" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span id="cloudState">Cloud</span>
+        </div>
+        <div class="actions">
+          <button id="btnCloudLogin" class="btn" type="button">Login cloud</button>
+          <button id="btnCloudPull" class="btn" type="button" data-action="cloudPull">Carica cloud</button>
+          <button id="btnCloudPush" class="btn" type="button" data-action="cloudPush">Invia cloud</button>
+          <button id="btnCloudLogout" class="btn danger" type="button">Esci dal cloud</button>
+        <button class="btn danger" type="button" data-action="doCloudLogout">Disconnetti account</button>
+        </div>
+      </div>
+
     <div class="card">
-      <div class="h2">Impostazioni</div>
-      <div class="small">Backup e strumenti</div>
+      <div class="h2">Archivio e backup</div>
       <div class="actions">
         <button class="btn" data-action="exportFull">Export DB (tutto)</button>
         <button class="btn" data-action="exportLite">Export DB (senza foto)</button>
@@ -887,10 +918,11 @@ window.addEventListener('error',e=>{
         <button class="btn primary" data-action="regenThumbs">Rigenera anteprime</button>
         <button class="btn danger" data-action="clearThumbs">Svuota solo anteprime</button>
         <button class="btn danger" data-action="repairArchive">Ripara archivio</button>
-        <button class="btn danger" data-action="hardReset">Reset totale</button>
-        <button class="btn danger" type="button" data-action="doCloudLogout">Disconnetti account</button>
       </div>
       <div class="small" style="margin-top:10px" id="importHint">Scegli prima se vuoi sostituire tutto il database oppure unire il JSON ai dati già presenti.</div>
+      <details class="vgDangerZone"><summary>Operazioni avanzate</summary>
+        <button class="btn danger" data-action="hardReset">Reset totale</button>
+      </details>
     </div>
 
       <div class="card" style="margin-top:12px">
@@ -903,20 +935,6 @@ window.addEventListener('error',e=>{
         <div class="small" style="margin-top:8px">Versione app: <strong>1.0.160</strong>. L’installazione mantiene il gestionale separato dal browser e usa l’icona aggiornata.</div>
       </div>
     
-      <div class="card" style="margin-top:12px">
-        <div class="h2">Cloud</div>
-        <div class="small">Accedi per sincronizzare i dati con il cloud.</div>
-        <div id="cloudBar" class="date" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <span id="cloudState">Cloud</span>
-        </div>
-        <div class="actions">
-          <button id="btnCloudLogin" class="btn" type="button">Login cloud</button>
-          <button id="btnCloudPull" class="btn" type="button" data-action="cloudPull">Carica cloud</button>
-          <button id="btnCloudPush" class="btn" type="button" data-action="cloudPush">Invia cloud</button>
-          <button id="btnCloudLogout" class="btn danger" type="button">Esci</button>
-        </div>
-      </div>
-
       <div class="card" style="margin-top:12px">
         <div class="h2">ChatGPT spedizioni</div>
         <div class="small">Inserisci il link privato della conversazione da usare sempre per il controllo delle spedizioni.</div>
@@ -1020,16 +1038,16 @@ window.addEventListener('error',e=>{
   </div>
 </div>
 
-<div class="navBottom">
+<nav class="navBottom" aria-label="Navigazione gestionale">
   <div class="inner">
-    <button class="active" data-go="home" data-nav="home">Dashboard</button>
+    <button class="active" data-go="home" data-nav="home" aria-current="page"><span class="vgNavFull">Dashboard</span><span class="vgNavShort">Home</span></button>
     <button data-go="articoli" data-nav="articoli">Articoli</button>
     <button data-go="clienti" data-nav="clienti">Clienti</button>
     <button data-go="ordini" data-nav="ordini">Ordini</button>
     <button data-go="finanze" data-nav="finanze">Finanze</button>
     <button data-go="impostazioni" data-nav="impostazioni">Impost.</button>
   </div>
-</div>
+</nav>
 
 <!-- MODALS -->
 <div id="mArtView" class="modalwrap"><div class="modal">
@@ -7969,7 +7987,7 @@ function renderPageState(name){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   const sec=document.getElementById('sec_'+name); if(sec) sec.classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.go===name));
-  document.querySelectorAll('.navBottom button').forEach(b=>{const active=b.dataset.go===name;b.classList.toggle('active',active);if(active)b.scrollIntoView({block:'nearest',inline:'nearest'})});
+  document.querySelectorAll('.navBottom button').forEach(b=>{const active=b.dataset.go===name;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
 }
 function currentHistoryPage(){
   return (history.state&&history.state.page) || location.hash.replace('#','') || 'home';
@@ -13763,6 +13781,11 @@ document.addEventListener('click',(ev)=>{
     return;
   }
   const a=el.dataset.action;
+  if(a==='openVgCatalogTool'){
+    const target=document.getElementById(el.dataset.target);
+    if(target)return target.click();
+    return toast('Strumento non ancora disponibile. Riprova tra poco.');
+  }
   if(a==='toggleTopMenu'){ ev.preventDefault(); ev.stopPropagation(); toggleTopMenu(); return; }
   if(a==='openCurrentOrders'){ orderListMode='open'; const q=document.getElementById('qOrd'); if(q) q.value=''; go('ordini'); return; }
   if(a==='showAllOrders'){ orderListMode='all'; const q=document.getElementById('qOrd'); if(q) q.value=''; renderOrd(); history.replaceState({...history.state,page:'ordini',orderListMode:'all'},'', '#ordini'); return; }
