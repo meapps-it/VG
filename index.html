@@ -3583,22 +3583,23 @@ function dedupePhotoSources(list=[], limit=Infinity){
   const out=[];
   const seen=new Set();
   for(const src of (Array.isArray(list) ? list : [])){
-    const clean=String(src||'').trim();
-    if(!clean) continue;
-    const key=canonicalPhotoSourceKey(clean) || clean;
+    const value=src instanceof Blob ? src : String(src||'').trim();
+    if(!value) continue;
+    const key=typeof value==='string' ? canonicalPhotoSourceKey(value) || value : value;
     if(seen.has(key)) continue;
     seen.add(key);
-    out.push(clean);
+    out.push(value);
     if(out.length>=limit) break;
   }
   return out;
 }
 
-async function getArticleLocalPhotoSources(a){
+async function getArticleLocalPhotoSources(a, direct=false){
   if(!a) return [];
   const out=[];
   const seen=new Set();
   const pushLocal=(src)=>{
+    if(src instanceof Blob){out.push(src);return;}
     const clean=String(src||'').trim();
     if(!clean) return;
     const key=/^data:/i.test(clean) ? (canonicalPhotoSourceKey(clean) || clean) : clean;
@@ -3607,7 +3608,7 @@ async function getArticleLocalPhotoSources(a){
     out.push(clean);
   };
 
-  const stored=await getStoredPhotoSources(Array.isArray(a.photoIds)?a.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[]);
+  const stored=await getStoredPhotoSources(Array.isArray(a.photoIds)?a.photoIds.filter(Boolean).slice(0,MAX_ARTICLE_PHOTOS):[],direct);
   for(const src of stored) pushLocal(src);
 
   if(Array.isArray(a.foto) && a.foto.length){
@@ -3922,9 +3923,9 @@ async function getArticlePics(a){
   }
   return out.slice(0,MAX_ARTICLE_PHOTOS);
 }
-async function getArticleCloudSyncSources(a){
+async function getArticleCloudSyncSources(a, direct=false){
   if(!a) return [];
-  const local=await getArticleLocalPhotoSources(a);
+  const local=await getArticleLocalPhotoSources(a,direct);
   const cloud=await getArticleCloudSourcePaths(a, {allowCodeFallback:false});
   const localCount=local.length;
   const cloudCount=cloud.length;
@@ -3945,14 +3946,14 @@ async function getArticleCloudSyncSources(a){
   if(localCount>0) return dedupePhotoSources(local, MAX_ARTICLE_PHOTOS);
   return dedupePhotoSources(cloud, MAX_ARTICLE_PHOTOS);
 }
-async function getStoredPhotoSources(ids=[]){
+async function getStoredPhotoSources(ids=[],direct=false){
   const out=[];
   for(const id of (ids||[])){
     try{
       const x=await idbGet(id);
       if(!x) continue;
       if(typeof x==='string') out.push(x);
-      else if(x instanceof Blob) out.push(URL.createObjectURL(x));
+      else if(x instanceof Blob) out.push(direct ? x : URL.createObjectURL(x));
     }catch(_e){}
   }
   return out;
@@ -4756,8 +4757,9 @@ async function syncArticlePhotosToCloud(artId, codice, pics){
   const savedPaths=[];
   const uploadErrors=[];
   for(let i=0;i<normalized.length;i++){
-    const src=String(normalized[i]||'').trim();
-    if(!src) continue;
+    const source=normalized[i];
+    const src=source instanceof Blob ? '' : String(source||'').trim();
+    if(!src && !(source instanceof Blob)) continue;
     const storedPath=existingStoragePhotoPath(src,existingPaths);
     if(storedPath){savedPaths.push(storedPath);continue;}
 
@@ -4770,9 +4772,8 @@ async function syncArticlePhotosToCloud(artId, codice, pics){
     }
 
     try{
-      const res=await fetch(src);
-      if(!res.ok) throw new Error('Download foto cloud fallito');
-      const blob=await res.blob();
+      const blob=source instanceof Blob ? source : await blobFromPhotoSrc(src);
+      if(!blob?.size || !blob.type.startsWith('image/')) throw new Error('Foto non leggibile');
       const ext=((blob.type||'image/jpeg').split('/').pop()||'jpg').replace(/[^a-z0-9]/gi,'').toLowerCase() || 'jpg';
       const fileObj=new File([blob], `${cleanCode}-${i+1}.${ext}`, {type: blob.type || 'image/jpeg'});
       const path=await uploadArticlePhotoToSupabase(fileObj, cleanCode, i+1);
@@ -11882,7 +11883,9 @@ async function saveArt(){
                 photoUploadWarning='Una o più foto salvate in modalità compatibile';
               }catch(fallbackErr){
                 console.warn('Fallback foto fallito', fallbackErr);
-                photoUploadWarning='Una o più foto non salvate';
+                for(const id of localPhotoIds) await idbDelete(id).catch(()=>{});
+                toast('Foto non sincronizzate: impossibile salvarle sul dispositivo. Riprova prima di pubblicare.');
+                return;
               }
             }
           }
@@ -14480,11 +14483,16 @@ async function upsertCloudArticle(art){
     stato_pubblicazione: art?.pubblicatoCatalogo===false ? 'bozza' : 'pubblicato',
     attivo: !(art?.nonDisponibile===true || art?.disponibile===false)
   };
+  const pics=await getArticleCloudSyncSources(art,true);
+  if(!pics.length && art.photoIds?.length){
+    throw new Error('Foto non sincronizzate: riapri l’articolo sul dispositivo con gli originali o seleziona di nuovo le immagini.');
+  }
+  const stagePublication=!isUuid(art.id) && pics.length>0 && payload.stato_pubblicazione==='pubblicato';
   if(isUuid(art.id)) payload.id=art.id;
+  if(stagePublication) payload.stato_pubblicazione='bozza';
   const {data,error}=await sb.from('prodotti').upsert(payload,{onConflict:'user_id,sku'}).select('*').single();
   if(error) throw error;
   if(!data || data.stato_pubblicazione!==payload.stato_pubblicazione || data.qualita!==payload.qualita) throw new Error('Salvataggio catalogo non confermato dal server');
-  const pics=await getArticleCloudSyncSources(art);
   let cloudFoto=[];
   try{
     cloudFoto=await syncArticlePhotosToCloud(data.id, art.codice||data.sku||data.id, pics);
@@ -14493,10 +14501,17 @@ async function upsertCloudArticle(art){
     throw new Error('Foto non sincronizzate. I dati dell’articolo sono salvati, ma le foto non sono state aggiornate. Riprova Salva articolo quando la connessione è disponibile.');
   }
   const finalFoto=normalizeCloudPhotoPathList(cloudFoto.length?cloudFoto:(art.foto||[]));
-  try{
-    await sb.from('prodotti').update({ descrizione: packCloudArticleDescription({...art, foto: finalFoto}) }).eq('id', data.id);
-  }catch(metaErr){
-    console.warn('Aggiornamento meta cloud articolo fallito', metaErr);
+  const update={descrizione:packCloudArticleDescription({...art,foto:finalFoto})};
+  if(stagePublication){
+    if(!cloudFoto.length) throw new Error('Foto non sincronizzate: l’articolo è rimasto in bozza.');
+    update.stato_pubblicazione='pubblicato';
+    const result=await sb.from('prodotti').update(update).eq('id',data.id).select('stato_pubblicazione').single();
+    if(result.error || result.data?.stato_pubblicazione!=='pubblicato') throw new Error('Pubblicazione non confermata dal server');
+  }else{
+    try{
+      const {error:metaError}=await sb.from('prodotti').update(update).eq('id',data.id);
+      if(metaError) throw metaError;
+    }catch(metaError){console.warn('Aggiornamento meta cloud articolo fallito',metaError);}
   }
   return {...art, id:data.id, foto: finalFoto, _cloud:true};
 }

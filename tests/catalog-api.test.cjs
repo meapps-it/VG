@@ -5,12 +5,12 @@ const fs=require('node:fs');
 const {stripTypeScriptTypes}=require('node:module');
 const source=stripTypeScriptTypes(fs.readFileSync(__dirname+'/../supabase/functions/vg-shop-catalog/index.ts','utf8').replace(/^import .*;\n/gm,''));
 async function serve({legacyPhotos=[],photos=[],photoError=null,origin=null,method="GET",authorized=true,escapedMetadata=false,promotion=null,notice=null,promoEnd=''}={}){
- let handler;const signedBatches=[],ranges=[];
+ let handler;const signedBatches=[],ranges=[];let signing=0,peakSigning=0;
  const products=[{id:'one',sku:'B1',nome:'Borsa',descrizione:'Pelle vera\n[VGMETA]{"fornitore":"privato"}[/VGMETA]\nMisure 20 cm',prezzo_vendita:20,giacenza:1},{id:'empty',nome:'Vuoto',prezzo_vendita:5}];
  products[0].descrizione='Pelle vera\n[VGMETA]'+(escapedMetadata?JSON.stringify(JSON.stringify({fornitore:'Jayden',brand:'Louis Vuitton',misura:'35–40',descrizione:'Pelle vera\nCosto fornitore 200 USD',foto:legacyPhotos})).slice(1,-1):JSON.stringify({fornitore:'Jayden',foto:legacyPhotos,promoAttiva:true,prezzoPromo:15,scadenzaPromoPersonale:promoEnd}))+'[/VGMETA]\nMisure 20 cm';
- const db={auth:{getUser:async()=>({error:true,data:null})},from(table){const query={select(){return this},upsert(){return Promise.resolve({error:null})},gt(){return this},async maybeSingle(){if(table==='vg_shop_promotion')return {data:promotion};if(table==='vg_shop_notice')return {data:notice};return {data:{token_hash:"test-session",is_admin:false,created_at:"2026-10-25T12:00:00Z"}}},async single(){return {data:{updated_at:"2026-10-24T00:00:00Z"}}},eq(){return this},in(){return this},order(){return this},limit(){return this},range(a,b){ranges.push([a,b]);return Promise.resolve({data:photos.slice(a,b+1),error:photoError})},then(resolve,reject){return Promise.resolve({data:table==='prodotti'?products:[]}).then(resolve,reject)}};return query},storage:{from(bucket){assert.equal(bucket,'articoli');return {async createSignedUrl(path,ttl){assert.equal(ttl,3600);return {data:{signedUrl:'https://private.test/'+path+'?signed=temporary'}}},async createSignedUrls(paths,ttl){assert.equal(ttl,3600);signedBatches.push(paths);return {data:paths.map(path=>path==='missing'?{path,error:'Not found'}:{path,signedUrl:'https://private.test/'+path+'?token=temporary'})}}}}}};
+ const db={auth:{getUser:async()=>({error:true,data:null})},from(table){const query={select(){return this},upsert(){return Promise.resolve({error:null})},gt(){return this},async maybeSingle(){if(table==='vg_shop_promotion')return {data:promotion};if(table==='vg_shop_notice')return {data:notice};return {data:{token_hash:"test-session",is_admin:false,created_at:"2026-10-25T12:00:00Z"}}},async single(){return {data:{updated_at:"2026-10-24T00:00:00Z"}}},eq(){return this},in(){return this},order(){return this},limit(){return this},range(a,b){ranges.push([a,b]);return Promise.resolve({data:photos.slice(a,b+1),error:photoError})},then(resolve,reject){return Promise.resolve({data:table==='prodotti'?products:[]}).then(resolve,reject)}};return query},storage:{from(bucket){assert.equal(bucket,'articoli');return {async createSignedUrl(path,ttl){assert.equal(ttl,600);return {data:{signedUrl:'https://private.test/'+path+'?signed=temporary'}}},async createSignedUrls(paths,ttl){assert.equal(ttl,600);signedBatches.push(paths);peakSigning=Math.max(peakSigning,++signing);await Promise.resolve();signing--;return {data:paths.map(path=>path==='missing'?{path,error:'Not found'}:{path,signedUrl:'https://private.test/'+path+'?token=temporary'})}}}}}};
  vm.runInNewContext(source,{Deno:{env:{get:()=>''},serve:fn=>{handler=fn}},createClient:()=>db,...require('./catalog-server-helpers.cjs'),Response,URL,console,Date,crypto,accessAction:async()=>null,catalogSession:async()=>authorized?{token_hash:"test",is_admin:false}:null,trackVisit:async()=>{}});
- return {response:await handler(new Request('https://test/?action=catalog',{method,headers:origin?{origin}:{}})),signedBatches,ranges};
+ return {response:await handler(new Request('https://test/?action=catalog',{method,headers:origin?{origin}:{}})),signedBatches,ranges,peakSigning};
 }
 test('all ordered photos, compatible cover, missing objects, clean descriptions, private signing',async()=>{
  const {response,signedBatches}=await serve({photos:[{prodotto_id:'one',path:'a'},{prodotto_id:'one',path:'missing'},{prodotto_id:'one',path:'b'},{prodotto_id:'one',path:'a'}]});
@@ -18,19 +18,19 @@ test('all ordered photos, compatible cover, missing objects, clean descriptions,
  assert.deepEqual(body.items[0].images,['https://private.test/a?token=temporary','https://private.test/b?token=temporary']);
  assert.equal(body.items[0].image,body.items[0].images[0]);assert.deepEqual(body.items[1].images,[]);assert.equal(body.items[1].image,'');
  assert.match(body.items[0].description,/Pelle vera/);assert.match(body.items[0].description,/Misure 20 cm/);assert.doesNotMatch(body.items[0].description,/VGMETA|privato/);
- assert.ok(body.imagesExpiresAt>Date.now()+3500000);assert.equal(signedBatches.length,1);
+ assert.ok(body.imagesExpiresAt>Date.now()+590000 && body.imagesExpiresAt<=Date.now()+600000);assert.equal(signedBatches.length,1);
 });
 test('paginates beyond PostgREST cap and batches every photo',async()=>{
  const photos=Array.from({length:1203},(_,i)=>({prodotto_id:'one',path:'photo-'+i}));
- const {response,ranges,signedBatches}=await serve({photos});const body=await response.json();
- assert.equal(body.items[0].images.length,1203);assert.equal(ranges.length,3);assert.equal(signedBatches.length,13);
+ const {response,ranges,signedBatches,peakSigning}=await serve({photos});const body=await response.json();
+ assert.equal(body.items[0].images.length,1203);assert.equal(ranges.length,3);assert.equal(signedBatches.length,13);assert.equal(peakSigning,4);
 });
 test('photo query errors fail visibly instead of returning a partial catalog',async()=>{
  const {response}=await serve({photoError:{message:'unavailable'}});assert.equal(response.status,500);
 });
 
 test('CORS permits only VG and the existing SimplexApp domain, including preflight',async()=>{
- for(const origin of ['https://simplexapp.it','https://meapps-it.github.io']){
+ for(const origin of ['https://simplexapp.it','https://meapps-it.github.io','https://veglamour.cloud','https://www.veglamour.cloud']){
   const {response}=await serve({origin});assert.equal(response.status,200);assert.equal(response.headers.get('Access-Control-Allow-Origin'),origin);assert.equal(response.headers.get('Vary'),'Origin');
   const preflight=await serve({origin,method:'OPTIONS'});assert.equal(preflight.response.status,204);
  }
