@@ -8,6 +8,9 @@
   --paper: #fff;
   --vg-surface: #f1ebe3;
   --vg-detail: #745334;
+  --vg-pink-ink: #9c285f;
+  --vg-pink-border: #c6508a;
+  --vg-pink-tint: #fdf0f6;
   --vg-heading: Georgia, "Times New Roman", serif;
   font-family: Arial, "Helvetica Neue", sans-serif;
 }
@@ -52,9 +55,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .collection-heading h1 { font-size: clamp(30px, 4.3vw, 60px); line-height: 1.02; }
-.collection-kicker, .section-kicker, .panel-kicker, .category {
+.section-kicker, .panel-kicker, .category {
   color: var(--vg-detail) !important;
 }
+.collection-kicker { color: var(--vg-pink-ink) !important; }
 .collection-look,
 .collection-look.look-0, .collection-look.look-1, .collection-look.look-2 {
   border: 0;
@@ -91,8 +95,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .quality-filter button[aria-pressed=true] { background: var(--accent); }
 .group-tabs button { border-color: var(--line); }
 .group-tabs button[aria-pressed=true] {
-  border-color: var(--vg-detail);
-  background: var(--vg-surface);
+  border-color: var(--vg-pink-border);
+  background: var(--vg-pink-tint);
+  color: var(--vg-pink-ink) !important;
 }
 .search-box input { font-size: 16px; }
 
@@ -170,6 +175,10 @@ body #productView .product-price-line #productPrice {
   border-color: var(--line);
   border-radius: 6px;
   background: var(--bg);
+}
+#productView .variant-options #productChoice-color {
+  border-color: var(--vg-pink-border);
+  background: var(--vg-pink-tint);
 }
 #productView .action-row .add { min-height: 46px; font-size: 14px; }
 .related-section, .footer { border-color: var(--line); }
