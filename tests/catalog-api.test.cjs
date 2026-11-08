@@ -4,13 +4,14 @@ const vm=require('node:vm');
 const fs=require('node:fs');
 const {stripTypeScriptTypes}=require('node:module');
 const source=stripTypeScriptTypes(fs.readFileSync(__dirname+'/../supabase/functions/vg-shop-catalog/index.ts','utf8').replace(/^import .*;\n/gm,''));
-async function serve({legacyPhotos=[],photos=[],photoError=null,origin=null,method="GET",authorized=true,escapedMetadata=false,promotion=null,notice=null,promoEnd=''}={}){
+const galleryId="11111111-2222-3333-4444-555555555555";
+async function serve({query="action=catalog",galleryProduct=false,legacyPhotos=[],photos=[],photoError=null,origin=null,method="GET",authorized=true,escapedMetadata=false,promotion=null,notice=null,promoEnd=''}={}){
  let handler;const signedBatches=[],ranges=[];let signing=0,peakSigning=0;
  const products=[{id:'one',sku:'B1',nome:'Borsa',descrizione:'Pelle vera\n[VGMETA]{"fornitore":"privato"}[/VGMETA]\nMisure 20 cm',prezzo_vendita:20,giacenza:1},{id:'empty',nome:'Vuoto',prezzo_vendita:5}];
  products[0].descrizione='Pelle vera\n[VGMETA]'+(escapedMetadata?JSON.stringify(JSON.stringify({fornitore:'Jayden',brand:'Louis Vuitton',misura:'35–40',descrizione:'Pelle vera\nCosto fornitore 200 USD',foto:legacyPhotos})).slice(1,-1):JSON.stringify({fornitore:'Jayden',foto:legacyPhotos,promoAttiva:true,prezzoPromo:15,scadenzaPromoPersonale:promoEnd}))+'[/VGMETA]\nMisure 20 cm';
- const db={auth:{getUser:async()=>({error:true,data:null})},from(table){const query={select(){return this},upsert(){return Promise.resolve({error:null})},gt(){return this},async maybeSingle(){if(table==='vg_shop_promotion')return {data:promotion};if(table==='vg_shop_notice')return {data:notice};return {data:{token_hash:"test-session",is_admin:false,created_at:"2026-10-25T12:00:00Z"}}},async single(){return {data:{updated_at:"2026-10-24T00:00:00Z"}}},eq(){return this},in(){return this},order(){return this},limit(){return this},range(a,b){ranges.push([a,b]);return Promise.resolve({data:photos.slice(a,b+1),error:photoError})},then(resolve,reject){return Promise.resolve({data:table==='prodotti'?products:[]}).then(resolve,reject)}};return query},storage:{from(bucket){assert.equal(bucket,'articoli');return {async createSignedUrl(path,ttl){assert.equal(ttl,600);return {data:{signedUrl:'https://private.test/'+path+'?signed=temporary'}}},async createSignedUrls(paths,ttl){assert.equal(ttl,600);signedBatches.push(paths);peakSigning=Math.max(peakSigning,++signing);await Promise.resolve();signing--;return {data:paths.map(path=>path==='missing'?{path,error:'Not found'}:{path,signedUrl:'https://private.test/'+path+'?token=temporary'})}}}}}};
+ const db={auth:{getUser:async()=>({error:true,data:null})},from(table){const query={select(){return this},upsert(){return Promise.resolve({error:null})},gt(){return this},async maybeSingle(){if(table==='prodotti')return {data:galleryProduct?{...products[0],id:galleryId}:null};if(table==='vg_shop_promotion')return {data:promotion};if(table==='vg_shop_notice')return {data:notice};return {data:{token_hash:"test-session",is_admin:false,created_at:"2026-10-25T12:00:00Z"}}},async single(){return {data:{updated_at:"2026-10-24T00:00:00Z"}}},eq(){return this},in(){return this},order(){return this},limit(){return this},range(a,b){ranges.push([a,b]);return Promise.resolve({data:photos.slice(a,b+1),error:photoError})},then(resolve,reject){return Promise.resolve({data:table==='prodotti'?products:[]}).then(resolve,reject)}};return query},storage:{from(bucket){assert.equal(bucket,'articoli');return {async createSignedUrl(path,ttl){assert.equal(ttl,600);return {data:{signedUrl:'https://private.test/'+path+'?signed=temporary'}}},async createSignedUrls(paths,ttl){assert.equal(ttl,600);signedBatches.push(paths);peakSigning=Math.max(peakSigning,++signing);await Promise.resolve();signing--;return {data:paths.map(path=>path==='missing'?{path,error:'Not found'}:{path,signedUrl:'https://private.test/'+path+'?token=temporary'})}}}}}};
  vm.runInNewContext(source,{Deno:{env:{get:()=>''},serve:fn=>{handler=fn}},createClient:()=>db,...require('./catalog-server-helpers.cjs'),Response,URL,console,Date,crypto,accessAction:async()=>null,catalogSession:async()=>authorized?{token_hash:"test",is_admin:false}:null,trackVisit:async()=>{}});
- return {response:await handler(new Request('https://test/?action=catalog',{method,headers:origin?{origin}:{}})),signedBatches,ranges,peakSigning};
+ return {response:await handler(new Request('https://test/?'+query,{method,headers:origin?{origin}:{}})),signedBatches,ranges,peakSigning};
 }
 test('all ordered photos, compatible cover, missing objects, clean descriptions, private signing',async()=>{
  const {response,signedBatches}=await serve({photos:[{prodotto_id:'one',path:'a'},{prodotto_id:'one',path:'missing'},{prodotto_id:'one',path:'b'},{prodotto_id:'one',path:'a'}]});
@@ -53,3 +54,23 @@ test('gallery promotion photos are signed temporarily and active promo eligibili
 });
 
 test('catalog exposes only the public promotion deadline',async()=>{const {response}=await serve({promoEnd:'2099-11-11'});const data=await response.json();assert.equal(data.items[0].promotionEndsAt,'2099-11-11');assert.equal(data.items[0].promotionActive,true);assert(!('costoUsdPromo' in data.items[0]));});
+
+test('initial covers mode signs only one photo per product unless a cover is missing',async()=>{
+ const photos=[{prodotto_id:'one',path:'missing'},{prodotto_id:'one',path:'fallback'},{prodotto_id:'empty',path:'cover'},{prodotto_id:'empty',path:'secondary'}];
+ const {response,signedBatches}=await serve({photos,query:'action=catalog&photos=covers'});
+ const body=await response.json();
+ assert.deepEqual(Array.from(signedBatches.flat()),['missing','cover','fallback']);
+ assert.deepEqual(body.items[0].images,['https://private.test/fallback?token=temporary']);
+ assert.deepEqual(body.items[1].images,['https://private.test/cover?token=temporary']);
+ assert.equal(body.items[1].photoCount,2);
+});
+test('gallery signs the requested published product photos after authentication',async()=>{
+ const query='action=gallery&id='+galleryId;
+ const photos=[{prodotto_id:galleryId,path:'one'},{prodotto_id:galleryId,path:'two'}];
+ const {response}=await serve({query,photos,galleryProduct:true});
+ assert.deepEqual((await response.json()).images,['https://private.test/one?token=temporary','https://private.test/two?token=temporary']);
+ const unauthorized=await serve({query,photos,galleryProduct:true,authorized:false});
+ assert.equal(unauthorized.response.status,401);assert.equal(unauthorized.signedBatches.length,0);
+ const hidden=await serve({query,photos});
+ assert.equal(hidden.response.status,404);assert.equal(hidden.signedBatches.length,0);
+});

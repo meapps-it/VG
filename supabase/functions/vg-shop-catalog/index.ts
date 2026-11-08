@@ -16,6 +16,51 @@ const SIGN_BATCH_SIZE=100;
 const SIGN_CONCURRENCY=4;
 function valid(value:unknown,max:number){return typeof value==="string"?value.trim().slice(0,max):""}
 const published=(q:any)=>q.eq("user_id",OWNER).eq("attivo",true).eq("disponibile",true).eq("stato_pubblicazione","pubblicato").eq("is_demo",false);
+async function articlePhotoPaths(products:any[]){
+    const ids=products.map(p=>p.id);
+    // Page explicitly: PostgREST's row cap must not silently truncate galleries.
+    const photos:any[]=[];
+    if(ids.length)for(let offset=0;;offset+=500){
+      const page=await db.from("prodotti_foto").select("id,prodotto_id,path,ordine").eq("user_id",OWNER).in("prodotto_id",ids)
+        .order("prodotto_id").order("ordine",{ascending:true,nullsFirst:false}).order("id").range(offset,offset+499);
+      if(page.error)throw page.error;
+      photos.push(...(page.data||[]));
+      if((page.data||[]).length<500)break;
+    }
+    const photoMap=new Map<string,string[]>();
+    for(const p of photos){
+      if(!p.path)continue;
+      const paths=photoMap.get(p.prodotto_id)||[];
+      if(!paths.includes(p.path))paths.push(p.path);
+      photoMap.set(p.prodotto_id,paths);
+    }
+    // Some legacy articles only retain their original Storage paths in VGMETA.
+    // Merge those associated references after the ordered photo rows; never guess files.
+    for(const p of products){
+      const meta=articleMetadata(p);
+      const legacy=Array.isArray(meta.foto)?meta.foto:Array.isArray(meta.fotoCloud)?meta.fotoCloud:[];
+      const associated=legacy.filter((path:unknown)=>typeof path==="string"&&!path.includes("..")&&!path.includes("://")&&(path.startsWith(String(p.sku)+"/")||path.startsWith(OWNER+"/")));
+      photoMap.set(p.id,[...new Set([...(photoMap.get(p.id)||[]),...associated])]);
+    }
+    return photoMap;
+}
+async function signArticlePhotos(paths:string[],signed=new Map<string,string>()){
+    if(!paths.length)return signed;
+    // Bound simultaneous Storage requests while removing the serial round trips.
+    const bucket=db.storage.from("articoli");
+    for(let offset=0;offset<paths.length;offset+=SIGN_BATCH_SIZE*SIGN_CONCURRENCY){
+      const group=paths.slice(offset,offset+SIGN_BATCH_SIZE*SIGN_CONCURRENCY);
+      const batches=Array.from({length:Math.ceil(group.length/SIGN_BATCH_SIZE)},(_,index)=>
+        bucket.createSignedUrls(group.slice(index*SIGN_BATCH_SIZE,(index+1)*SIGN_BATCH_SIZE),IMAGE_TTL_SECONDS));
+      for(const result of await Promise.all(batches)){
+        if(result.error)throw result.error;
+        for(const photo of result.data||[]){
+          if(photo.path&&photo.signedUrl&&!photo.error)signed.set(photo.path,photo.signedUrl);
+        }
+      }
+    }
+    return signed;
+}
 Deno.serve(async(req)=>{
  const origin=req.headers.get("origin");
  const cors={"Access-Control-Allow-Origin":origin&&ALLOWED_ORIGINS.has(origin)?origin:SITE,"Access-Control-Allow-Headers":"content-type,apikey,authorization,x-vg-customer-token","Access-Control-Allow-Methods":"GET,POST,OPTIONS","Vary":"Origin"};
@@ -35,7 +80,18 @@ Deno.serve(async(req)=>{
   const customerHandled=await customerAction(db,req,OWNER,action,out);if(customerHandled)return customerHandled;
 
   if(req.method==="GET"){
-    if(url.searchParams.get("action")!=="catalog")return fail("Operazione non valida",404);
+    if(action==="gallery"){
+      const id=url.searchParams.get("id")||"";
+      if(!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id))return fail("Articolo non valido");
+      const {data:product,error}=await published(db.from("prodotti").select("id,sku,descrizione,descrizione_app").eq("id",id)).maybeSingle();
+      if(error)throw error;
+      if(!product)return fail("Articolo non disponibile",404);
+      const paths=(await articlePhotoPaths([product])).get(id)||[];
+      const imagesExpiresAt=Date.now()+IMAGE_TTL_SECONDS*1000;
+      const signed=await signArticlePhotos(paths);
+      return out({images:paths.map(path=>signed.get(path)).filter(Boolean),imagesExpiresAt});
+    }
+    if(action!=="catalog")return fail("Operazione non valida",404);
     const [{data,error},{data:categories,error:categoryError},promo,noticeResult]=await Promise.all([
       published(db.from("prodotti").select("id,sku,nome,descrizione,descrizione_app,marca,qualita,fornitore,prezzo_vendita,in_promozione,prezzo_promozionale,categoria_id,giacenza,colore,taglia,tipo_misura,valore_misura,dimensioni").order("nome",{ascending:true}).limit(400)),
       db.from("categorie").select("id,nome").eq("user_id",OWNER),
@@ -46,47 +102,15 @@ Deno.serve(async(req)=>{
     if(categoryError)throw categoryError;
     if(promo.error)throw promo.error;
     if(noticeResult.error)throw noticeResult.error;
-    const ids=(data||[]).map((x:any)=>x.id);
-    // Page explicitly: PostgREST's row cap must not silently truncate galleries.
-    const photos:any[]=[];
-    if(ids.length)for(let offset=0;;offset+=500){
-      const page=await db.from("prodotti_foto").select("id,prodotto_id,path,ordine").eq("user_id",OWNER).in("prodotto_id",ids)
-        .order("prodotto_id").order("ordine",{ascending:true,nullsFirst:false}).order("id").range(offset,offset+499);
-      if(page.error)throw page.error;
-      photos.push(...(page.data||[]));
-      if((page.data||[]).length<500)break;
-    }
     const categoryMap=new Map((categories||[]).map((c:any)=>[c.id,c.nome]));
-    const photoMap=new Map<string,string[]>();
-    for(const p of photos){
-      if(!p.path)continue;
-      const paths=photoMap.get(p.prodotto_id)||[];
-      if(!paths.includes(p.path))paths.push(p.path);
-      photoMap.set(p.prodotto_id,paths);
-    }
-    // Some legacy articles only retain their original Storage paths in VGMETA.
-    // Merge those associated references after the ordered photo rows; never guess files.
-    for(const p of data||[]){
-      const meta=articleMetadata(p);
-      const legacy=Array.isArray(meta.foto)?meta.foto:Array.isArray(meta.fotoCloud)?meta.fotoCloud:[];
-      const associated=legacy.filter((path:unknown)=>typeof path==="string"&&!path.includes("..")&&!path.includes("://")&&(path.startsWith(String(p.sku)+"/")||path.startsWith(OWNER+"/")));
-      photoMap.set(p.id,[...new Set([...(photoMap.get(p.id)||[]),...associated])]);
-    }
-    const paths=[...new Set([...photoMap.values()].flat())];
-    const signed=new Map<string,string>();
+    const photoMap=await articlePhotoPaths(data||[]);
+    const coversOnly=url.searchParams.get("photos")==="covers";
+    const paths=[...new Set([...photoMap.values()].flatMap(paths=>coversOnly?paths.slice(0,1):paths))];
     const imagesExpiresAt=Date.now()+IMAGE_TTL_SECONDS*1000;
-    // Bound simultaneous Storage requests while removing the serial round trips.
-    const bucket=db.storage.from("articoli");
-    for(let offset=0;offset<paths.length;offset+=SIGN_BATCH_SIZE*SIGN_CONCURRENCY){
-      const group=paths.slice(offset,offset+SIGN_BATCH_SIZE*SIGN_CONCURRENCY);
-      const batches=Array.from({length:Math.ceil(group.length/SIGN_BATCH_SIZE)},(_,index)=>
-        bucket.createSignedUrls(group.slice(index*SIGN_BATCH_SIZE,(index+1)*SIGN_BATCH_SIZE),IMAGE_TTL_SECONDS));
-      for(const result of await Promise.all(batches)){
-        if(result.error)throw result.error;
-        for(const photo of result.data||[]){
-          if(photo.path&&photo.signedUrl&&!photo.error)signed.set(photo.path,photo.signedUrl);
-        }
-      }
+    const signed=await signArticlePhotos(paths);
+    if(coversOnly){
+      const fallback=[...photoMap.values()].filter(paths=>paths.length>1&&!signed.has(paths[0])).flatMap(paths=>paths.slice(1));
+      await signArticlePhotos([...new Set(fallback)].filter(path=>!signed.has(path)),signed);
     }
     const selectedPromoIds=new Set(promo.data?.product_ids||[]);
     const items=(data||[]).map((p:any)=>{
@@ -101,7 +125,7 @@ Deno.serve(async(req)=>{
       const quality=supplier==="jayden"?"ORIGINALE":"STANDARD";
       const publicRaw=String(p.descrizione_app||((typeof meta.descrizione==='string'&&meta.descrizione)?meta.descrizione:rawDescription));
       const description=publicRaw.replace(/\[VGMETA\][\s\S]*?\[\/VGMETA\]/gi,' ').replace(/\[VGMETA\][\s\S]*$/gi,'').replace(/\\n/g,'\n').split(/\r?\n/).filter(line=>!/(?:costo|prezzo).*?(?:\busd\b|fornitor|jayden)/i.test(line)).join('\n').trim();
-      return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p),priceHidden:meta.nascondiPrezzo===true,price:meta.nascondiPrezzo===true?null:(promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita)),originalPrice:meta.nascondiPrezzo===true?null:Number(p.prezzo_vendita),promotion:meta.nascondiPrezzo===true?false:promo,promotionActive:promotionDetails.active,promotionEndsAt:promotionDetails.endsAt,image,images,availability:p.giacenza>0?"disponibile":"su richiesta",limitedAvailability:Number.isInteger(Number(p.giacenza))&&Number(p.giacenza)>=1&&Number(p.giacenza)<=3};
+      return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p),priceHidden:meta.nascondiPrezzo===true,price:meta.nascondiPrezzo===true?null:(promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita)),originalPrice:meta.nascondiPrezzo===true?null:Number(p.prezzo_vendita),promotion:meta.nascondiPrezzo===true?false:promo,promotionActive:promotionDetails.active,promotionEndsAt:promotionDetails.endsAt,image,images:coversOnly?images.slice(0,1):images,...(coversOnly?{photoCount:photoMap.get(p.id)?.length||0}:{}),availability:p.giacenza>0?"disponibile":"su richiesta",limitedAvailability:Number.isInteger(Number(p.giacenza))&&Number(p.giacenza)>=1&&Number(p.giacenza)<=3};
     });
     const visit=trackVisit(db,OWNER,viewer).catch(()=>console.error("VG shop analytics unavailable"));
     const runtime=(globalThis as any).EdgeRuntime;
