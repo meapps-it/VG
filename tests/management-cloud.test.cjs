@@ -54,7 +54,10 @@ test('homonyms are flagged and a manual merge preserves orders and alternate con
  vm.createContext(context);
  vm.runInContext(slice('function normalizeTextKey(','\n')+ '\n'+slice('function normalizeClientDisplayName(','function splitClientNameForCloud(')+slice('function clientDuplicateGroups(','function renderCli('),context);
  assert.equal(context.clientDuplicateGroups(db.clienti).length,1);
- await context.mergeDuplicateClients(keep.id,[remove.id,extra.id]);
+ assert.equal(await context.mergeDuplicateClients(keep.id,[extra.id]),2);
+ assert.equal(context.clientDuplicateGroups(db.clienti).length,1,'partially merging cards leaves the duplicate group open');
+ assert.equal(db.clienti.length,3,'partially merging removes one customer card');
+ assert.equal(await context.mergeDuplicateClients(keep.id,[remove.id]),1);
  assert.equal(context.clientDuplicateGroups(db.clienti).length,0);
  assert.deepEqual(db.ordini,[{id:'order',clienteId:keep.id,totale:85},{id:'other',clienteId:keep.id,totale:55}]);
  assert.equal(db.clienti[0].telefono,keep.telefono);

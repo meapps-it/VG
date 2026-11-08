@@ -791,6 +791,7 @@ window.addEventListener('error',e=>{
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Clienti</div><button class="btn" type="button" data-action="newCli">+ Nuovo</button></div>
       <div class="searchWrap"><input id="qCli" placeholder="Cerca per nome, telefono, città..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qCliSuggest" class="searchSuggest"></div></div>
+      <div id="clientCardCount" class="artStats" aria-live="polite"></div>
     </div>
     <div style="height:10px"></div>
     <section id="clientDuplicateNotice" class="card vgClientDuplicateNotice" aria-label="Possibili doppioni" hidden>
@@ -10050,9 +10051,9 @@ function openClientDuplicateReview(){
     submit.disabled=close.disabled=confirm.disabled=true;group.disabled=keep.disabled=remove.disabled=true;
     status.textContent='Unione in corso…';
     try{
-      await mergeDuplicateClients(keep.value,removeIds);
+      const remaining=await mergeDuplicateClients(keep.value,removeIds);
       dialog.close();
-      toast((removeIds.length+1)+' schede riunite in una. Ordini conservati.');
+      toast(remaining===1?'Unione completata. Resta una sola scheda nel gruppo.':'Unione salvata. Restano '+remaining+' schede nel gruppo.');
     }catch(error){status.textContent=error?.message||'Unione non riuscita. Riprova.'}
     finally{submit.disabled=close.disabled=group.disabled=keep.disabled=remove.disabled=confirm.disabled=false;confirm.checked=false}
   };
@@ -10118,6 +10119,7 @@ async function mergeDuplicateClients(keepId,removeIds){
     applyClientMergeLinks(latest,ids.slice(1).map(id=>({removed_id:id,kept_id:keepId})));
     latest.clienti=[client,...latest.clienti.filter(row=>row.id!==keepId)];
     if(!saveDB(latest))throw new Error(cloudConfirmed?'Unione salvata nel cloud. Aggiorna i dati su questo dispositivo.':'Unione non salvata. Riprova.');
+    return clientDuplicateGroups(latest.clienti).find(group=>group.some(row=>row.id===keepId))?.length||1;
   }finally{clientMergeBusy=false;clientMergeRevision++}
 }
 function renderCli(){
@@ -10125,7 +10127,8 @@ function renderCli(){
   const groups=clientDuplicateGroups(db.clienti);
   const notice=document.getElementById('clientDuplicateNotice');
   notice.hidden=!groups.length;
-  document.getElementById('clientDuplicateCount').textContent=groups.length===1?'1 gruppo da verificare':groups.length+' gruppi da verificare';
+  document.getElementById('clientCardCount').textContent=db.clienti.length===1?'1 scheda cliente in totale':db.clienti.length+' schede clienti in totale';
+  document.getElementById('clientDuplicateCount').textContent=groups.length===1?'1 gruppo con più schede':groups.length+' gruppi con più schede';
   const q=document.getElementById('qCli').value.trim().toLowerCase();
   const items=db.clienti.filter(c=>{
     const hay=((c.nome||'')+' '+(c.telefono||'')+' '+(c.citta||'')+' '+(c.provincia||'')+' '+(c.paese||'')+' '+(c.nomeAlternativo||'')+' '+(c.cognomeAlternativo||'')+' '+(c.cittaAlternativa||'')+' '+(c.indirizzoAlternativo||'')).toLowerCase();
