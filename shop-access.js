@@ -8,8 +8,8 @@
  const store=(name,value)=>{try{value?localStorage.setItem(name,value):localStorage.removeItem(name)}catch{}};
  if(!valid(token))token='';if(!valid(adminToken))adminToken='';
  function busy(value){document.querySelectorAll('body>.brand-stage,body>main,body>.footer,body>.view,body>.overlay,body>.zoom-view').forEach(el=>el.inert=value);get('catalog').setAttribute('aria-busy',String(value))}
- function lock(message='') {document.body.classList.remove('shop-checking');document.body.classList.add('shop-locked');busy(true);get('accessError').textContent=message;get('accessCheck').hidden=!token;get('accessSignout').hidden=!token;get('accessForm').hidden=!!token;get('accessGoogle').hidden=!!token;get('accessPrivacyLabel').hidden=!!token||!register;get('accessTabs').hidden=!!token;get('accessGooglePrivacyLabel').hidden=!!token;}
- function checking(message='Verifica dell’accesso…'){get('accessPending').textContent=message;document.body.classList.remove('shop-locked');document.body.classList.add('shop-checking');busy(true)}
+ function lock(message='') {get('catalogLoading').hidden=true;document.body.classList.remove('shop-checking');document.body.classList.add('shop-locked');busy(true);get('accessError').textContent=message;get('accessCheck').hidden=!token;get('accessSignout').hidden=!token;get('accessForm').hidden=!!token;get('accessGoogle').hidden=!!token;get('accessPrivacyLabel').hidden=!!token||!register;get('accessTabs').hidden=!!token;get('accessGooglePrivacyLabel').hidden=!!token;}
+ function checking(message='Verifica dell’accesso…'){get('catalogLoadingMessage').textContent=message;get('catalogLoading').hidden=false;document.body.classList.remove('shop-locked');document.body.classList.add('shop-checking');busy(true)}
  function unlock(){document.body.classList.remove('shop-locked','shop-checking');busy(false)}
  const pendingMessage=()=>profile?.accessStatus==='blocked'?'Accesso sospeso dall’assistenza. Contattaci per informazioni.':'Account registrato. L’assistenza deve autorizzarti prima di mostrarti il catalogo.';
  async function rawAction(action,body,headers={}){
