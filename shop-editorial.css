@@ -45,7 +45,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   border-color: var(--line);
 }
 
-.brand-stage { border-bottom: 3px solid var(--vg-pink-stripe); }
+.brand-stage,
+#productView .product-dialog > .topline {
+  border-bottom: 3px solid var(--vg-pink-stripe);
+}
 
 .customer-entry, .header-whatsapp, .cart-action, .product-back, .close {
   border-color: var(--line);
@@ -83,17 +86,18 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   border-radius: 6px !important;
   box-shadow: none;
 }
-#productView .action-row .add:hover,
 #overlay .form .primary:hover, #overlay .form .submit:hover {
   background: #523c2e;
 }
 
-.browse-collection {
+.browse-collection,
+#productView .action-row .add {
   background: var(--vg-pink-solid);
   border-color: var(--vg-pink-solid) !important;
   color: #fff !important;
 }
-.browse-collection:hover { background: var(--vg-pink-hover); }
+.browse-collection:hover,
+#productView .action-row .add:hover { background: var(--vg-pink-hover); }
 
 .discovery, .item, .related-item, #productView .product-buy-panel, .cart-row, .form, .customer-order {
   border: 1px solid var(--line);
@@ -156,9 +160,9 @@ body #productView .product-price-line #productPrice {
 
 #productView .gallery-stage {
   padding: 0;
-  border-color: var(--line);
+  border-color: #efb6d2;
   border-radius: 10px;
-  background: var(--vg-surface);
+  background: var(--vg-pink-tint);
 }
 #productView .product-hero { background: transparent; border-radius: 0; }
 #productView .gallery-arrow {
@@ -170,8 +174,8 @@ body #productView .product-price-line #productPrice {
 #productView .gallery-count { border-color: var(--line); font-size: 11px; }
 #productView .gallery-thumbs button { border-radius: 5px; border-color: var(--line); }
 #productView .gallery-thumbs button[aria-current=true] {
-  border-color: var(--vg-detail);
-  background: var(--vg-surface);
+  border-color: var(--vg-pink-solid);
+  background: var(--vg-pink-surface);
 }
 #productView .gallery-thumbs img { border-radius: 2px; }
 
@@ -194,7 +198,16 @@ body #productView .product-price-line #productPrice {
   background: var(--vg-pink-tint);
 }
 #productView .action-row .add { min-height: 46px; font-size: 14px; }
-.related-section, .footer { border-color: var(--line); }
+.footer { border-color: var(--line); }
+#productView .related-section { border-color: var(--vg-pink-border); }
+#productCategory,
+#productView .related-header .section-kicker {
+  color: var(--vg-pink-ink) !important;
+}
+#productView .recommendation-reason {
+  background: var(--vg-pink-surface);
+  color: var(--vg-pink-ink) !important;
+}
 
 #accessGate {
   background: radial-gradient(ellipse at top, var(--vg-pink-surface), var(--bg) 78%);
