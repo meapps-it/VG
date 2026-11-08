@@ -609,7 +609,7 @@ window.addEventListener('error',e=>{
 <script src="./vg-fullscreen-pages.js?v=compact-header-20261030" defer></script>
 <link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.160">
 <script src="./vg-catalog-stats.js?v=workspace-20261108" defer></script>
-<link rel="stylesheet" href="./vg-admin-workspace.css?v=20261108">
+<link rel="stylesheet" href="./vg-admin-workspace.css?v=client-merge-20261108">
 </head>
 <body class="auth-locked vg-workspace">
 <script>window.SimplexClientConfig={status:'active',modules:{clienti:true,ordini:true,magazzino:true,statistiche:true}};window.SimplexLicense={refresh:()=>{},clear:()=>{},getKey:()=>''};</script>
@@ -793,6 +793,28 @@ window.addEventListener('error',e=>{
       <div class="searchWrap"><input id="qCli" placeholder="Cerca per nome, telefono, città..." autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qCliSuggest" class="searchSuggest"></div></div>
     </div>
     <div style="height:10px"></div>
+    <section id="clientDuplicateNotice" class="card vgClientDuplicateNotice" aria-label="Possibili doppioni" hidden>
+      <div><strong>Possibili doppioni</strong><div id="clientDuplicateCount" role="status"></div></div>
+      <button class="btn" type="button" data-action="reviewClientDuplicates">Rivedi doppioni</button>
+    </section>
+    <dialog id="clientDuplicateDialog" class="vgClientDuplicateDialog" aria-labelledby="clientDuplicateTitle">
+      <form id="clientDuplicateForm">
+        <h2 id="clientDuplicateTitle">Verifica e unifica clienti</h2>
+        <p>Lo stesso nome e cognome può appartenere a persone diverse. Confronta le schede prima di unirle.</p>
+        <label>Nome e cognome<select id="clientDuplicateGroup"></select></label>
+        <div class="vgClientDuplicatePair">
+          <label>Scheda da mantenere<select id="clientDuplicateKeep"></select></label>
+          <label>Scheda da assorbire<select id="clientDuplicateRemove"></select></label>
+        </div>
+        <p>Gli ordini confluiscono nella scheda scelta. I recapiti diversi vengono annotati.</p>
+        <label class="vgClientDuplicateConfirm"><input type="checkbox" id="clientDuplicateConfirm" required> Ho verificato che si tratta della stessa persona</label>
+        <p id="clientDuplicateStatus" role="status" aria-live="polite"></p>
+        <div class="actions">
+          <button type="button" class="btn" id="clientDuplicateClose">Chiudi</button>
+          <button type="submit" class="btn primary" id="clientDuplicateSubmit">Unifica schede</button>
+        </div>
+      </form>
+    </dialog>
     <div id="listCli" class="list"></div>
   </div>
 
@@ -2704,44 +2726,7 @@ function dedupeSemanticList(list, keyFn, mergeFn){
   return {items,idMap};
 }
 function dedupeClientiWithMap(list=[]){
-  const strict=dedupeSemanticList(list, normalizeClientDedupKey, mergeClientRecords);
-  const items=strict.items.slice();
-  const idMap=new Map(strict.idMap);
-  const removed=new Set();
-  const groups=new Map();
-  items.forEach((c,idx)=>{
-    const nameKey=normalizeTextKey(normalizeClientDisplayName(c));
-    if(!nameKey) return;
-    const arr=groups.get(nameKey)||[];
-    arr.push(idx); groups.set(nameKey,arr);
-  });
-  for(const indexes of groups.values()){
-    if(indexes.length<2) continue;
-    const rich=indexes.filter(i=>!isClientNameOnlyRecord(items[i]) && clientHasStrongIdentityData(items[i]));
-    const sparse=indexes.filter(i=>isClientNameOnlyRecord(items[i]));
-    // Sicurezza: uniamo il record vuoto solo quando esiste UNA sola scheda completa omonima.
-    // Se ci sono due clienti completi con lo stesso nome, non decidiamo noi chi sia chi.
-    if(rich.length!==1 || !sparse.length) continue;
-    const keepIdx=rich[0];
-    let keep=items[keepIdx];
-    for(const dropIdx of sparse){
-      const drop=items[dropIdx];
-      if(!isSafeSparseClientDuplicate(keep,drop)) continue;
-      const dropId=normalizeSpaceText(drop?.id||'');
-      keep=mergeClientRecords(keep,drop); // il record completo resta quello principale
-      items[keepIdx]=keep;
-      removed.add(dropIdx);
-      const keepId=normalizeSpaceText(keep?.id||'');
-      if(dropId && keepId && dropId!==keepId) idMap.set(dropId,keepId);
-    }
-  }
-  // Rende canoniche anche eventuali mappe create nella prima passata.
-  for(const [oldId,target0] of [...idMap.entries()]){
-    let target=target0, guard=0;
-    while(idMap.has(target) && idMap.get(target)!==target && guard++<20) target=idMap.get(target);
-    if(target) idMap.set(oldId,target);
-  }
-  return {items:items.filter((_c,idx)=>!removed.has(idx)),idMap};
+  return dedupeSemanticList(list, client=>String(client?.id||''), mergeClientRecords);
 }
 function dedupeClienti(list=[]){ return dedupeClientiWithMap(list).items; }
 
@@ -9990,8 +9975,122 @@ function pseudoPromoBadge(a){
   return promoInfoHtml(a,{marginTop:'6px'});
 }
 
+function clientDuplicateGroups(clients){
+  const groups=new Map();
+  for(const client of clients){
+    const key=normalizeTextKey(normalizeClientDisplayName(client));
+    if(!client.id||!key.includes(' '))continue;
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(client);
+  }
+  return [...groups.values()].filter(group=>group.length>1)
+    .sort((a,b)=>normalizeClientDisplayName(a[0]).localeCompare(normalizeClientDisplayName(b[0]),'it'));
+}
+function clientDuplicateOption(client,orders){
+  const contact=[client.telefono,client.email,client.indirizzo,client.citta].filter(Boolean).join(' · ');
+  const count=orders.filter(order=>order.clienteId===client.id).length;
+  return (contact||'Recapiti assenti')+' · '+count+(count===1?' ordine':' ordini');
+}
+function openClientDuplicateReview(){
+  const db=loadDB(),groups=clientDuplicateGroups(db.clienti);
+  if(!groups.length)return toast('Nessun doppione da verificare');
+  const get=id=>document.getElementById(id);
+  const dialog=get('clientDuplicateDialog'),form=get('clientDuplicateForm'),group=get('clientDuplicateGroup');
+  const keep=get('clientDuplicateKeep'),remove=get('clientDuplicateRemove'),confirm=get('clientDuplicateConfirm');
+  const close=get('clientDuplicateClose'),submit=get('clientDuplicateSubmit'),status=get('clientDuplicateStatus');
+  if(dialog.open)return;
+  group.replaceChildren(...groups.map((clients,index)=>new Option(normalizeClientDisplayName(clients[0])+' · '+clients.length+' schede',index)));
+  function clearConfirmation(){confirm.checked=false;status.textContent=''}
+  function updateRemove(){
+    const candidates=groups[Number(group.value)].filter(client=>client.id!==keep.value);
+    remove.replaceChildren(new Option('Scegli la scheda da assorbire',''),...candidates.map(client=>new Option(clientDuplicateOption(client,db.ordini),client.id)));
+    remove.required=true;
+    clearConfirmation();
+  }
+  function updateKeep(){
+    keep.replaceChildren(...groups[Number(group.value)].map(client=>new Option(clientDuplicateOption(client,db.ordini),client.id)));
+    updateRemove();
+  }
+  group.onchange=updateKeep;keep.onchange=updateRemove;remove.onchange=clearConfirmation;
+  close.onclick=()=>dialog.close();
+  dialog.oncancel=event=>{if(submit.disabled)event.preventDefault()};
+  form.onsubmit=async event=>{
+    event.preventDefault();
+    if(submit.disabled||!confirm.checked)return;
+    submit.disabled=close.disabled=true;group.disabled=keep.disabled=remove.disabled=true;
+    status.textContent='Unione in corso…';
+    try{
+      await mergeDuplicateClients(keep.value,remove.value);
+      dialog.close();
+      toast('Clienti unificati. Ordini conservati.');
+    }catch(error){status.textContent=error?.message||'Unione non riuscita. Riprova.'}
+    finally{submit.disabled=close.disabled=group.disabled=keep.disabled=remove.disabled=false;confirm.checked=false}
+  };
+  updateKeep();dialog.showModal();
+}
+let clientMergeBusy=false,clientMergeRevision=0;
+function applyClientMergeLinks(db,links){
+  const merged=new Map(links.map(link=>[link.removed_id,link.kept_id]));
+  db.clienti=db.clienti.filter(client=>!merged.has(client.id));
+  db.ordini=db.ordini.map(order=>merged.has(order.clienteId)?{...order,clienteId:merged.get(order.clienteId)}:order);
+  return db;
+}
+function mergeLocalClientDetails(keep,remove){
+  const result={...keep};
+  for(const [key,value] of Object.entries(remove)){
+    if(result[key]==null||result[key]==='')result[key]=value;
+  }
+  const addressFields=['indirizzo','cap','citta','provincia','paese'];
+  const differentAddress=keep.indirizzo&&remove.indirizzo&&addressFields.some(field=>keep[field]!==remove[field]);
+  if(differentAddress)for(const field of addressFields)result[field]=keep[field];
+  if(!keep.indirizzo&&remove.indirizzo)for(const field of addressFields)result[field]=remove[field]||keep[field];
+  const notes=[keep.note,remove.note];
+  if(keep.telefono&&remove.telefono&&keep.telefono!==remove.telefono)notes.push('Altro telefono: '+remove.telefono);
+  if(keep.email&&remove.email&&keep.email!==remove.email)notes.push('Altra email: '+remove.email);
+  if(differentAddress)notes.push('Altro indirizzo: '+addressFields.map(field=>remove[field]).filter(Boolean).join(', '));
+  result.note=[...new Set(notes.filter(Boolean))].join('\n\n');
+  return {...result,id:keep.id,_ts:Date.now()};
+}
+async function fetchClientMergeLinks(sb){
+  const links=[];
+  for(let offset=0;;offset+=500){
+    const result=await sb.from('vg_client_merges').select('removed_id,kept_id').order('removed_id').range(offset,offset+499);
+    if(result.error)throw result.error;
+    links.push(...(result.data||[]));
+    if((result.data||[]).length<500)return links;
+  }
+}
+async function mergeDuplicateClients(keepId,removeId){
+  if(clientMergeBusy)throw new Error('Unione già in corso.');
+  if(cloudBusy)throw new Error('Attendi la fine della sincronizzazione e riprova.');
+  const db=loadDB(),keep=db.clienti.find(client=>client.id===keepId),remove=db.clienti.find(client=>client.id===removeId);
+  if(!keep||!remove||keepId===removeId||!clientDuplicateGroups([keep,remove]).length)throw new Error('Le schede sono cambiate. Chiudi e riapri il confronto.');
+  const inCloud=isUuid(keepId)||isUuid(removeId);
+  if(inCloud&&(!isUuid(keepId)||!isUuid(removeId)))throw new Error('Prima sincronizza entrambe le schede con il cloud.');
+  if(inCloud&&!cloudEnabled())throw new Error('Accedi al cloud per unificare queste schede.');
+  clientMergeBusy=true;clientMergeRevision++;
+  let cloudConfirmed=false;
+  try{
+    let client;
+    if(inCloud){
+      const sb=await ensureCloud();
+      const {data,error}=await sb.rpc('vg_merge_duplicate_clients',{p_keep:keepId,p_remove:removeId});
+      if(error)throw error;
+      if(data?.id!==keepId)throw new Error('Il server non ha confermato l’unione. Riprova.');
+      cloudConfirmed=true;client=cloudClientRowAsLocal(data);
+    }else client=mergeLocalClientDetails(keep,remove);
+    const latest=loadDB();
+    applyClientMergeLinks(latest,[{removed_id:removeId,kept_id:keepId}]);
+    latest.clienti=[client,...latest.clienti.filter(row=>row.id!==keepId)];
+    if(!saveDB(latest))throw new Error(cloudConfirmed?'Unione salvata nel cloud. Aggiorna i dati su questo dispositivo.':'Unione non salvata. Riprova.');
+  }finally{clientMergeBusy=false;clientMergeRevision++}
+}
 function renderCli(){
   const db=loadDB();
+  const groups=clientDuplicateGroups(db.clienti);
+  const notice=document.getElementById('clientDuplicateNotice');
+  notice.hidden=!groups.length;
+  document.getElementById('clientDuplicateCount').textContent=groups.length===1?'1 gruppo da verificare':groups.length+' gruppi da verificare';
   const q=document.getElementById('qCli').value.trim().toLowerCase();
   const items=db.clienti.filter(c=>{
     const hay=((c.nome||'')+' '+(c.telefono||'')+' '+(c.citta||'')+' '+(c.provincia||'')+' '+(c.paese||'')+' '+(c.nomeAlternativo||'')+' '+(c.cognomeAlternativo||'')+' '+(c.cittaAlternativa||'')+' '+(c.indirizzoAlternativo||'')).toLowerCase();
@@ -13781,6 +13880,7 @@ document.addEventListener('click',(ev)=>{
     return;
   }
   const a=el.dataset.action;
+  if(a==='reviewClientDuplicates')return openClientDuplicateReview();
   if(a==='openVgCatalogTool'){
     const target=document.getElementById(el.dataset.target);
     if(target)return target.click();
@@ -14773,27 +14873,29 @@ async function pullCloudToLocal(opts={}){
   const sb=await ensureCloud();
   if(!sb||!cloudSession) throw new Error('Login cloud mancante');
   const bg=!!opts.background;
-  if(catalogPublicationWrites) return false;
+  if(catalogPublicationWrites || clientMergeBusy) return false;
   const publicationRevision=catalogPublicationRevision;
+  const mergeRevision=clientMergeRevision;
   if(!bg){
     try{ localStorage.setItem(KEY+'_backup_before_cloud_pull', localStorage.getItem(KEY)||''); }catch(_){ }
     cloudBusy=true; cloudUi();
   }
   try{
-    const [{data:cats,error:catsErr},{data:prod,error:prodErr},{data:cli,error:cliErr},{data:ord,error:ordErr},{data:righe,error:righeErr},{data:fotosFirst,error:fotosErrFirst},{data:fotosNext,error:fotosErrNext}] = await Promise.all([
+    const [{data:cats,error:catsErr},{data:prod,error:prodErr},{data:cli,error:cliErr},{data:ord,error:ordErr},{data:righe,error:righeErr},{data:fotosFirst,error:fotosErrFirst},{data:fotosNext,error:fotosErrNext},clientMerges] = await Promise.all([
       sb.from('categorie').select('id,nome'),
       sb.from('prodotti').select('*').eq('is_demo',false).order('created_at',{ascending:false}).limit(3000),
       sb.from('clienti').select('*').eq('is_demo',false).order('created_at',{ascending:false}),
       sb.from('ordini').select('*').eq('is_demo',false).order('data_ordine',{ascending:false}),
       sb.from('righe_ordine').select('ordine_id,prodotto_id,quantita,prezzo_unitario,sconto,variante_misura,variante_colore,numero_colore,prodotti(id,sku,nome)').eq('is_demo',false),
       sb.from('prodotti_foto').select('prodotto_id,path,ordine').order('prodotto_id',{ascending:true}).order('ordine',{ascending:true}).order('path',{ascending:true}).range(0,999),
-      sb.from('prodotti_foto').select('prodotto_id,path,ordine').order('prodotto_id',{ascending:true}).order('ordine',{ascending:true}).order('path',{ascending:true}).range(1000,1999)
+      sb.from('prodotti_foto').select('prodotto_id,path,ordine').order('prodotto_id',{ascending:true}).order('ordine',{ascending:true}).order('path',{ascending:true}).range(1000,1999),
+      fetchClientMergeLinks(sb)
     ]);
     const fotos=[...(fotosFirst||[]),...(fotosNext||[])];
     const fotosErr=fotosErrFirst||fotosErrNext;
     if(catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr) throw (catsErr||prodErr||cliErr||ordErr||righeErr||fotosErr);
     // Ignore an older download that overlapped a publication write.
-    if(publicationRevision!==catalogPublicationRevision || catalogPublicationWrites) return false;
+    if(publicationRevision!==catalogPublicationRevision || catalogPublicationWrites || mergeRevision!==clientMergeRevision || clientMergeBusy) return false;
     // La sincronizzazione e' in sola lettura: mai cancellare o accorpare clienti automaticamente.
     const catMap=new Map((cats||[]).map(c=>[c.id,c.nome]));
     const prodMap=new Map((prod||[]).map(p=>[p.id,p]));
@@ -14826,7 +14928,7 @@ async function pullCloudToLocal(opts={}){
       arr.push(...cloudOrderUnitRows(r,prodMap.get(r.prodotto_id)||{}));
       righeByOrd.set(r.ordine_id,arr);
     });
-    const localDb=loadDB();
+    const localDb=applyClientMergeLinks(loadDB(),clientMerges);
     const deletedOrderTombstones=loadOrderDeleteTombstones();
     const deletedArticleTombstones=loadArticleDeleteTombstones();
     const localArtById=new Map((localDb.articoli||[]).map(a=>[a.id,a]));
@@ -14876,7 +14978,7 @@ async function pullCloudToLocal(opts={}){
       ...((localDb?.articoli||[]).map(a=>normalizeSpaceText(a?.brand||''))),
       ...((cloudDb?.articoli||[]).map(a=>normalizeSpaceText(a?.brand||'')))
     ].map(v=>normalizeSpaceText(v)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
-    const mergedDb=normalizeDBShape({
+    const mergedDb=normalizeDBShape(applyClientMergeLinks({
       version: cloudDb.version || localDb.version || 'v6',
       createdAt: localDb.createdAt || cloudDb.createdAt || new Date().toISOString(),
       articoli:[...(Array.isArray(localDb?.articoli)?localDb.articoli:[]), ...(Array.isArray(cloudDb?.articoli)?cloudDb.articoli:[])],
@@ -14885,7 +14987,7 @@ async function pullCloudToLocal(opts={}){
       categorie: mergedCategories,
       brands: mergedBrands,
       agenda:[...(Array.isArray(localDb?.agenda)?localDb.agenda:[])]
-    });
+    },clientMerges));
 
     updateShippingNotifications(mergedDb, bg?'cloud-auto':'cloud');
     saveDBLocal(mergedDb);
@@ -14897,6 +14999,7 @@ async function pullCloudToLocal(opts={}){
 async function pushLocalToCloud(){
   const sb=await ensureCloud();
   if(!sb||!cloudSession) throw new Error('Login cloud mancante');
+  if(clientMergeBusy) throw new Error('Attendi la fine dell’unione clienti.');
   cloudBusy=true; cloudUi();
   try{
     const db=loadDB();

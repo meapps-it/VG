@@ -235,3 +235,32 @@ html body.vg-workspace #vgDashboardAlerts :is(.vgCustomersTile,.vgOrderAlert) {
   .vgNavFull { display: inline; }
   .vgNavShort { display: none; }
 }
+
+.vg-workspace .vgClientDuplicateNotice:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 12px;
+  background: #fff8e8 !important;
+  border-color: #d6ae65 !important;
+}
+.vgClientDuplicateNotice [role=status] { margin-top: 3px; font-size: 13px; }
+.vgClientDuplicateDialog {
+  width: min(560px,calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: clamp(15px,4vw,25px);
+  border: 1px solid #b5c9e7;
+  border-radius: 14px;
+  color: #142840;
+  background: #fff;
+}
+.vgClientDuplicateDialog::backdrop { background: #14284085; }
+.vgClientDuplicateDialog h2 { margin: 0; font-size: 21px; }
+.vgClientDuplicateDialog p { margin: 10px 0; line-height: 1.45; }
+.vgClientDuplicateDialog label { display: block; margin-top: 10px; }
+.vgClientDuplicateDialog select { display: block; width: 100%; margin-top: 5px; }
+.vgClientDuplicateDialog .vgClientDuplicateConfirm { display: flex; gap: 8px; align-items: center; }
+.vgClientDuplicateDialog [role=status]:empty { display: none; }
+.vgClientDuplicateDialog .actions { margin-top: 14px; }

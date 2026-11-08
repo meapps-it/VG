@@ -26,8 +26,8 @@ test('downloads overlapping a publication update are discarded before applying a
  let release,queries=0;const wait=new Promise(resolve=>release=resolve);
  const q={select(){return this},eq(){return this},order(){return this},limit(){return this},range(){return this},async then(resolve){queries++;await wait;return resolve({data:[],error:null})}};
  const c={console,ensureCloud:async()=>({from:()=>q}),cloudSession:{user:{id:'owner'}},cloudBusy:false,cloudUi(){},localStorage:{setItem(){},getItem(){return ''}},KEY:'fixture'};
- vm.createContext(c);vm.runInContext('let catalogPublicationWrites=0,catalogPublicationRevision=0;'+slice('async function pullCloudToLocal(','async function pushLocalToCloud('),c);
- const request=c.pullCloudToLocal({background:true});await new Promise(resolve=>setImmediate(resolve));assert.equal(queries,7);
+ vm.createContext(c);vm.runInContext('let catalogPublicationWrites=0,catalogPublicationRevision=0,clientMergeBusy=false,clientMergeRevision=0;'+slice('async function fetchClientMergeLinks(','async function mergeDuplicateClients(')+slice('async function pullCloudToLocal(','async function pushLocalToCloud('),c);
+ const request=c.pullCloudToLocal({background:true});await new Promise(resolve=>setImmediate(resolve));assert.equal(queries,8);
  vm.runInContext('catalogPublicationRevision++',c);release();assert.equal(await request,false);
 });
 
@@ -39,4 +39,34 @@ test('ordinary archive reads preserve creation date and never rewrite the whole 
  vm.createContext(c);vm.runInContext(slice('function loadDB(){','function freeTechnicalLocalStorageSpace('),c);
  for(let i=0;i<30;i++){const db=c.loadDB();assert.equal(db.createdAt,'2020-01-01');db.articoli[0].pubblicatoCatalogo=false;}
  assert.equal(c.loadDB().articoli[0].pubblicatoCatalogo,true,'unsaved edits cannot leak into subsequent reads');assert.equal(writes,0);assert.equal(normalizations,31);assert.deepEqual([...entries],before,'reads must preserve descriptions, backups and drafts even without an old cleanup marker');
+});
+
+test('homonyms are flagged and a manual merge preserves orders and alternate contacts', async()=>{
+ const keep={id:'local-1',nome:'Rosa',cognome:'De Luca',telefono:'111111111',note:'Nota principale'};
+ const remove={id:'local-2',nome:'ROSA  DE LUCA',telefono:'222222222',email:'rosa@example.test',note:'Altra nota'};
+ let db={clienti:[keep,remove,{id:'local-3',nome:'Rosa'}],ordini:[{id:'order',clienteId:remove.id,totale:85}]};
+ const context={
+  Date,cloudBusy:false,isUuid:id=>id.startsWith('cloud-'),
+  normalizeSpaceText:value=>String(value||'').trim().replace(/\s+/g,' '),
+  loadDB:()=>structuredClone(db),saveDB:value=>{db=structuredClone(value);return true}
+ };
+ vm.createContext(context);
+ vm.runInContext(slice('function normalizeTextKey(','\n')+ '\n'+slice('function normalizeClientDisplayName(','function splitClientNameForCloud(')+slice('function clientDuplicateGroups(','function renderCli('),context);
+ assert.equal(context.clientDuplicateGroups(db.clienti).length,1);
+ await context.mergeDuplicateClients(keep.id,remove.id);
+ assert.equal(context.clientDuplicateGroups(db.clienti).length,0);
+ assert.deepEqual(db.ordini,[{id:'order',clienteId:keep.id,totale:85}]);
+ assert.equal(db.clienti[0].telefono,keep.telefono);
+ assert.equal(db.clienti[0].email,remove.email);
+ assert.match(db.clienti[0].note,/Nota principale[\s\S]*Altra nota[\s\S]*222222222/);
+ assert.equal(db.clienti[1].id,'local-3');
+
+ db.clienti=[{...keep,id:'cloud-1'},{...remove,id:'cloud-2'}];
+ context.cloudEnabled=()=>true;
+ context.ensureCloud=async()=>({rpc:async()=>({error:new Error('Offline')})});
+ const before=structuredClone(db);
+ await assert.rejects(context.mergeDuplicateClients('cloud-1','cloud-2'),/Offline/);
+ assert.deepEqual(db,before);
+ context.applyClientMergeLinks(db,[{removed_id:'cloud-2',kept_id:'cloud-1'}]);
+ assert.deepEqual(db.clienti.map(client=>client.id),['cloud-1']);
 });
