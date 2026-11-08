@@ -116,7 +116,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   background: var(--vg-pink-solid);
   color: #fff !important;
 }
+.search-box:focus-within {
+  border-color: var(--vg-pink-solid);
+  outline: none;
+  box-shadow: 0 0 0 1px var(--vg-pink-solid);
+}
 .search-box input { font-size: 16px; }
+.search-box input:focus-visible { outline: none; }
 
 .catalog .item, .related-item { padding: 0; }
 .item .photo, .related-photo {

@@ -20,23 +20,23 @@ test('incomplete device photo storage preserves existing cloud pictures and new 
  const c=context({getArticleLocalPhotoSources:async()=>['blob:new'],getArticleCloudSourcePaths:async()=>['SKU/1.jpg','SKU/2.jpg'],dedupePhotoSources:(v,n)=>[...new Set(v)].slice(0,n)},slice('async function getArticleCloudSyncSources(','async function getStoredPhotoSources('));
  assert.deepEqual(Array.from(await c.getArticleCloudSyncSources({photoIds:['old-1','old-2','new']})),['SKU/1.jpg','SKU/2.jpg','blob:new']);
 });
-function syncHarness({uploadFail=false,readFail=false,deleteFail=false,transientReads=0,insertFailures=0}={}){
+function syncHarness({uploadFail=false,readFail=false,transientReads=0,transientWrites=0,writeFail=false}={}){
  const changes=[],existing=['SKU/1.jpg','SKU/2.jpg'],delays=[];let reads=0;
  const db={from(){return {
-  deleting:false,select(){return this},eq(){return this},order(){return this},
-  delete(){changes.push('delete');this.deleting=true;return this},
-  insert(rows){changes.push({insert:rows});return Promise.resolve({error:insertFailures-->0?Error('insert denied'):null})},
-  then(resolve){if(!this.deleting)reads++;return Promise.resolve(this.deleting?{error:deleteFail?Error('delete denied'):null}:{data:existing.map((path,ordine)=>({path,ordine})),error:readFail?Error('offline'):reads<=transientReads?Error('Failed to fetch'):null}).then(resolve)}
- }}};
-
+  select(){return this},eq(){return this},order(){return this},
+  then(resolve){reads++;return Promise.resolve({data:existing.map((path,ordine)=>({path,ordine})),error:readFail?Error('offline'):reads<=transientReads?Error('Failed to fetch'):null}).then(resolve)}
+ }},async rpc(name,args){
+  assert.equal(name,'vg_sync_article_photo_links');changes.push(JSON.parse(JSON.stringify(args)));
+  return transientWrites-->0?{error:Error('Failed to fetch')}:{data:!writeFail,error:writeFail?Error('link denied'):null};
+ }};
  const c=context({setTimeout(fn,delay){delays.push(delay);queueMicrotask(fn)},cloudSession:{user:{id:'owner'}},ensureCloud:async()=>db,isLikelyCloudPhotoPath:s=>!s.includes(':')&&s.includes('/'),normalizeCloudPhotoPathList:a=>a,blobFromPhotoSrc:async()=>new Blob(['image'],{type:'image/jpeg'}),uploadArticlePhotoToSupabase:async(file,code,slot)=>{if(uploadFail)throw Error('upload denied');return code+'/'+slot+'.jpg'}},"const ARTICLE_CLOUD_PHOTO_PATH_CACHE=new Map(),ARTICLE_CODE_PHOTO_PATH_CACHE=new Map();\n"+slice('function existingStoragePhotoPath(','async function getCloudArticlePhotoUrls('));return {c,changes,delays,get reads(){return reads}};
 }
 test('failed uploads and failed reads never remove or replace existing photo links',async()=>{
  for(const options of [{uploadFail:true},{readFail:true}]){const {c,changes}=syncHarness(options);await assert.rejects(c.syncArticlePhotosToCloud('p','SKU',['SKU/1.jpg','SKU/2.jpg','blob:new']),options.readFail?/offline/:/Foto non sincronizzate/);assert.deepEqual(changes,[])}
 });
-test('unchanged photographs avoid delete/insert churn; new upload appends after preserved paths',async()=>{
+test('unchanged photographs avoid writes; new upload links once with the previous gallery snapshot',async()=>{
  const {c,changes}=syncHarness();await c.syncArticlePhotosToCloud('p','SKU',['SKU/1.jpg','SKU/2.jpg']);assert.deepEqual(changes,[]);
- const result=await c.syncArticlePhotosToCloud('p','SKU',['SKU/1.jpg','SKU/2.jpg','blob:new']);assert.deepEqual(Array.from(result),['SKU/1.jpg','SKU/2.jpg','SKU/3.jpg']);assert.equal(changes[0],'delete');assert.equal(changes[1].insert[2].ordine,2);
+ const result=await c.syncArticlePhotosToCloud('p','SKU',['SKU/1.jpg','SKU/2.jpg','blob:new']);assert.deepEqual(Array.from(result),['SKU/1.jpg','SKU/2.jpg','SKU/3.jpg']);assert.deepEqual(changes,[{p_product_id:'p',p_paths:['SKU/1.jpg','SKU/2.jpg','SKU/3.jpg'],p_previous_paths:['SKU/1.jpg','SKU/2.jpg']}]);
 });
 
 test('an unavailable local gallery never erases existing server links',async()=>{const {c,changes}=syncHarness();assert.deepEqual(Array.from(await c.syncArticlePhotosToCloud('p','SKU',[])),['SKU/1.jpg','SKU/2.jpg']);assert.deepEqual(changes,[])});
@@ -83,14 +83,18 @@ test('existing signed photo URLs reuse stored paths without replacing photos',as
  ]);
  assert.deepEqual(Array.from(paths),['SKU/1.jpg','SKU/2.jpg']);assert.deepEqual(h.changes,[]);
 });
-test('photo replacement failures reject and attempt restoring previous links',async()=>{
- const denied=syncHarness({deleteFail:true});
- await assert.rejects(denied.c.syncArticlePhotosToCloud('p','SKU',['SKU/1.jpg','SKU/2.jpg','blob:new']),/delete denied/);
- assert.deepEqual(denied.changes,['delete']);
- const h=syncHarness({insertFailures:1});
- await assert.rejects(h.c.syncArticlePhotosToCloud('p','SKU',['SKU/1.jpg','SKU/2.jpg','blob:new']),/insert denied/);
- assert.equal(h.changes.length,3);
- assert.deepEqual(JSON.parse(JSON.stringify(h.changes[2].insert)).map(row=>row.path),['SKU/1.jpg','SKU/2.jpg']);
+test('photo linking retries a transient failure without changing the payload',async()=>{
+ const h=syncHarness({transientWrites:1});
+ await h.c.syncArticlePhotosToCloud('p','SKU',['SKU/1.jpg','SKU/2.jpg','blob:new']);
+ assert.equal(h.changes.length,2);
+ assert.deepEqual(h.changes[0],h.changes[1]);
+ assert.deepEqual(h.delays,[300]);
+});
+test('a permanent photo link rejection fails without a separate delete or restore',async()=>{
+ const h=syncHarness({writeFail:true});
+ await assert.rejects(h.c.syncArticlePhotosToCloud('p','SKU',['SKU/1.jpg','SKU/2.jpg','blob:new']),/link denied/);
+ assert.equal(h.changes.length,1);
+ assert.deepEqual(h.delays,[]);
 });
 
 test('local photo blobs go to cloud directly without fetching object URLs',async()=>{

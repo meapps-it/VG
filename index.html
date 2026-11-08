@@ -4478,12 +4478,9 @@ async function uploadArticlePhotoToSupabase(file, codice, slot){
   const cleanCode=String(codice||'').trim();
   if(!cleanCode) throw new Error('Codice articolo mancante');
   const path=`${cleanCode}/${slot}.${ext}`;
-  const { error } = await sb.storage.from(SUPABASE_BUCKET).upload(path, file, {
-    cacheControl: '3600',
-    upsert: true,
-    contentType: file?.type || 'image/jpeg'
-  });
-  if(error) throw error;
+  await retryArticlePhotoRequest(()=>sb.storage.from(SUPABASE_BUCKET).upload(path,file,{
+    cacheControl:'3600',upsert:true,contentType:file?.type||'image/jpeg'
+  }));
   return path;
 }
 
@@ -4734,18 +4731,22 @@ function existingStoragePhotoPath(source,existingPaths){
   }catch(_e){}
   return '';
 }
-async function readArticlePhotoRowsWithRetry(sb,artId){
+async function retryArticlePhotoRequest(request){
   for(let attempt=0;attempt<3;attempt++){
     try{
-      const result=await sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id',artId).order('ordine',{ascending:true});
+      const result=await request();
       if(result.error)throw result.error;
-      return result.data||[];
+      return result.data;
     }catch(error){
-      const transient=/failed to fetch|fetch failed|network|load failed|timeout/i.test(String(error?.message||error))||Number(error?.status)>=500;
+      const status=Number(error?.status||error?.statusCode);
+      const transient=/failed to fetch|fetch failed|network|load failed|timeout/i.test(String(error?.message||error))||status>=500||status===429;
       if(!transient||attempt===2)throw error;
       await new Promise(resolve=>setTimeout(resolve,attempt?900:300));
     }
   }
+}
+async function readArticlePhotoRowsWithRetry(sb,artId){
+  return await retryArticlePhotoRequest(()=>sb.from('prodotti_foto').select('path,ordine').eq('prodotto_id',artId).order('ordine',{ascending:true,nullsFirst:false}).order('id'))||[];
 }
 async function syncArticlePhotosToCloud(artId, codice, pics){
   const sb=await ensureCloud();
@@ -4789,25 +4790,10 @@ async function syncArticlePhotosToCloud(artId, codice, pics){
   const finalPaths=normalized.length===0 ? [] : normalizeCloudPhotoPathList(savedPaths.length ? savedPaths : existingPaths);
   if(uploadErrors.length) throw new Error('Foto non sincronizzate: riprova il salvataggio. Le fotografie precedenti sono conservate.');
   if(finalPaths.length===existingPaths.length && finalPaths.every((path,i)=>path===existingPaths[i])) return finalPaths;
-  let deleted=false;
-  try{
-    const {error:deleteError}=await sb.from('prodotti_foto').delete().eq('prodotto_id', artId);
-    if(deleteError) throw deleteError;
-    deleted=true;
-    if(finalPaths.length){
-      const rows=finalPaths.map((path,idx)=>({user_id:cloudSession.user.id, prodotto_id: artId, path, ordine: idx}));
-      const { error } = await sb.from('prodotti_foto').insert(rows);
-      if(error) throw error;
-    }
-  }catch(err){
-    if(deleted && existingPaths.length){
-      try{
-        const restoreRows=existingPaths.map((path,idx)=>({user_id:cloudSession.user.id, prodotto_id: artId, path, ordine: idx}));
-        await sb.from('prodotti_foto').insert(restoreRows);
-      }catch(_restoreErr){}
-    }
-    throw err;
-  }
+  const linked=await retryArticlePhotoRequest(()=>sb.rpc('vg_sync_article_photo_links',{
+    p_product_id:artId,p_paths:finalPaths,p_previous_paths:existingPaths
+  }));
+  if(linked!==true)throw new Error('Collegamento delle foto non confermato');
   ARTICLE_CLOUD_PHOTO_PATH_CACHE.delete(String(artId));
   ARTICLE_CODE_PHOTO_PATH_CACHE.delete(cleanCode);
   return finalPaths;
@@ -14498,7 +14484,9 @@ async function upsertCloudArticle(art){
     cloudFoto=await syncArticlePhotosToCloud(data.id, art.codice||data.sku||data.id, pics);
   }catch(err){
     console.warn('Sync foto cloud fallita', err);
-    throw new Error('Foto non sincronizzate. I dati dell’articolo sono salvati, ma le foto non sono state aggiornate. Riprova Salva articolo quando la connessione è disponibile.');
+    if(err?.code==='P0001')throw new Error('Foto non sincronizzate: la galleria è cambiata. Riapri l’articolo e riprova.');
+    const state=stagePublication?'L’articolo è in bozza.':'I dati dell’articolo sono salvati.';
+    throw new Error('Foto non sincronizzate. '+state+' Riapri l’articolo e premi Salva per riprovare.');
   }
   const finalFoto=normalizeCloudPhotoPathList(cloudFoto.length?cloudFoto:(art.foto||[]));
   const update={descrizione:packCloudArticleDescription({...art,foto:finalFoto})};
