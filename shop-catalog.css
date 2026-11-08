@@ -72,3 +72,6 @@ body{background:var(--bg);font-family:inherit}.brand-stage{background:#e6eefb;bo
 #accessError{color:#9b2020;font-weight:650;line-height:1.5}
 #accessCheck,#accessSignout{width:100%;margin:6px 0}
 #accessGate [hidden]{display:none!important}
+
+.shop-notice[hidden],.shop-notice .shop-notice-field[hidden]{display:none!important}
+.shop-notice .shop-notice-field{margin-top:8px;padding:5px 9px;border:1px solid currentColor;border-radius:6px;background:#fff;color:inherit;font:inherit;font-weight:700;cursor:pointer}
