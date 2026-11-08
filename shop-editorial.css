@@ -9,6 +9,10 @@
   --vg-surface: #f1ebe3;
   --vg-detail: #745334;
   --vg-pink-ink: #9c285f;
+  --vg-pink-solid: #b52268;
+  --vg-pink-hover: #94194f;
+  --vg-pink-stripe: #ed3da1;
+  --vg-pink-surface: #fbe3ef;
   --vg-pink-border: #c6508a;
   --vg-pink-tint: #fdf0f6;
   --vg-heading: Georgia, "Times New Roman", serif;
@@ -41,6 +45,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   border-color: var(--line);
 }
 
+.brand-stage { border-bottom: 3px solid var(--vg-pink-stripe); }
+
 .customer-entry, .header-whatsapp, .cart-action, .product-back, .close {
   border-color: var(--line);
   border-radius: 6px;
@@ -48,8 +54,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .collection-heading {
-  background: var(--vg-surface);
-  border-color: var(--line);
+  background: linear-gradient(110deg, var(--vg-pink-surface), var(--vg-pink-tint));
+  border-color: #efb6d2;
   border-radius: 12px;
   box-shadow: none;
 }
@@ -77,10 +83,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   border-radius: 6px !important;
   box-shadow: none;
 }
-.browse-collection:hover, #productView .action-row .add:hover,
+#productView .action-row .add:hover,
 #overlay .form .primary:hover, #overlay .form .submit:hover {
   background: #523c2e;
 }
+
+.browse-collection {
+  background: var(--vg-pink-solid);
+  border-color: var(--vg-pink-solid) !important;
+  color: #fff !important;
+}
+.browse-collection:hover { background: var(--vg-pink-hover); }
 
 .discovery, .item, .related-item, #productView .product-buy-panel, .cart-row, .form, .customer-order {
   border: 1px solid var(--line);
@@ -95,9 +108,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .quality-filter button[aria-pressed=true] { background: var(--accent); }
 .group-tabs button { border-color: var(--line); }
 .group-tabs button[aria-pressed=true] {
-  border-color: var(--vg-pink-border);
-  background: var(--vg-pink-tint);
-  color: var(--vg-pink-ink) !important;
+  border-color: var(--vg-pink-solid);
+  background: var(--vg-pink-solid);
+  color: #fff !important;
 }
 .search-box input { font-size: 16px; }
 
@@ -183,8 +196,13 @@ body #productView .product-price-line #productPrice {
 #productView .action-row .add { min-height: 46px; font-size: 14px; }
 .related-section, .footer { border-color: var(--line); }
 
+#accessGate {
+  background: radial-gradient(ellipse at top, var(--vg-pink-surface), var(--bg) 78%);
+}
+
 .access-card {
   border-color: var(--line);
+  border-top: 4px solid var(--vg-pink-stripe);
   border-radius: 12px;
   box-shadow: 0 10px 30px #3427200b;
 }
