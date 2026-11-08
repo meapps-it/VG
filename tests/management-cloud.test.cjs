@@ -44,7 +44,8 @@ test('ordinary archive reads preserve creation date and never rewrite the whole 
 test('homonyms are flagged and a manual merge preserves orders and alternate contacts', async()=>{
  const keep={id:'local-1',nome:'Rosa',cognome:'De Luca',telefono:'111111111',note:'Nota principale'};
  const remove={id:'local-2',nome:'ROSA  DE LUCA',telefono:'222222222',email:'rosa@example.test',note:'Altra nota'};
- let db={clienti:[keep,remove,{id:'local-3',nome:'Rosa'}],ordini:[{id:'order',clienteId:remove.id,totale:85}]};
+ const extra={id:'local-4',nome:'Rosa De Luca'};
+ let db={clienti:[keep,remove,extra,{id:'local-3',nome:'Rosa'}],ordini:[{id:'order',clienteId:remove.id,totale:85},{id:'other',clienteId:extra.id,totale:55}]};
  const context={
   Date,cloudBusy:false,isUuid:id=>id.startsWith('cloud-'),
   normalizeSpaceText:value=>String(value||'').trim().replace(/\s+/g,' '),
@@ -53,9 +54,9 @@ test('homonyms are flagged and a manual merge preserves orders and alternate con
  vm.createContext(context);
  vm.runInContext(slice('function normalizeTextKey(','\n')+ '\n'+slice('function normalizeClientDisplayName(','function splitClientNameForCloud(')+slice('function clientDuplicateGroups(','function renderCli('),context);
  assert.equal(context.clientDuplicateGroups(db.clienti).length,1);
- await context.mergeDuplicateClients(keep.id,remove.id);
+ await context.mergeDuplicateClients(keep.id,[remove.id,extra.id]);
  assert.equal(context.clientDuplicateGroups(db.clienti).length,0);
- assert.deepEqual(db.ordini,[{id:'order',clienteId:keep.id,totale:85}]);
+ assert.deepEqual(db.ordini,[{id:'order',clienteId:keep.id,totale:85},{id:'other',clienteId:keep.id,totale:55}]);
  assert.equal(db.clienti[0].telefono,keep.telefono);
  assert.equal(db.clienti[0].email,remove.email);
  assert.match(db.clienti[0].note,/Nota principale[\s\S]*Altra nota[\s\S]*222222222/);
@@ -65,10 +66,10 @@ test('homonyms are flagged and a manual merge preserves orders and alternate con
  context.cloudEnabled=()=>true;
  context.ensureCloud=async()=>({rpc:async()=>({error:new Error('Offline')})});
  const before=structuredClone(db);
- await assert.rejects(context.mergeDuplicateClients('cloud-1','cloud-2'),/Offline/);
+ await assert.rejects(context.mergeDuplicateClients('cloud-1',['cloud-2']),/Offline/);
  assert.deepEqual(db,before);
  context.ensureCloud=async()=>({rpc:async()=>({error:{code:'PGRST202'}})});
- await assert.rejects(context.mergeDuplicateClients('cloud-1','cloud-2'),/attesa di attivazione/);
+ await assert.rejects(context.mergeDuplicateClients('cloud-1',['cloud-2']),/attesa di attivazione/);
  assert.deepEqual(db,before);
  const query={select(){return this},order(){return this},async range(){return {error:{code:'PGRST205'}}}};
  assert.equal((await context.fetchClientMergeLinks({from:()=>query})).length,0);

@@ -264,3 +264,20 @@ html body.vg-workspace #vgDashboardAlerts :is(.vgCustomersTile,.vgOrderAlert) {
 .vgClientDuplicateDialog .vgClientDuplicateConfirm { display: flex; gap: 8px; align-items: center; }
 .vgClientDuplicateDialog [role=status]:empty { display: none; }
 .vgClientDuplicateDialog .actions { margin-top: 14px; }
+.vgClientDuplicateSelection {
+  min-width: 0;
+  margin: 12px 0;
+  padding: 8px 10px;
+  border: 1px solid #a7b5c5;
+  border-radius: 12px;
+}
+.vgClientDuplicateOptions { max-height: 12rem; overflow: auto; overscroll-behavior: contain; }
+.vgClientDuplicateDialog .vgClientDuplicateOptions label { margin: 0; padding: 8px 0; border-top: 1px solid #d9e2ed; }
+.vg-workspace .vgClientDuplicateDialog input[type=checkbox] {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0 5px 0 0;
+}

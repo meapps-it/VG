@@ -609,7 +609,7 @@ window.addEventListener('error',e=>{
 <script src="./vg-fullscreen-pages.js?v=compact-header-20261030" defer></script>
 <link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.160">
 <script src="./vg-catalog-stats.js?v=workspace-20261108" defer></script>
-<link rel="stylesheet" href="./vg-admin-workspace.css?v=client-merge-20261108">
+<link rel="stylesheet" href="./vg-admin-workspace.css?v=client-group-20261108">
 </head>
 <body class="auth-locked vg-workspace">
 <script>window.SimplexClientConfig={status:'active',modules:{clienti:true,ordini:true,magazzino:true,statistiche:true}};window.SimplexLicense={refresh:()=>{},clear:()=>{},getKey:()=>''};</script>
@@ -802,10 +802,12 @@ window.addEventListener('error',e=>{
         <h2 id="clientDuplicateTitle">Verifica e unifica clienti</h2>
         <p>Lo stesso nome e cognome può appartenere a persone diverse. Confronta le schede prima di unirle.</p>
         <label>Nome e cognome<select id="clientDuplicateGroup"></select></label>
-        <div class="vgClientDuplicatePair">
-          <label>Scheda da mantenere<select id="clientDuplicateKeep"></select></label>
-          <label>Scheda da assorbire<select id="clientDuplicateRemove"></select></label>
-        </div>
+        <label>Scheda da mantenere<select id="clientDuplicateKeep"></select></label>
+        <fieldset id="clientDuplicateRemove" class="vgClientDuplicateSelection">
+          <legend>Schede da unificare</legend>
+          <label class="vgClientDuplicateConfirm"><input type="checkbox" id="clientDuplicateAll"> Seleziona tutte le altre schede</label>
+          <div id="clientDuplicateOptions" class="vgClientDuplicateOptions"></div>
+        </fieldset>
         <p>Gli ordini confluiscono nella scheda scelta. I recapiti diversi vengono annotati.</p>
         <label class="vgClientDuplicateConfirm"><input type="checkbox" id="clientDuplicateConfirm" required> Ho verificato che si tratta della stessa persona</label>
         <p id="clientDuplicateStatus" role="status" aria-live="polite"></p>
@@ -9997,34 +9999,62 @@ function openClientDuplicateReview(){
   const get=id=>document.getElementById(id);
   const dialog=get('clientDuplicateDialog'),form=get('clientDuplicateForm'),group=get('clientDuplicateGroup');
   const keep=get('clientDuplicateKeep'),remove=get('clientDuplicateRemove'),confirm=get('clientDuplicateConfirm');
+  const all=get('clientDuplicateAll'),options=get('clientDuplicateOptions');
   const close=get('clientDuplicateClose'),submit=get('clientDuplicateSubmit'),status=get('clientDuplicateStatus');
   if(dialog.open)return;
   group.replaceChildren(...groups.map((clients,index)=>new Option(normalizeClientDisplayName(clients[0])+' · '+clients.length+' schede',index)));
-  function clearConfirmation(){confirm.checked=false;status.textContent=''}
+  const selected=()=>Array.from(options.querySelectorAll('input:checked'),input=>input.value);
+  function updateSelection(){
+    const count=selected().length;
+    all.checked=count>0&&count===options.childElementCount;
+    all.indeterminate=count>0&&!all.checked;
+    confirm.checked=false;
+    status.textContent='';
+    submit.disabled=count===0;
+    submit.textContent=count>0?'Unifica '+(count+1)+' schede':'Unifica schede';
+  }
   function updateRemove(){
-    const candidates=groups[Number(group.value)].filter(client=>client.id!==keep.value);
-    remove.replaceChildren(new Option('Scegli la scheda da assorbire',''),...candidates.map(client=>new Option(clientDuplicateOption(client,db.ordini),client.id)));
-    remove.required=true;
-    clearConfirmation();
+    const clients=groups[Number(group.value)];
+    options.replaceChildren();
+    clients.forEach((client,index)=>{
+      if(client.id===keep.value)return;
+      const label=document.createElement('label');
+      label.className='vgClientDuplicateConfirm';
+      const input=document.createElement('input');
+      input.type='checkbox';
+      input.value=client.id;
+      label.append(input,'Scheda '+(index+1)+' · '+clientDuplicateOption(client,db.ordini));
+      options.append(label);
+    });
+    updateSelection();
   }
   function updateKeep(){
-    keep.replaceChildren(...groups[Number(group.value)].map(client=>new Option(clientDuplicateOption(client,db.ordini),client.id)));
+    const clients=groups[Number(group.value)];
+    keep.replaceChildren(...clients.map((client,index)=>new Option('Scheda '+(index+1)+' · '+clientDuplicateOption(client,db.ordini),client.id)));
+    keep.value=clients.reduce((best,client)=>clientMeaningfulDataScore(client)>clientMeaningfulDataScore(best)?client:best).id;
     updateRemove();
   }
-  group.onchange=updateKeep;keep.onchange=updateRemove;remove.onchange=clearConfirmation;
+  group.onchange=updateKeep;
+  keep.onchange=updateRemove;
+  options.onchange=updateSelection;
+  all.onchange=()=>{
+    for(const input of options.querySelectorAll('input'))input.checked=all.checked;
+    updateSelection();
+  };
   close.onclick=()=>dialog.close();
-  dialog.oncancel=event=>{if(submit.disabled)event.preventDefault()};
+  dialog.oncancel=event=>{if(close.disabled)event.preventDefault()};
   form.onsubmit=async event=>{
     event.preventDefault();
-    if(submit.disabled||!confirm.checked)return;
-    submit.disabled=close.disabled=true;group.disabled=keep.disabled=remove.disabled=true;
+    const removeIds=selected();
+    if(submit.disabled||!confirm.checked||!removeIds.length)return;
+    submit.disabled=close.disabled=confirm.disabled=true;group.disabled=keep.disabled=remove.disabled=true;
     status.textContent='Unione in corso…';
     try{
-      await mergeDuplicateClients(keep.value,remove.value);
+      await mergeDuplicateClients(keep.value,removeIds);
       dialog.close();
-      toast('Clienti unificati. Ordini conservati.');
+      toast((removeIds.length+1)+' schede riunite in una. Ordini conservati.');
     }catch(error){status.textContent=error?.message||'Unione non riuscita. Riprova.'}
-    finally{submit.disabled=close.disabled=group.disabled=keep.disabled=remove.disabled=false;confirm.checked=false}
+    finally{submit.disabled=close.disabled=group.disabled=keep.disabled=remove.disabled=confirm.disabled=false;confirm.checked=false}
   };
   updateKeep();dialog.showModal();
 }
@@ -10061,13 +10091,16 @@ async function fetchClientMergeLinks(sb){
     if((result.data||[]).length<500)return links;
   }
 }
-async function mergeDuplicateClients(keepId,removeId){
+async function mergeDuplicateClients(keepId,removeIds){
   if(clientMergeBusy)throw new Error('Unione già in corso.');
   if(cloudBusy)throw new Error('Attendi la fine della sincronizzazione e riprova.');
-  const db=loadDB(),keep=db.clienti.find(client=>client.id===keepId),remove=db.clienti.find(client=>client.id===removeId);
-  if(!keep||!remove||keepId===removeId||!clientDuplicateGroups([keep,remove]).length)throw new Error('Le schede sono cambiate. Chiudi e riapri il confronto.');
-  const inCloud=isUuid(keepId)||isUuid(removeId);
-  if(inCloud&&(!isUuid(keepId)||!isUuid(removeId)))throw new Error('Prima sincronizza entrambe le schede con il cloud.');
+  const ids=[keepId,...new Set(removeIds)];
+  const clients=new Map(loadDB().clienti.map(client=>[client.id,client]));
+  const chosen=ids.map(id=>clients.get(id));
+  const group=clientDuplicateGroups(chosen.filter(Boolean))[0];
+  if(ids.length<2||ids.slice(1).includes(keepId)||group?.length!==ids.length)throw new Error('Le schede sono cambiate. Chiudi e riapri il confronto.');
+  const inCloud=ids.some(isUuid);
+  if(inCloud&&!ids.every(isUuid))throw new Error('Prima sincronizza tutte le schede selezionate con il cloud.');
   if(inCloud&&!cloudEnabled())throw new Error('Accedi al cloud per unificare queste schede.');
   clientMergeBusy=true;clientMergeRevision++;
   let cloudConfirmed=false;
@@ -10075,14 +10108,14 @@ async function mergeDuplicateClients(keepId,removeId){
     let client;
     if(inCloud){
       const sb=await ensureCloud();
-      const {data,error}=await sb.rpc('vg_merge_duplicate_clients',{p_keep:keepId,p_remove:removeId});
+      const {data,error}=await sb.rpc('vg_merge_duplicate_client_group',{p_keep:keepId,p_remove:ids.slice(1)});
       if(error?.code==='PGRST202')throw new Error('L’unione delle schede cloud è in attesa di attivazione.');
       if(error)throw error;
       if(data?.id!==keepId)throw new Error('Il server non ha confermato l’unione. Riprova.');
       cloudConfirmed=true;client=cloudClientRowAsLocal(data);
-    }else client=mergeLocalClientDetails(keep,remove);
+    }else client=chosen.reduce(mergeLocalClientDetails);
     const latest=loadDB();
-    applyClientMergeLinks(latest,[{removed_id:removeId,kept_id:keepId}]);
+    applyClientMergeLinks(latest,ids.slice(1).map(id=>({removed_id:id,kept_id:keepId})));
     latest.clienti=[client,...latest.clienti.filter(row=>row.id!==keepId)];
     if(!saveDB(latest))throw new Error(cloudConfirmed?'Unione salvata nel cloud. Aggiorna i dati su questo dispositivo.':'Unione non salvata. Riprova.');
   }finally{clientMergeBusy=false;clientMergeRevision++}
