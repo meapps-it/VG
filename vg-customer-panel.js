@@ -8,10 +8,29 @@
  const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='btn';dismiss.textContent='Cancella avvisi di registrazione';dismiss.hidden=true;tile.after(dismiss);dismiss.onclick=()=>el('vgCustomerRead').click();
  const opener=document.createElement('button');opener.type='button';opener.className='topMenuLink';opener.id='vgCustomerModuleOpen';opener.textContent='Clienti catalogo · registrazioni e accessi';el('vgCatalogStatsOpen')?.after(opener);
  const dialog=document.createElement('dialog');dialog.className='vgStatsDialog vgCustomersPanel';dialog.id='vgCustomersPanel';dialog.setAttribute('aria-labelledby','vgCustomersTitle');
- dialog.innerHTML='<header class="vgStatsHeader"><h2 id="vgCustomersTitle">Clienti catalogo</h2><button id="vgCustomersClose" type="button">Chiudi</button></header><div class="vgStatsContent"><p id="vgCustomerPanelStatus" role="status" aria-live="polite"></p><div class="vgCustomerTools"><button id="vgCustomerRefresh" type="button">Aggiorna</button><button id="vgCustomerRead" type="button">Cancella avvisi di registrazione</button></div><div class="vgCustomerCounts" id="vgCustomerCounts"></div><section><h3>Nuove registrazioni</h3><div id="vgRegistrationAlerts"></div></section><label for="vgCustomerFilter">Mostra clienti</label><select id="vgCustomerFilter"><option value="">Tutti</option><option value="pending">In attesa</option><option value="approved">Autorizzati</option><option value="blocked">Bloccati</option></select><div id="vgCustomerList"></div><button id="vgCustomerNext" type="button" hidden>Mostra altri clienti</button><details id="vgClientIntegration"><summary>Schede clienti del gestionale · collegamenti</summary><p>Stesso telefono: collegamento automatico. Email e omonimi: integrazione solo dopo conferma.</p><div id="vgClientIntegrationList"></div></details><p class="vgStatsNote">Orari italiani. Le visite con accesso già ricordato sono registrate una volta ogni 30 minuti per sessione. I nuovi login sono registrati separatamente.</p></div>';
+ dialog.innerHTML='<header class="vgStatsHeader"><h2 id="vgCustomersTitle">Clienti catalogo</h2><button id="vgCustomersClose" type="button">Chiudi</button></header><div class="vgStatsContent"><p id="vgCustomerPanelStatus" role="status" aria-live="polite"></p><div class="vgCustomerTools"><button id="vgCustomerRefresh" type="button">Aggiorna</button><button id="vgCustomerRead" type="button">Cancella avvisi di registrazione</button></div><p class="vgCustomerLatestAccess" id="vgCustomerLatestAccess" hidden></p><div class="vgCustomerCounts" id="vgCustomerCounts"></div><section><h3>Nuove registrazioni</h3><div id="vgRegistrationAlerts"></div></section><label for="vgCustomerFilter">Mostra clienti</label><select id="vgCustomerFilter"><option value="">Tutti</option><option value="pending">In attesa</option><option value="approved">Autorizzati</option><option value="blocked">Bloccati</option></select><div id="vgCustomerList"></div><button id="vgCustomerNext" type="button" hidden>Mostra altri clienti</button><details id="vgClientIntegration"><summary>Schede clienti del gestionale · collegamenti</summary><p>Stesso telefono: collegamento automatico. Email e omonimi: integrazione solo dopo conferma.</p><div id="vgClientIntegrationList"></div></details><p class="vgStatsNote">Orari italiani. Le visite con accesso già ricordato sono registrate una volta ogni 30 minuti per sessione. I nuovi login sono registrati separatamente.</p></div>';
  document.body.append(dialog);
  let current=null,offset=0,refreshing=false,lastToken='',controller;
- async function session(){const client=await window.VG_SUPABASE_READY;if(!client)return null;const r=await client.auth.getSession();return r.data?.session?.access_token||null}
+ let accessOwner='';
+ const seenAccess=new Map();
+ async function session(){
+  const client=await window.VG_SUPABASE_READY;
+  const auth=client?(await client.auth.getSession()).data?.session:null;
+  accessOwner=auth?.user?.id||'';
+  return auth?.access_token||null;
+ }
+ function accessTime(data){return Date.parse(data?.latestAccess?.at||'')||0}
+ function lastSeenAccess(){
+  const key='vg-catalog-access-seen:'+accessOwner;
+  try{return Math.max(seenAccess.get(accessOwner)||0,Number(localStorage.getItem(key))||0)}
+  catch{return seenAccess.get(accessOwner)||0}
+ }
+ function markAccessSeen(data){
+  const at=accessTime(data);
+  if(!at||at<=lastSeenAccess())return;
+  seenAccess.set(accessOwner,at);
+  try{localStorage.setItem('vg-catalog-access-seen:'+accessOwner,String(at))}catch{}
+ }
  const reads=new Map(),pending=new Map();let requestToken='',generation=0,viewRevision=0,integrationLoaded=false;
  function resetReads(){reads.clear();pending.clear();generation++}
  async function request(action,body,reuse=false){
@@ -39,8 +58,20 @@
   count.textContent=data?Number(data.total||0).toLocaleString('it-IT'):'—';
   const access=data?.latestAccess,who=access&&(access.name||access.email||(access.phone?'+'+access.phone:'Cliente'));
   last.textContent=data?(access?'Ultimo accesso: '+who+' · '+date(access.at)+' (Italia)':'Nessun accesso ancora registrato.'):'Accedi al gestionale per vedere gli accessi.';
+  const unseen=accessTime(data)>lastSeenAccess();
+  const card=el('catalogCustomersStat'),badge=el('c_catalog_new_access');
+  card?.classList.toggle('has-new-catalog-access',unseen);
+  if(badge)badge.hidden=!unseen;
+  if(card)card.setAttribute('aria-label',unseen?'Nuovo accesso. Apri clienti registrati al catalogo':'Apri clienti registrati al catalogo');
  }
  function render(data,append,summaryOnly=false){
+  if(dialog.open){
+   const access=data.latestAccess;
+   const latest=el('vgCustomerLatestAccess');
+   latest.hidden=!access;
+   latest.textContent=access?'Ultimo accesso: '+(access.name||access.email||(access.phone?'+'+access.phone:'Cliente'))+' · '+date(access.at)+' (Italia)':'';
+   if(!document.hidden)markAccessSeen(data);
+  }
   renderDashboard(data);
   current=data;el('vgCustomerBadge').textContent=data.unread?data.unread+' nuove':data.pending?data.pending+' in attesa':'Apri';el('vgCustomerTileHint').textContent=data.pending+' da autorizzare · '+data.total+' registrati';tile.classList.toggle('has-unread',data.unread>0);tile.hidden=!data.unread;dismiss.hidden=!data.unread;tile.querySelector('strong').textContent='Nuove registrazioni';
   if(!dialog.open)return;

@@ -608,7 +608,7 @@ window.addEventListener('error',e=>{
 <link rel="stylesheet" href="./vg-fullscreen-pages.css?v=compact-header-20261030">
 <script src="./vg-fullscreen-pages.js?v=dialog-navigation-20261109" defer></script>
 <link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.160">
-<script src="./vg-catalog-stats.js?v=workspace-20261108" defer></script>
+<script src="./vg-catalog-stats.js?v=unseen-access-20261109" defer></script>
 <link rel="stylesheet" href="./vg-admin-workspace.css?v=client-group-20261108">
 <style>
 #vgArticleShare{width:min(540px,calc(100% - 24px));max-height:calc(100dvh - 24px);padding:18px;border:1px solid #b5c9e7;border-radius:14px;color:#142840;background:white}
@@ -707,7 +707,7 @@ window.addEventListener('error',e=>{
     <div class="cards dashMain">
       <div class="stat" data-action="openCurrentOrders" role="button" tabindex="0"><div class="k">Ordini in corso</div><div id="c_open_orders" class="v big">0</div><div class="sub">non ancora consegnati</div></div>
       <div class="stat" data-go="finanze"><div class="k">Guadagno mese</div><div id="c_profit_month" class="v big">0</div><div class="sub">margine del mese corrente</div></div>
-      <div class="stat" id="catalogCustomersStat" role="button" tabindex="0" aria-label="Apri clienti registrati al catalogo"><div class="k">Clienti catalogo</div><div id="c_catalog_customers" class="v big">…</div><div id="c_catalog_last_access" class="sub">Caricamento ultimo accesso…</div></div>
+      <div class="stat" id="catalogCustomersStat" role="button" tabindex="0" aria-label="Apri clienti registrati al catalogo"><div class="k">Clienti catalogo</div><div id="c_catalog_customers" class="v big">…</div><div id="c_catalog_last_access" class="sub">Caricamento ultimo accesso…</div><span id="c_catalog_new_access" role="status" hidden>Nuovo accesso</span></div>
       <div class="stat" data-go="finanze"><div class="k">Guadagno totale</div><div id="c_profit_total" class="v big">0</div><div class="sub">margine complessivo</div></div>
     </div>
     <div class="substats">

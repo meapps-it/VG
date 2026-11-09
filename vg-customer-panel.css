@@ -3,3 +3,8 @@
 .vgCustomerReset{background:#e9f1ff;padding:14px;border-radius:10px;margin-top:12px}.vgCustomerReset code{display:block;font-size:18px;font-weight:bold;overflow-wrap:anywhere;padding:12px 0;user-select:all}.vgCustomerReset button{margin:5px}
 
 #catalogCustomersStat .sub{white-space:normal;overflow-wrap:anywhere;line-height:1.45;font-size:12px}#catalogCustomersStat:focus-visible{outline:3px solid #2166c5;outline-offset:3px}
+
+#catalogCustomersStat.has-new-catalog-access{background:#fff3cc!important;border-color:#b67b00!important}
+#c_catalog_new_access{display:inline-block;margin-top:6px;padding:3px 8px;border-radius:999px;background:#805200;color:#fff;font-size:11px;font-weight:800}
+#c_catalog_new_access[hidden]{display:none}
+.vgCustomerLatestAccess{padding:10px 12px;border-radius:10px;background:#fff3cc;color:#654000;overflow-wrap:anywhere}
