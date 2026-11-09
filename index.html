@@ -9737,7 +9737,7 @@ function articleShareCaptions(article, url){
   const promotion=promoValid(article);
   const price=article.nascondiPrezzo===true?'':formatPostPrezzoVendita(currentPrice(article));
   const details=[promotion?'🔥 IN PROMOZIONE 🔥':'',model,material,formattedSize ? 'Mis. '+formattedSize : '',
-    price?(promotion?'Prezzo promo: ':'Prezzo: ')+price:''].filter(Boolean);
+    price].filter(Boolean);
   const describedClosure=String(article.descrizione||'').match(/(?:^|[\r\n.!?;])\s*(?:[-•✔✓]\s*)?(?:tipo di )?chiusura(?:\s*[:–-]\s*|\s+(?=con\b|a\b))([^,.!?;\r\n]+)/i);
   const closure=normalizeSpaceText(article.chiusura||describedClosure?.[1]||'');
   const chatDetails=closure ? [...details,'Chiusura: '+closure] : details;
