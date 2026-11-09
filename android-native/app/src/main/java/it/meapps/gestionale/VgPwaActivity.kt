@@ -57,6 +57,7 @@ class VgPwaActivity : ComponentActivity() {
  }
  private val notificationPermission=registerForActivityResult(ActivityResultContracts.RequestPermission()){allowed->if(allowed)registerPush()else message("Notifiche disattivate","Puoi abilitarle nelle impostazioni Android.")}
  private val client=OkHttpClient()
+ private val articleShare by lazy { VgArticleShare(this) }
  private fun trusted(url:String?):Boolean {val uri=Uri.parse(url?:return false);return uri.scheme=="https"&&uri.host=="meapps-it.github.io"&&(uri.path=="/VG"||uri.path?.startsWith("/VG/")==true)}
  @SuppressLint("SetJavaScriptEnabled")
  override fun onCreate(savedInstanceState:Bundle?) {
@@ -142,6 +143,17 @@ class VgPwaActivity : ComponentActivity() {
        "set"->{appearance.percent=data.getInt("percent");web.settings.textZoom=appearance.zoom();applyAppearance(false)}
        "get"->applyAppearance()
       }
+     }
+    }
+   }
+  }
+  if(WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+   WebViewCompat.addWebMessageListener(web,"VgArticleShareBridge",origins){view,msg,origin,mainFrame,reply->
+    if(mainFrame&&origin.toString()=="https://meapps-it.github.io"&&trusted(view.url)){
+     io.launch {
+      val result=runCatching { articleShare.handle(msg.data.orEmpty()){trusted(view.url)} }
+       .fold({it.put("ok",true)},{JSONObject().put("ok",false).put("error",it.message?:"Condivisione non riuscita.")})
+      withContext(Dispatchers.Main){runCatching { reply.postMessage(result.toString()) }}
      }
     }
    }

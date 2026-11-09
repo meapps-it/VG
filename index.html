@@ -808,7 +808,6 @@ window.addEventListener('error',e=>{
       <textarea id="vgArticleShareCaption" aria-label="Didascalia" rows="4" readonly></textarea>
       <p id="vgArticleShareNotice"></p>
       <p id="vgArticleShareStatus" role="status"></p>
-      <a id="vgArticleShareBrowser" href="https://meapps-it.github.io/VG/" hidden>Indirizzo del pannello da aprire in Chrome</a>
       <div class="actions">
         <button id="vgArticleSharePhotos" type="button" class="btn primary">Condividi tutte le foto</button>
         <button id="vgArticleShareCopy" type="button" class="btn">Copia didascalia</button>
@@ -9744,6 +9743,40 @@ function shortArticleShareUrl(id){
   return 'https://veglamour.cloud/?a='+code;
 }
 
+let nativeArticleShareBusy=false;
+async function shareArticleOnAndroid(bridge, files, caption, isCurrent){
+  if(nativeArticleShareBusy) throw new Error('Attendi la condivisione in corso.');
+  nativeArticleShareBusy=true;
+  const request=payload=>new Promise((resolve,reject)=>{
+    const clear=()=>{clearTimeout(timer);bridge.onmessage=null;};
+    const timer=setTimeout(()=>{clear();reject(new Error('Android non ha risposto. Riprova.'));},30000);
+    bridge.onmessage=event=>{
+      clear();
+      try{
+        const result=JSON.parse(event.data);
+        if(result.ok) resolve(result);
+        else reject(new Error(result.error||'Condivisione non riuscita.'));
+      }catch(error){reject(error)}
+    };
+    try{bridge.postMessage(JSON.stringify(payload));}
+    catch(error){clear();reject(error)}
+  });
+  let session;
+  try{
+    ({session}=await request({action:'begin',count:files.length}));
+    for(const file of files){
+      const data=await blobToDataUrl(file);
+      if(!isCurrent()) throw new Error('Condivisione chiusa.');
+      await request({action:'photo',session,name:file.name,data:data.slice(data.indexOf(',')+1)});
+    }
+    if(!isCurrent()) throw new Error('Condivisione chiusa.');
+    await request({action:'send',session,caption});
+  }catch(error){
+    if(session) await request({action:'cancel',session}).catch(()=>{});
+    throw error;
+  }finally{nativeArticleShareBusy=false}
+}
+
 async function openArticleShare(id){
   const article=loadDB().articoli.find(item=>String(item.id)===id);
   if(!article) return toast('Articolo non trovato');
@@ -9761,8 +9794,8 @@ async function openArticleShare(id){
   const share=get('vgArticleSharePhotos');
   const download=get('vgArticleShareDownload');
   const copyLink=get('vgArticleShareCopyLink');
-  const browser=get('vgArticleShareBrowser');
-  browser.hidden=true;
+  const androidShare=window.VgArticleShareBridge;
+  const nativeSupported=typeof androidShare?.postMessage==='function';
   copyLink.hidden=!url;
   copyLink.onclick=()=>copyText(url,'Link copiato');
   channel.value='chat';
@@ -9781,6 +9814,7 @@ async function openArticleShare(id){
   channel.onchange();
   get('vgArticleShareCopy').onclick=()=>copyText(caption.value,'Didascalia copiata');
   share.disabled=true;
+  share.hidden=false;
   share.textContent='Condividi tutte le foto';
   download.hidden=true;
   status.textContent='Preparazione delle foto…';
@@ -9789,9 +9823,11 @@ async function openArticleShare(id){
   const isCurrent=()=>dialog.shareRequest===request&&dialog.open;
   dialog.showModal();
   const shareSupported=typeof navigator.share==='function';
-  if(!shareSupported){
-    status.textContent='Questa app non può aprire il menu di condivisione. Apri il pannello in Chrome e riprova.';
-    browser.hidden=false;
+  if(!nativeSupported&&!shareSupported){
+    share.hidden=true;
+    status.textContent=/VgHybrid\//.test(navigator.userAgent)
+      ? 'Aggiorna l’app V&G per condividere direttamente tutte le foto.'
+      : 'Questo browser non apre il menu di condivisione delle foto.';
   }
   try{
     const baseName=getArticlePhotoShareBaseName(article);
@@ -9816,10 +9852,10 @@ async function openArticleShare(id){
         if(isCurrent()) status.textContent='Download delle foto non riuscito.';
       }finally{if(isCurrent()) download.disabled=false}
     };
-    if(!canNativeShareFiles(files)){
+    if(!nativeSupported&&!canNativeShareFiles(files)){
       status.textContent=shareSupported
         ? 'Il browser non può inviare tutte queste foto insieme. Usa Scarica foto e Copia didascalia.'
-        : 'Apri il pannello in Chrome per condividere le foto, oppure usa Scarica foto e Copia didascalia.';
+        : status.textContent+' Puoi usare Scarica foto e Copia didascalia.';
       return;
     }
     share.disabled=false;
@@ -9828,18 +9864,23 @@ async function openArticleShare(id){
     share.onclick=async()=>{
       share.disabled=true;
       try{
-        await navigator.share(photosOnly ? {files} : {title:captions.model,text:caption.value,files});
+        if(nativeSupported){
+          status.textContent='Apertura del menu di Android…';
+          await shareArticleOnAndroid(androidShare,files,caption.value,isCurrent);
+          if(isCurrent()) status.textContent='Scegli l’app dal menu di Android.';
+        }else await navigator.share(photosOnly ? {files} : {title:captions.model,text:caption.value,files});
       }catch(error){
         if(!isCurrent()) return;
-        if(isShareAbortError(error)){
+        if(nativeSupported){
+          status.textContent=error.message||'Android non ha aperto il menu. Riprova.';
+        }else if(isShareAbortError(error)){
           status.textContent='Condivisione chiusa o nessuna app disponibile. Puoi riprovare oppure usare Scarica foto.';
         }else if(!photosOnly){
           photosOnly=true;
           share.textContent='Condividi solo le foto';
           status.textContent='Il menu non si è aperto. Copia la didascalia, poi premi Condividi solo le foto e incollala nell’app.';
         }else{
-          status.textContent='Il menu non si è aperto. Prova da Chrome oppure usa Scarica foto e Copia didascalia.';
-          browser.hidden=false;
+          status.textContent='Il menu non si è aperto. Usa Scarica foto e Copia didascalia.';
         }
       }finally{if(isCurrent()) share.disabled=false}
     };
