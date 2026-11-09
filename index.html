@@ -500,7 +500,7 @@ input,select,textarea{font-size:17px;line-height:1.25}
 .archiveFolder summary::-webkit-details-marker{display:none}
 .archiveFolderCount{font-size:12px;background:#e2e8f0;border-radius:999px;padding:5px 9px;color:#334155}
 .archiveFolderBody{padding:0 12px 12px;display:grid;gap:10px}
-.archiveRow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:#fff;border:1px solid #dbe2ea;border-radius:14px;padding:12px}
+.archiveRow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;background:#fff;border:1px solid #dbe2ea;border-radius:14px;padding:12px}
 .archiveRow .t{font-weight:1000}.archiveRow .s{font-size:12px;color:#64748b;margin-top:3px}
 .archiveRestore{border:1px solid #16a34a;background:#16a34a;color:#fff;border-radius:12px;padding:10px 12px;font-weight:1000}
 
@@ -617,7 +617,9 @@ window.addEventListener('error',e=>{
 #vgArticleShare textarea{width:100%;min-height:104px}
 #vgArticleShare p:empty,#vgArticleShare [hidden]{display:none}
 #vgArticleShare .actions{display:flex;gap:8px;flex-wrap:wrap}
-.artCard .vgArtShareButton{align-self:stretch;margin-top:8px;min-height:44px}
+.vgArtShareButton{display:inline-grid;place-items:center;flex:none;width:44px;height:44px;padding:0;border:0;border-radius:10px;background:transparent;color:#164e99;cursor:pointer}
+.vgArtShareButton:hover,.vgArtShareButton:focus-visible{background:#dce8f8}
+.vgArtShareButton svg{width:20px;height:20px;pointer-events:none}
 </style>
 </head>
 <body class="auth-locked vg-workspace">
@@ -9459,10 +9461,14 @@ function renderArtStats(items){
   box.innerHTML=`<span class="artStatsItem">Totale articoli: <strong>${total}</strong></span>${withoutPhotos>0 ? `<button type="button" class="artStatsItem noPhoto" data-action="openArticlesWithoutPhotos">Senza foto: <strong>${withoutPhotos}</strong></button>` : ''}`;
 }
 
+function articleShareButtonHtml(article){
+  const label='Condividi '+(article.modello||article.codice||'articolo');
+  return `<button type="button" class="vgArtShareButton" data-action="shareCatalogArticle" data-id="${esc(article.id)}" aria-label="${esc(label)}" title="${esc(label)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8.6 10.5 6.8-3.9m-6.8 6.9 6.8 3.9"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="5" r="3"/><circle cx="18" cy="19" r="3"/></svg></button>`;
+}
 function articleArchiveFolderHtml(archivedItems){
   const list=Array.isArray(archivedItems)?archivedItems:[];
   if(!list.length) return '';
-  const rows=list.map(a=>`<div class="archiveRow" data-open="art" data-id="${esc(a.id)}"><div><div class="t">${esc(a.modello||a.codice||'Articolo')}</div><div class="s">${esc(a.codice||'Senza codice')} • ${esc(a.categoria||'Senza categoria')}</div></div><button type="button" class="archiveRestore" data-action="restoreArchivedArticle" data-id="${esc(a.id)}">Ripristina</button><button type="button" class="btn vgArtShareButton" data-action="shareCatalogArticle" data-id="${esc(a.id)}">Condividi</button></div>`).join('');
+  const rows=list.map(a=>`<div class="archiveRow" data-open="art" data-id="${esc(a.id)}"><div><div class="t">${esc(a.modello||a.codice||'Articolo')}</div><div class="s">${esc(a.codice||'Senza codice')} • ${esc(a.categoria||'Senza categoria')}</div></div><button type="button" class="archiveRestore" data-action="restoreArchivedArticle" data-id="${esc(a.id)}">Ripristina</button>${articleShareButtonHtml(a)}</div>`).join('');
   return `<details class="archiveFolder"><summary><span>🗂️ Archivio articoli</span><span class="archiveFolderCount">${list.length}</span></summary><div class="archiveFolderBody">${rows}</div></details>`;
 }
 function restoreArchivedArticle(id){
@@ -9833,7 +9839,7 @@ function renderArt(){
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
     const promoActive=promoValid(a);
     const promoBadge=promoActive ? `<div class="artPromoBadge">🔥 IN PROMOZIONE</div>` : '';
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''} ${promoActive ? 'is-promo' : ''}" data-open="art" data-id="${a.id}">${noteHtml}${promoBadge}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s">${a.codice?`Cod. ${esc(a.codice)} • `:''}${esc(metaLine)}</div>${unavailable}<label class="shopPublishControl" style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" data-shop-publish="${a.id}" ${a.pubblicatoCatalogo!==false?"checked":""} style="width:18px;height:18px;accent-color:#167447"> Pubblicato nel catalogo clienti</label></div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div></div>${articleUnderMarginListBadgeHtml(a)}<button type="button" class="btn vgArtShareButton" data-action="shareCatalogArticle" data-id="${esc(a.id)}" aria-label="Condividi ${esc(a.modello||a.codice||'articolo')}">Condividi</button></div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''} ${promoActive ? 'is-promo' : ''}" data-open="art" data-id="${a.id}">${noteHtml}${promoBadge}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s">${a.codice?`Cod. ${esc(a.codice)} • `:''}${esc(metaLine)}</div>${unavailable}<label class="shopPublishControl" style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" data-shop-publish="${a.id}" ${a.pubblicatoCatalogo!==false?"checked":""} style="width:18px;height:18px;accent-color:#167447"> Pubblicato nel catalogo clienti</label></div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articleShareButtonHtml(a)}</div>${articleUnderMarginListBadgeHtml(a)}</div>`;
   }).join('');
   const emptyText=noPhotoOnly ? 'Nessun articolo senza foto.' : (promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.');
   const activeHtml=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
