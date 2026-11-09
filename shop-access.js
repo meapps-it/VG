@@ -3,6 +3,30 @@
  const endpoint='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-shop-catalog';
  const key='vg-shop-customer-v1',adminKey='vg-shop-session-v1',get=id=>document.getElementById(id);
  const valid=value=>/^[a-f0-9]{64}$/.test(value||'');
+ const articleSharePath=/^\/[a-z0-9]{1,48}(?:-[a-z0-9]{1,32})?$/;
+ const shareReturnKey='vg-shop-google-share-path';
+ const brandedHost=['veglamour.cloud','www.veglamour.cloud'].includes(location.hostname);
+ const googleResult=new URLSearchParams(location.search);
+ if(brandedHost&&location.pathname==='/'&&(googleResult.has('code')||googleResult.has('error')||new URLSearchParams(location.hash.slice(1)).has('error'))){
+  try{
+   const path=sessionStorage.getItem(shareReturnKey)||'';
+   sessionStorage.removeItem(shareReturnKey);
+   if(articleSharePath.test(path))history.replaceState(null,'',path+location.search+location.hash);
+  }catch{}
+ }
+ function googleRedirectUrl(){
+  if(brandedHost){
+   try{
+    if(articleSharePath.test(location.pathname)){
+     sessionStorage.setItem(shareReturnKey,location.pathname);
+     return location.origin+'/';
+    }
+    sessionStorage.removeItem(shareReturnKey);
+   }catch{}
+  }
+  return location.origin+location.pathname;
+ }
+
  const read=name=>{try{return localStorage.getItem(name)||''}catch{return ''}};
  let token=read(key),adminToken=read(adminKey),profile=null,reloadCatalog=null,register=false,googleClient;
  const store=(name,value)=>{try{value?localStorage.setItem(name,value):localStorage.removeItem(name)}catch{}};
@@ -72,7 +96,7 @@
  function googleConsentError(invalid){get('accessGooglePrivacyLabel').classList.toggle('consent-invalid',invalid);get('accessGooglePrivacy').setAttribute('aria-invalid',String(invalid));get('accessGoogleConsentError').hidden=!invalid;}
  get('accessGooglePrivacy').addEventListener('change',()=>{if(get('accessGooglePrivacy').checked){googleConsentError(false);if(get('accessError').textContent==='Accetta il trattamento dei dati per continuare con Google.')get('accessError').textContent=''}});
 
- get('accessGoogle').onclick=async()=>{if(!get('accessGooglePrivacy').checked){googleConsentError(true);get('accessError').textContent='Accetta il trattamento dei dati per continuare con Google.';get('accessGooglePrivacy').focus();get('accessGooglePrivacyLabel').scrollIntoView({block:'nearest',behavior:'smooth'});return}googleConsentError(false);const button=get('accessGoogle');button.disabled=true;try{const client=await google(),result=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{prompt:'select_account'}}});if(result.error)throw result.error}catch(error){get('accessError').textContent=error.message;button.disabled=false}};
+ get('accessGoogle').onclick=async()=>{if(!get('accessGooglePrivacy').checked){googleConsentError(true);get('accessError').textContent='Accetta il trattamento dei dati per continuare con Google.';get('accessGooglePrivacy').focus();get('accessGooglePrivacyLabel').scrollIntoView({block:'nearest',behavior:'smooth'});return}googleConsentError(false);const button=get('accessGoogle');button.disabled=true;try{const client=await google(),result=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:googleRedirectUrl(),queryParams:{prompt:'select_account'}}});if(result.error)throw result.error}catch(error){get('accessError').textContent=error.message;button.disabled=false}};
 
  // Official Google Identity Services button with the browser account chooser.
  const googleInline=document.createElement('div');googleInline.id='accessGoogleInline';googleInline.hidden=true;
