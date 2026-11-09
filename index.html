@@ -808,6 +808,7 @@ window.addEventListener('error',e=>{
       <textarea id="vgArticleShareCaption" aria-label="Didascalia" rows="4" readonly></textarea>
       <p id="vgArticleShareNotice"></p>
       <p id="vgArticleShareStatus" role="status"></p>
+      <a id="vgArticleShareBrowser" href="https://meapps-it.github.io/VG/" hidden>Indirizzo del pannello da aprire in Chrome</a>
       <div class="actions">
         <button id="vgArticleSharePhotos" type="button" class="btn primary">Condividi tutte le foto</button>
         <button id="vgArticleShareCopy" type="button" class="btn">Copia didascalia</button>
@@ -4079,9 +4080,11 @@ async function buildArticlePhotoFiles(art, pics, baseName){
   for(let i=0;i<pics.length;i++){
     try{
       const rawSrc=String(pics[i]||'').trim();
-      const blob=await downloadArticlePhotoBlobForShare(rawSrc);
-      const ext=guessPhotoExtension(rawSrc, blob);
-      const type=blob?.type || (ext==='png' ? 'image/png' : ext==='webp' ? 'image/webp' : ext==='gif' ? 'image/gif' : 'image/jpeg');
+      let blob=await downloadArticlePhotoBlobForShare(rawSrc);
+      if(!blob.type.startsWith('image/')) blob=await normalizeArticlePhotoFile(blob);
+      const photoExtensions={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif','image/bmp':'bmp','image/avif':'avif','image/heic':'heic'};
+      const type=blob.type;
+      const ext=photoExtensions[type]||guessPhotoExtension(rawSrc,blob);
       const name=`${baseName}_${String(i+1).padStart(2,'0')}.${ext}`;
       files.push(new File([blob], name, { type, lastModified: Date.now() }));
     }catch(err){
@@ -9758,6 +9761,8 @@ async function openArticleShare(id){
   const share=get('vgArticleSharePhotos');
   const download=get('vgArticleShareDownload');
   const copyLink=get('vgArticleShareCopyLink');
+  const browser=get('vgArticleShareBrowser');
+  browser.hidden=true;
   copyLink.hidden=!url;
   copyLink.onclick=()=>copyText(url,'Link copiato');
   channel.value='chat';
@@ -9776,12 +9781,18 @@ async function openArticleShare(id){
   channel.onchange();
   get('vgArticleShareCopy').onclick=()=>copyText(caption.value,'Didascalia copiata');
   share.disabled=true;
+  share.textContent='Condividi tutte le foto';
   download.hidden=true;
   status.textContent='Preparazione delle foto…';
   const request={};
   dialog.shareRequest=request;
   const isCurrent=()=>dialog.shareRequest===request&&dialog.open;
   dialog.showModal();
+  const shareSupported=typeof navigator.share==='function';
+  if(!shareSupported){
+    status.textContent='Questa app non può aprire il menu di condivisione. Apri il pannello in Chrome e riprova.';
+    browser.hidden=false;
+  }
   try{
     const baseName=getArticlePhotoShareBaseName(article);
     const pics=await getArticleCloudSyncSources(article);
@@ -9806,16 +9817,30 @@ async function openArticleShare(id){
       }finally{if(isCurrent()) download.disabled=false}
     };
     if(!canNativeShareFiles(files)){
-      status.textContent='Il browser non può inviare tutte queste foto insieme. Usa Scarica foto e Copia didascalia.';
+      status.textContent=shareSupported
+        ? 'Il browser non può inviare tutte queste foto insieme. Usa Scarica foto e Copia didascalia.'
+        : 'Apri il pannello in Chrome per condividere le foto, oppure usa Scarica foto e Copia didascalia.';
       return;
     }
     share.disabled=false;
     status.textContent=files.length===1 ? '1 foto pronta.' : files.length+' foto pronte.';
+    let photosOnly=false;
     share.onclick=async()=>{
       share.disabled=true;
-      try{await navigator.share({title:captions.model,text:caption.value,files});}
-      catch(error){
-        if(isCurrent()&&!isShareAbortError(error)) status.textContent='Invio con foto non riuscito. Riprova oppure usa Scarica foto e Copia didascalia.';
+      try{
+        await navigator.share(photosOnly ? {files} : {title:captions.model,text:caption.value,files});
+      }catch(error){
+        if(!isCurrent()) return;
+        if(isShareAbortError(error)){
+          status.textContent='Condivisione chiusa o nessuna app disponibile. Puoi riprovare oppure usare Scarica foto.';
+        }else if(!photosOnly){
+          photosOnly=true;
+          share.textContent='Condividi solo le foto';
+          status.textContent='Il menu non si è aperto. Copia la didascalia, poi premi Condividi solo le foto e incollala nell’app.';
+        }else{
+          status.textContent='Il menu non si è aperto. Prova da Chrome oppure usa Scarica foto e Copia didascalia.';
+          browser.hidden=false;
+        }
       }finally{if(isCurrent()) share.disabled=false}
     };
   }catch(error){
