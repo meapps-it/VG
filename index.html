@@ -614,6 +614,7 @@ window.addEventListener('error',e=>{
 #vgArticleShare{width:min(540px,calc(100% - 24px));max-height:calc(100dvh - 24px);padding:18px;border:1px solid #b5c9e7;border-radius:14px;color:#142840;background:white}
 #vgArticleShare::backdrop{background:#14284085}
 #vgArticleShare h2{margin:0;font-size:21px}
+#vgArticleShare select{display:block;width:100%;margin:4px 0 8px}
 #vgArticleShare textarea{width:100%;min-height:104px}
 #vgArticleShare p:empty,#vgArticleShare [hidden]{display:none}
 #vgArticleShare .actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -798,15 +799,19 @@ window.addEventListener('error',e=>{
     <div id="listArt" class="artGrid"></div>
     <dialog id="vgArticleShare" aria-labelledby="vgArticleShareTitle">
       <h2 id="vgArticleShareTitle">Condividi articolo</h2>
-      <p>Per inviare le foto, scegli WhatsApp o Telegram dal menu di condivisione e seleziona il gruppo.</p>
+      <label for="vgArticleShareChannel">Didascalia per</label>
+      <select id="vgArticleShareChannel">
+        <option value="chat">WhatsApp / Telegram</option>
+        <option value="instagram">Instagram</option>
+      </select>
+      <p id="vgArticleShareHelp"></p>
       <textarea id="vgArticleShareCaption" aria-label="Didascalia" rows="4" readonly></textarea>
       <p id="vgArticleShareNotice"></p>
       <p id="vgArticleShareStatus" role="status"></p>
       <div class="actions">
-        <button id="vgArticleSharePhotos" type="button" class="btn primary">Condividi foto e testo</button>
+        <button id="vgArticleSharePhotos" type="button" class="btn primary">Condividi tutte le foto</button>
         <button id="vgArticleShareCopy" type="button" class="btn">Copia didascalia</button>
-        <a id="vgArticleShareWhatsApp" class="btn" target="_blank" rel="noopener noreferrer">Testo su WhatsApp</a>
-        <a id="vgArticleShareTelegram" class="btn" target="_blank" rel="noopener noreferrer">Link su Telegram</a>
+        <button id="vgArticleShareDownload" type="button" class="btn" hidden>Scarica foto</button>
         <form method="dialog"><button type="submit" class="btn">Chiudi</button></form>
       </div>
     </dialog>
@@ -9714,63 +9719,92 @@ function compareArticlesForPreview(a,b){
   );
 }
 
+function articleShareCaptions(article, url){
+  const model=normalizeSpaceText(article.modello||article.codice||'Articolo');
+  const material=normalizeSpaceText(article.materiale||article.taglia||'');
+  const describedClosure=String(article.descrizione||'').match(/(?:^|[\r\n.!?;])\s*(?:[-•✔✓]\s*)?(?:tipo di )?chiusura(?:\s*[:–-]\s*|\s+(?=con\b|a\b))([^,.!?;\r\n]+)/i);
+  const closure=normalizeSpaceText(article.chiusura||describedClosure?.[1]||'');
+  const materialLine=material ? 'Materiale: '+material : '';
+  const details=[model,closure ? 'Chiusura: '+closure : '',materialLine].filter(Boolean).join('\n');
+  return {
+    model,
+    chat:[details,url].filter(Boolean).join('\n\n'),
+    instagram:[model,materialLine].filter(Boolean).join('\n')
+  };
+}
+
 async function openArticleShare(id){
   const article=loadDB().articoli.find(item=>String(item.id)===id);
   if(!article) return toast('Articolo non trovato');
   const get=id=>document.getElementById(id);
   const dialog=get('vgArticleShare');
   if(dialog.open) return;
-  const model=normalizeSpaceText(article.modello||article.codice||'Articolo');
-  const colors=getArticleColorMode(article)==='multiple'
-    ? getArticleColorLabels(article).map((label,index)=>label ? (index+1)+' - '+label : 'Colore '+(index+1))
-    : [normalizeSpaceText(article.colore||'')].filter(Boolean);
-  const description=[model,colors.length ? 'Colori: '+colors.join(', ') : ''].filter(Boolean).join('\n');
   const published=isUuid(id)&&article.pubblicatoCatalogo!==false&&!isArticleUnavailable(article);
   const url=published ? 'https://veglamour.cloud/?articolo='+encodeURIComponent(id) : '';
-  const caption=[description,url].filter(Boolean).join('\n\n');
+  const captions=articleShareCaptions(article,url);
+  const channel=get('vgArticleShareChannel');
+  const caption=get('vgArticleShareCaption');
+  const help=get('vgArticleShareHelp');
+  const notice=get('vgArticleShareNotice');
   const status=get('vgArticleShareStatus');
   const share=get('vgArticleSharePhotos');
-  const telegram=get('vgArticleShareTelegram');
-  get('vgArticleShareCaption').value=caption;
-  get('vgArticleShareNotice').textContent=url ? '' : 'Il link al catalogo è disponibile per gli articoli pubblicati e sincronizzati.';
-  get('vgArticleShareCopy').onclick=()=>copyText(caption,'Didascalia copiata');
-  get('vgArticleShareWhatsApp').href='https://wa.me/?text='+encodeURIComponent(caption);
-  telegram.hidden=!url;
-  if(url) telegram.href='https://t.me/share/url?'+new URLSearchParams({url,text:description});
-  else telegram.removeAttribute('href');
+  const download=get('vgArticleShareDownload');
+  channel.value='chat';
+  channel.onchange=()=>{
+    const instagram=channel.value==='instagram';
+    caption.value=captions[channel.value];
+    help.textContent=instagram
+      ? 'Scegli Instagram nel menu del telefono. Se la didascalia non viene inserita, usa Copia didascalia e incollala nel post.'
+      : 'Scegli WhatsApp o Telegram nel menu del telefono, poi seleziona il gruppo.';
+    notice.textContent=instagram||url ? '' : 'Il link al catalogo è disponibile per gli articoli pubblicati e sincronizzati.';
+  };
+  channel.onchange();
+  get('vgArticleShareCopy').onclick=()=>copyText(caption.value,'Didascalia copiata');
   share.disabled=true;
-  status.textContent='';
-  const supported=typeof navigator.share==='function';
-  share.hidden=!supported;
+  download.hidden=true;
+  status.textContent='Preparazione delle foto…';
   const request={};
   dialog.shareRequest=request;
+  const isCurrent=()=>dialog.shareRequest===request&&dialog.open;
   dialog.showModal();
-  if(!supported){
-    status.textContent='La condivisione di allegati non è disponibile in questo browser.';
-    return;
-  }
-  status.textContent='Preparazione delle foto…';
   try{
+    const baseName=getArticlePhotoShareBaseName(article);
     const pics=await getArticleCloudSyncSources(article);
-    if(dialog.shareRequest!==request||!dialog.open) return;
-    const files=await buildArticlePhotoFiles(article,pics,getArticlePhotoShareBaseName(article));
-    if(dialog.shareRequest!==request||!dialog.open) return;
-    const payload={title:model,text:caption,files};
+    if(!isCurrent()) return;
+    const files=await buildArticlePhotoFiles(article,pics,baseName);
+    if(!isCurrent()) return;
+    if(!files.length||files.length!==pics.length){
+      status.textContent=files.length
+        ? 'Pronte '+files.length+' foto su '+pics.length+'. Riapri Condividi per riprovare a prepararle tutte.'
+        : 'Nessuna foto pronta da condividere.';
+      return;
+    }
+    download.hidden=false;
+    download.disabled=false;
+    download.onclick=async()=>{
+      download.disabled=true;
+      try{
+        const file=files.length===1 ? files[0] : await buildZipFromFiles(files,baseName+'_foto.zip');
+        if(isCurrent()) triggerBlobDownload(file,file.name);
+      }catch(error){
+        if(isCurrent()) status.textContent='Download delle foto non riuscito.';
+      }finally{if(isCurrent()) download.disabled=false}
+    };
     if(!canNativeShareFiles(files)){
-      status.textContent=files.length ? 'Il browser non supporta l’invio di queste foto. Puoi condividere la didascalia e il link.' : 'Nessuna foto pronta da condividere.';
+      status.textContent='Il browser non può inviare tutte queste foto insieme. Usa Scarica foto e Copia didascalia.';
       return;
     }
     share.disabled=false;
-    status.textContent=files.length===pics.length ? files.length+' foto pronte.' : files.length+' di '+pics.length+' foto pronte.';
+    status.textContent=files.length===1 ? '1 foto pronta.' : files.length+' foto pronte.';
     share.onclick=async()=>{
       share.disabled=true;
-      try{await navigator.share(payload);}
+      try{await navigator.share({title:captions.model,text:caption.value,files});}
       catch(error){
-        if(!isShareAbortError(error)) status.textContent='Condivisione con foto non riuscita. Riprova o usa Copia didascalia.';
-      }finally{share.disabled=false}
+        if(isCurrent()&&!isShareAbortError(error)) status.textContent='Invio con foto non riuscito. Riprova oppure usa Scarica foto e Copia didascalia.';
+      }finally{if(isCurrent()) share.disabled=false}
     };
   }catch(error){
-    if(dialog.shareRequest===request&&dialog.open) status.textContent='Preparazione delle foto non riuscita. Puoi comunque condividere il testo.';
+    if(isCurrent()) status.textContent='Preparazione delle foto non riuscita. Puoi ancora copiare la didascalia.';
   }
 }
 
