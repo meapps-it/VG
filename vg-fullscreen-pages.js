@@ -10,9 +10,10 @@
    header.append(back);title.before(header);header.append(title);
   });
  }
+ const managedDialogs='dialog.vgStatsDialog[id],dialog[data-vg-dialog-history][id]';
  const openDialogs=new Set();
  function dialogs(){
-  document.querySelectorAll('dialog.vgStatsDialog').forEach(dialog=>{
+  document.querySelectorAll(managedDialogs).forEach(dialog=>{
    if(dialog.open&&!openDialogs.has(dialog.id)){
     openDialogs.add(dialog.id);history.pushState({...history.state,vgFullPageDialog:dialog.id},'',location.href);
    }else if(!dialog.open&&openDialogs.has(dialog.id)){
@@ -22,12 +23,16 @@
  }
  const observer=new MutationObserver(records=>{
   // Text-only mutations (clock, validation, counters) do not create pages.
-  const added=records.some(record=>[...record.addedNodes].some(node=>node.nodeType===1&&(node.matches('.modalwrap,.modal,dialog.vgStatsDialog')||node.querySelector('.modalwrap,.modal,dialog.vgStatsDialog')||(node.matches('.h2,h2')&&node.parentElement?.matches('.modal')))));
+  const added=records.some(record=>[...record.addedNodes].some(node=>node.nodeType===1&&(node.matches('.modalwrap,.modal,'+managedDialogs)||node.querySelector('.modalwrap,.modal,'+managedDialogs)||(node.matches('.h2,h2')&&node.parentElement?.matches('.modal')))));
   if(added)preparePages();
-  if(added||records.some(record=>record.type==='attributes'&&record.target.matches('dialog.vgStatsDialog')))dialogs();
+  if(added||records.some(record=>record.type==='attributes'&&record.target.matches(managedDialogs)))dialogs();
  });observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});
  window.addEventListener('popstate',()=>{for(const id of [...openDialogs]){const dialog=document.getElementById(id);if(dialog?.open&&history.state?.vgFullPageDialog!==id)dialog.close()}});
+ function closeHiddenDialogs(){
+  document.querySelectorAll('.section:not(.active) dialog[open]').forEach(dialog=>dialog.close());
+ }
  window.addEventListener('pagehide',()=>observer.disconnect());
- window.addEventListener('pageshow',()=>{observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});preparePages();dialogs()});
+ window.addEventListener('pageshow',()=>{closeHiddenDialogs();observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});preparePages();dialogs()});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)closeHiddenDialogs()});
  preparePages();dialogs();
 })();

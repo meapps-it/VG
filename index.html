@@ -606,7 +606,7 @@ window.addEventListener('error',e=>{
 </style>
 <link rel="stylesheet" href="./vg-bold-theme.css?v=inline-price-visibility-20261031">
 <link rel="stylesheet" href="./vg-fullscreen-pages.css?v=compact-header-20261030">
-<script src="./vg-fullscreen-pages.js?v=compact-header-20261030" defer></script>
+<script src="./vg-fullscreen-pages.js?v=dialog-navigation-20261109" defer></script>
 <link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.160">
 <script src="./vg-catalog-stats.js?v=workspace-20261108" defer></script>
 <link rel="stylesheet" href="./vg-admin-workspace.css?v=client-group-20261108">
@@ -797,7 +797,7 @@ window.addEventListener('error',e=>{
     </div>
     <div style="height:10px"></div>
     <div id="listArt" class="artGrid"></div>
-    <dialog id="vgArticleShare" aria-labelledby="vgArticleShareTitle">
+    <dialog id="vgArticleShare" data-vg-dialog-history aria-labelledby="vgArticleShareTitle">
       <h2 id="vgArticleShareTitle">Condividi articolo</h2>
       <label for="vgArticleShareChannel">Didascalia per</label>
       <select id="vgArticleShareChannel">
@@ -829,7 +829,7 @@ window.addEventListener('error',e=>{
       <div><strong>Possibili doppioni</strong><div id="clientDuplicateCount" role="status"></div></div>
       <button class="btn" type="button" data-action="reviewClientDuplicates">Rivedi doppioni</button>
     </section>
-    <dialog id="clientDuplicateDialog" class="vgClientDuplicateDialog" aria-labelledby="clientDuplicateTitle">
+    <dialog id="clientDuplicateDialog" data-vg-dialog-history class="vgClientDuplicateDialog" aria-labelledby="clientDuplicateTitle">
       <form id="clientDuplicateForm">
         <h2 id="clientDuplicateTitle">Verifica e unifica clienti</h2>
         <p>Tutte le altre schede del gruppo sono già selezionate. Confronta i recapiti e deseleziona eventuali omonimi.</p>
@@ -7898,8 +7898,11 @@ function toggleTopMenu(force){ setTopMenuOpen(typeof force==='boolean' ? force :
 /* ====== NAV ====== */
 let activeModalId=null;
 function renderPageState(name){
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  const sec=document.getElementById('sec_'+name); if(sec) sec.classList.add('active');
+  const activeSection=document.getElementById('sec_'+name);
+  document.querySelectorAll('.section').forEach(section=>{
+    if(section!==activeSection) section.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());
+    section.classList.toggle('active',section===activeSection);
+  });
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.go===name));
   document.querySelectorAll('.navBottom button').forEach(b=>{const active=b.dataset.go===name;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
 }
@@ -15240,6 +15243,14 @@ async function cloudLogout(){
 let authenticatedAppInitialized=false;
 function setAuthenticatedUi(allowed){
   const ok=!!allowed;
+  if(!ok){
+    if(history.state?.vgFullPageDialog){
+      const state={...history.state};
+      delete state.vgFullPageDialog;
+      history.replaceState(state,'',location.href);
+    }
+    document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());
+  }
   document.body.classList.toggle('auth-locked', !ok);
   const gate=document.getElementById('authGate');
   if(gate) gate.style.display=ok?'none':'flex';
