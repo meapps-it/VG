@@ -801,7 +801,7 @@ window.addEventListener('error',e=>{
     <dialog id="clientDuplicateDialog" class="vgClientDuplicateDialog" aria-labelledby="clientDuplicateTitle">
       <form id="clientDuplicateForm">
         <h2 id="clientDuplicateTitle">Verifica e unifica clienti</h2>
-        <p>Lo stesso nome e cognome può appartenere a persone diverse. Confronta le schede prima di unirle.</p>
+        <p>Tutte le altre schede del gruppo sono già selezionate. Confronta i recapiti e deseleziona eventuali omonimi.</p>
         <label>Nome e cognome<select id="clientDuplicateGroup"></select></label>
         <label>Scheda da mantenere<select id="clientDuplicateKeep"></select></label>
         <fieldset id="clientDuplicateRemove" class="vgClientDuplicateSelection">
@@ -10012,7 +10012,7 @@ function openClientDuplicateReview(){
     confirm.checked=false;
     status.textContent='';
     submit.disabled=count===0;
-    submit.textContent=count>0?'Unifica '+(count+1)+' schede':'Unifica schede';
+    submit.textContent=count>0?'Unifica '+(count+1)+' schede in una':'Unifica schede';
   }
   function updateRemove(){
     const clients=groups[Number(group.value)];
@@ -10024,6 +10024,7 @@ function openClientDuplicateReview(){
       const input=document.createElement('input');
       input.type='checkbox';
       input.value=client.id;
+      input.checked=true;
       label.append(input,'Scheda '+(index+1)+' · '+clientDuplicateOption(client,db.ordini));
       options.append(label);
     });
