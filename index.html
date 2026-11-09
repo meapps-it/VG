@@ -9736,15 +9736,14 @@ function articleShareCaptions(article, url){
   const formattedSize=dimensions ? size.replace(/cm|\s/gi,'').replace(/[X×]/g,'x')+' cm' : size;
   const promotion=promoValid(article);
   const price=article.nascondiPrezzo===true?'':formatPostPrezzoVendita(currentPrice(article));
-  const details=[promotion?'🔥 IN PROMOZIONE 🔥':'',model,material,formattedSize ? 'Mis. '+formattedSize : '',
-    price].filter(Boolean);
+  const details=[promotion?'🔥 IN PROMOZIONE 🔥':'',model,material,formattedSize ? 'Mis. '+formattedSize : ''].filter(Boolean);
   const describedClosure=String(article.descrizione||'').match(/(?:^|[\r\n.!?;])\s*(?:[-•✔✓]\s*)?(?:tipo di )?chiusura(?:\s*[:–-]\s*|\s+(?=con\b|a\b))([^,.!?;\r\n]+)/i);
   const closure=normalizeSpaceText(article.chiusura||describedClosure?.[1]||'');
-  const chatDetails=closure ? [...details,'Chiusura: '+closure] : details;
+  const chatDetails=[...details,closure?'Chiusura: '+closure:'',price].filter(Boolean);
   return {
     model,
-    chat:[chatDetails.join('\n'),url].filter(Boolean).join('\n\n'),
-    instagram:details.join('\n')
+    chat:[chatDetails.join('\n'),url?'👇 Ordina qui 👇\n'+url:''].filter(Boolean).join('\n\n'),
+    instagram:[...details,price].filter(Boolean).join('\n')
   };
 }
 
