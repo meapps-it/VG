@@ -9729,15 +9729,19 @@ function compareArticlesForPreview(a,b){
 
 function articleShareCaptions(article, url){
   const model=normalizeSpaceText(article.modello||article.codice||'Articolo');
-  const material=normalizeSpaceText(article.materiale||article.taglia||'');
+  const material=normalizeSpaceText(article.materiale||article.taglia||'').replace(/^materiale\s*:\s*/i,'');
+  const size=normalizeSpaceText(article.misura||article.dimensioni||'')
+    .replace(/^(?:misure?|misura|mis|dimensioni|dim)\b\s*[.:-]?\s*/i,'');
+  const dimensions=/^\d+(?:[.,]\d+)?\s*(?:cm)?(?:\s*[x×]\s*\d+(?:[.,]\d+)?\s*(?:cm)?){1,2}$/i.test(size);
+  const formattedSize=dimensions ? size.replace(/cm|\s/gi,'').replace(/[X×]/g,'x')+' cm' : size;
+  const details=[model,material,formattedSize ? 'Mis. '+formattedSize : ''].filter(Boolean);
   const describedClosure=String(article.descrizione||'').match(/(?:^|[\r\n.!?;])\s*(?:[-•✔✓]\s*)?(?:tipo di )?chiusura(?:\s*[:–-]\s*|\s+(?=con\b|a\b))([^,.!?;\r\n]+)/i);
   const closure=normalizeSpaceText(article.chiusura||describedClosure?.[1]||'');
-  const materialLine=material ? 'Materiale: '+material : '';
-  const details=[model,closure ? 'Chiusura: '+closure : '',materialLine].filter(Boolean).join('\n');
+  const chatDetails=closure ? [...details,'Chiusura: '+closure] : details;
   return {
     model,
-    chat:[details,url].filter(Boolean).join('\n\n'),
-    instagram:[model,materialLine].filter(Boolean).join('\n')
+    chat:[chatDetails.join('\n'),url].filter(Boolean).join('\n\n'),
+    instagram:details.join('\n')
   };
 }
 
