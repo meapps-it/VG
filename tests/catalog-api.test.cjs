@@ -55,6 +55,13 @@ test('gallery promotion photos are signed temporarily and active promo eligibili
 
 test('catalog exposes only the public promotion deadline',async()=>{const {response}=await serve({promoEnd:'2099-11-11'});const data=await response.json();assert.equal(data.items[0].promotionEndsAt,'2099-11-11');assert.equal(data.items[0].promotionActive,true);assert(!('costoUsdPromo' in data.items[0]));});
 
+test('metadata-first catalog returns articles without looking up or signing product photos',async()=>{
+ const {response,signedBatches,ranges}=await serve({query:'action=catalog&photos=none',photoError:{message:'storage is unavailable'}});
+ const body=await response.json();
+ assert.equal(response.status,200);assert.equal(body.coversPending,true);
+ assert.equal(body.items[0].name,'Borsa');assert.equal(body.items[0].price,20);
+ assert.equal(body.items[0].image,'');assert.equal(signedBatches.length,0);assert.equal(ranges.length,0);
+});
 test('initial covers mode signs only one photo per product unless a cover is missing',async()=>{
  const photos=[{prodotto_id:'one',path:'missing'},{prodotto_id:'one',path:'fallback'},{prodotto_id:'empty',path:'cover'},{prodotto_id:'empty',path:'secondary'}];
  const {response,signedBatches}=await serve({photos,query:'action=catalog&photos=covers'});

@@ -9734,7 +9734,10 @@ function articleShareCaptions(article, url){
     .replace(/^(?:misure?|misura|mis|dimensioni|dim)\b\s*[.:-]?\s*/i,'');
   const dimensions=/^\d+(?:[.,]\d+)?\s*(?:cm)?(?:\s*[x×]\s*\d+(?:[.,]\d+)?\s*(?:cm)?){1,2}$/i.test(size);
   const formattedSize=dimensions ? size.replace(/cm|\s/gi,'').replace(/[X×]/g,'x')+' cm' : size;
-  const details=[model,material,formattedSize ? 'Mis. '+formattedSize : ''].filter(Boolean);
+  const promotion=promoValid(article);
+  const price=article.nascondiPrezzo===true?'':formatPostPrezzoVendita(currentPrice(article));
+  const details=[promotion?'🔥 IN PROMOZIONE 🔥':'',model,material,formattedSize ? 'Mis. '+formattedSize : '',
+    price?(promotion?'Prezzo promo: ':'Prezzo: ')+price:''].filter(Boolean);
   const describedClosure=String(article.descrizione||'').match(/(?:^|[\r\n.!?;])\s*(?:[-•✔✓]\s*)?(?:tipo di )?chiusura(?:\s*[:–-]\s*|\s+(?=con\b|a\b))([^,.!?;\r\n]+)/i);
   const closure=normalizeSpaceText(article.chiusura||describedClosure?.[1]||'');
   const chatDetails=closure ? [...details,'Chiusura: '+closure] : details;

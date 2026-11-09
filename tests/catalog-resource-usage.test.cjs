@@ -40,3 +40,35 @@ test('concurrent photo renewals share both request and gallery rebuild; network 
   assert.equal(w.document.querySelector('.item'),card,'already loaded cards remain mounted after an offline renewal');
  }finally{w.close()}
 });
+
+test('the catalog paints before covers and an article opened meanwhile fetches its own gallery',async()=>{
+ const requested=[];let releaseCovers;
+ const item={...items[0],image:'',images:[]};
+ const dom=new JSDOM(html,{url:'https://example.test/catalogo-nuovo.html',runScripts:'dangerously',pretendToBeVisual:true,beforeParse(w){
+  w.HTMLElement.prototype.scrollIntoView=function(){};
+  w.eval(fs.readFileSync(__dirname+'/../shop-boutique.js','utf8'));
+  w.matchMedia=()=>({matches:false,addEventListener(){}});
+  w.shopAccess={viewer(){},start:load=>{w.document.body.classList.remove('shop-locked');return load()},fetch:async url=>{
+   const params=new URL(url).searchParams;
+   const mode=params.get('photos')||params.get('action');requested.push(mode);
+   const expiry=Date.now()+600000;
+   if(mode==='none')return {ok:true,json:async()=>({items:[item],coversPending:true})};
+   if(mode==='gallery')return {ok:true,json:async()=>({images:['https://test/first','https://test/second'],imagesExpiresAt:expiry})};
+   await new Promise(resolve=>releaseCovers=resolve);
+   return {ok:true,json:async()=>({items:[{...item,image:'https://test/cover',images:['https://test/cover'],photoCount:2}],imagesExpiresAt:expiry})};
+  }};
+ }});
+ const w=dom.window;try{
+  await wait(0);
+  assert.deepEqual(requested,['none','covers']);
+  assert.match(w.document.querySelector('.item').textContent,/Borsa 0/);
+  assert.equal(w.document.getElementById('catalogLoading').hidden,true);
+  w.eval("showProduct('item-0')");
+  await wait(0);
+  assert.deepEqual(requested,['none','covers','gallery']);
+  assert.equal(w.document.getElementById('productAdd').textContent,'Ordina ora');
+  releaseCovers();await wait(0);
+  assert.equal(w.document.querySelector('.item .photo img').src,'https://test/cover');
+  assert.equal(w.document.querySelectorAll('#galleryThumbs button').length,2);
+ }finally{w.close()}
+});

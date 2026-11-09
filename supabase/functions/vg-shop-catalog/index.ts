@@ -117,8 +117,10 @@ Deno.serve(async(req)=>{
       if(extra.data)products.push(extra.data);
     }
     const categoryMap=new Map((categories||[]).map((c:any)=>[c.id,c.nome]));
-    const photoMap=await articlePhotoPaths(products);
-    const coversOnly=url.searchParams.get("photos")==="covers";
+    const photoMode=url.searchParams.get("photos");
+    const coversPending=photoMode==="none";
+    const coversOnly=photoMode==="covers";
+    const photoMap=coversPending?new Map<string,string[]>():await articlePhotoPaths(products);
     const paths=[...new Set([...photoMap.values()].flatMap(paths=>coversOnly?paths.slice(0,1):paths))];
     const imagesExpiresAt=Date.now()+IMAGE_TTL_SECONDS*1000;
     const signed=await signArticlePhotos(paths);
@@ -165,7 +167,7 @@ Deno.serve(async(req)=>{
       if(n.image_path&&n.image_path.startsWith(OWNER+'/catalog-notices/')){const signed=await db.storage.from('articoli').createSignedUrl(n.image_path,IMAGE_TTL_SECONDS);if(signed.error)console.warn('Notice image unavailable');else image_url=signed.data?.signedUrl||''}
       notice={enabled:true,kind:n.kind,title:n.title,body:n.body,image_url};
     }
-    return out({items,imagesExpiresAt,administrator:viewer.is_admin,promotion,notice,...(slug?{linkedProductId:items.some(item=>item.id===linkedProductId)?linkedProductId:null}: {})});
+    return out({items,imagesExpiresAt,administrator:viewer.is_admin,promotion,notice,...(coversPending?{coversPending:true}:{}),...(slug?{linkedProductId:items.some(item=>item.id===linkedProductId)?linkedProductId:null}: {})});
   }
   if(req.method!=="POST")return fail("Metodo non consentito",405);
   const length=Number(req.headers.get("content-length")||0);

@@ -203,7 +203,14 @@ body #productView .product-price-line #productPrice {
   border-color: var(--vg-pink-border);
   background: var(--vg-pink-tint);
 }
-#productView .action-row .add { min-height: 46px; font-size: 14px; }
+#productView .action-row .add {
+  flex: 1;
+  min-height: 54px;
+  padding-inline: 16px;
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--vg-pink-hover);
+}
 .footer { border-color: var(--line); }
 #productView .related-section { border-color: var(--vg-pink-border); }
 #productCategory,
