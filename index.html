@@ -811,6 +811,7 @@ window.addEventListener('error',e=>{
       <div class="actions">
         <button id="vgArticleSharePhotos" type="button" class="btn primary">Condividi tutte le foto</button>
         <button id="vgArticleShareCopy" type="button" class="btn">Copia didascalia</button>
+        <button id="vgArticleShareCopyLink" type="button" class="btn" hidden>Copia link</button>
         <button id="vgArticleShareDownload" type="button" class="btn" hidden>Scarica foto</button>
         <form method="dialog"><button type="submit" class="btn">Chiudi</button></form>
       </div>
@@ -8002,12 +8003,13 @@ function copyText(text, okMsg='Copiato', onSuccess=null){
       ta.style.opacity='0';
       ta.style.pointerEvents='none';
       ta.style.left='-9999px';
-      document.body.appendChild(ta);
+      const container=document.activeElement?.closest('dialog[open]')||document.body;
+      container.appendChild(ta);
       ta.focus();
       ta.select();
       ta.setSelectionRange(0, ta.value.length);
       const ok=document.execCommand('copy');
-      document.body.removeChild(ta);
+      ta.remove();
       if(ok){ toast(okMsg); try{ if(typeof onSuccess==='function') onSuccess(); }catch(_e){} return true; }
     }catch(_e){}
     toast('Copia non disponibile');
@@ -9733,6 +9735,12 @@ function articleShareCaptions(article, url){
   };
 }
 
+function shortArticleShareUrl(id){
+  const bytes=id.replace(/-/g,'').match(/../g).map(hex=>parseInt(hex,16));
+  const code=btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  return 'https://veglamour.cloud/?a='+code;
+}
+
 async function openArticleShare(id){
   const article=loadDB().articoli.find(item=>String(item.id)===id);
   if(!article) return toast('Articolo non trovato');
@@ -9740,7 +9748,7 @@ async function openArticleShare(id){
   const dialog=get('vgArticleShare');
   if(dialog.open) return;
   const published=isUuid(id)&&article.pubblicatoCatalogo!==false&&!isArticleUnavailable(article);
-  const url=published ? 'https://veglamour.cloud/?articolo='+encodeURIComponent(id) : '';
+  const url=published ? shortArticleShareUrl(id) : '';
   const captions=articleShareCaptions(article,url);
   const channel=get('vgArticleShareChannel');
   const caption=get('vgArticleShareCaption');
@@ -9749,6 +9757,9 @@ async function openArticleShare(id){
   const status=get('vgArticleShareStatus');
   const share=get('vgArticleSharePhotos');
   const download=get('vgArticleShareDownload');
+  const copyLink=get('vgArticleShareCopyLink');
+  copyLink.hidden=!url;
+  copyLink.onclick=()=>copyText(url,'Link copiato');
   channel.value='chat';
   channel.onchange=()=>{
     const instagram=channel.value==='instagram';
@@ -9756,7 +9767,11 @@ async function openArticleShare(id){
     help.textContent=instagram
       ? 'Scegli Instagram nel menu del telefono. Se la didascalia non viene inserita, usa Copia didascalia e incollala nel post.'
       : 'Scegli WhatsApp o Telegram nel menu del telefono, poi seleziona il gruppo.';
-    notice.textContent=instagram||url ? '' : 'Il link al catalogo è disponibile per gli articoli pubblicati e sincronizzati.';
+    if(url){
+      notice.textContent=instagram
+        ? 'Per le Storie, usa Copia link e chiamalo Vanity Glamour nell’adesivo Link.'
+        : 'Su Telegram puoi scrivere Vanity Glamour, selezionarlo e incollare il link con Crea link.';
+    }else notice.textContent=instagram ? '' : 'Il link al catalogo è disponibile per gli articoli pubblicati e sincronizzati.';
   };
   channel.onchange();
   get('vgArticleShareCopy').onclick=()=>copyText(caption.value,'Didascalia copiata');
