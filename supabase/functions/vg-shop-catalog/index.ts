@@ -75,7 +75,7 @@ Deno.serve(async(req)=>{
   const resetHandled=await passwordResetAction(db,req,OWNER,action,out);if(resetHandled)return resetHandled;
   const adminHandled=await customerAdminAction(db,req,OWNER,action,out);if(adminHandled)return adminHandled;
   const handled=await accessAction(db,req,OWNER,action,out);if(handled)return handled;
-  if(['customer-login','customer-register','customer-google','customer-me','customer-logout','customer-authorize'].includes(action)){const result=await customerAction(db,req,OWNER,action,out);if(result)return result;}
+  if(['customer-login','customer-register','customer-google','customer-facebook','customer-me','customer-logout','customer-authorize'].includes(action)){const result=await customerAction(db,req,OWNER,action,out);if(result)return result;}
   const viewer=await catalogSession(db,req,OWNER);if(!viewer)return fail("Accedi con un account autorizzato dal negozio",401);
   const customerHandled=await customerAction(db,req,OWNER,action,out);if(customerHandled)return customerHandled;
 

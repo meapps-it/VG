@@ -34,19 +34,20 @@ export async function customerAction(db:any,req:Request,owner:string,action:stri
   const result=await db.from('vg_shop_customers').update({access_status:body.status,updated_at:new Date().toISOString()}).eq('owner_id',owner).eq('id',body.id).select('id').maybeSingle();if(result.error)throw result.error;
   return result.data?out({ok:true}):out({error:'Cliente non trovato'},404);
  }
- if(action==='customer-google'&&req.method==='POST'){
+ if(['customer-google','customer-facebook'].includes(action)&&req.method==='POST'){
+  const provider=action==='customer-facebook'?'facebook':'google',providerName=provider==='facebook'?'Facebook':'Google';
   const jwt=(req.headers.get('authorization')||'').replace(/^Bearer\s+/i,'');
   const verified=await db.auth.getUser(jwt),user=verified.data?.user;
-  // Trust only the server-verified Google identity, never client metadata or a supplied email.
-  const identity=user?.identities?.find((i:any)=>i.provider==='google');
-  if(verified.error||!identity||!user.email||!user.email_confirmed_at)return out({error:'Accesso Google non valido'},401);
+  // Trust only the server-verified OAuth identity, never client metadata or a supplied email.
+  const identity=user?.identities?.find((i:any)=>i.provider===provider);
+  if(verified.error||!identity||!user.email||!user.email_confirmed_at)return out({error:'Accesso '+providerName+' non valido'},401);
   let body:any;try{body=await req.json()}catch{return out({error:'Dati non validi'},400)}
   if(body.privacy!==true)return out({error:'Accetta il trattamento dei dati per continuare'},400);
   let isNew=false;let account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status').eq('owner_id',owner).eq('auth_user_id',user.id).maybeSingle();if(account.error)throw account.error;
   if(!account.data){
-   const name=text(user.user_metadata?.full_name||user.user_metadata?.name,100);if(name.length<2)return out({error:'Il profilo Google non contiene il nome. Registrati con telefono e nome.'},400);
+   const name=text(user.user_metadata?.full_name||user.user_metadata?.name,100);if(name.length<2)return out({error:'Il profilo '+providerName+' non contiene il nome. Registrati con telefono e nome.'},400);
    const salt=hex(crypto.getRandomValues(new Uint8Array(16)));
-   account=await db.from('vg_shop_customers').insert({owner_id:owner,auth_user_id:user.id,email:user.email,phone:'',phone_hash:await digest(owner+':google:'+user.id),pin_salt:salt,pin_hash:await digest(hex(crypto.getRandomValues(new Uint8Array(32)))),profile:{name},access_status:'approved',privacy_at:new Date().toISOString()}).select('id,phone,profile,email,access_status').single();
+   account=await db.from('vg_shop_customers').insert({owner_id:owner,auth_user_id:user.id,email:user.email,phone:'',phone_hash:await digest(owner+':'+provider+':'+user.id),pin_salt:salt,pin_hash:await digest(hex(crypto.getRandomValues(new Uint8Array(32)))),profile:{name},access_status:'approved',privacy_at:new Date().toISOString()}).select('id,phone,profile,email,access_status').single();
    isNew=!account.error;
    if(account.error?.code==='23505')account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status').eq('owner_id',owner).eq('auth_user_id',user.id).single();if(account.error)throw account.error;
   }

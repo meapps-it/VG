@@ -1,6 +1,8 @@
 (function(){
  'use strict';
- const endpoint='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-shop-catalog';
+ const supabaseUrl='https://qfjwtawsqfwmsmrrgqfi.supabase.co',supabaseKey='sb_publishable_-EUVjwsk3txKk2Opqrc7Kw_xFNa9Hw1';
+ const endpoint=supabaseUrl+'/functions/v1/vg-shop-catalog';
+ const oauthProviderKey='vg-shop-oauth-provider';
  const key='vg-shop-customer-v1',adminKey='vg-shop-session-v1',get=id=>document.getElementById(id);
  const valid=value=>/^[a-f0-9]{64}$/.test(value||'');
  const articleSharePath=/^\/[a-z0-9]{1,48}(?:-[a-z0-9]{1,32})?$/;
@@ -32,7 +34,7 @@
  const store=(name,value)=>{try{value?localStorage.setItem(name,value):localStorage.removeItem(name)}catch{}};
  if(!valid(token))token='';if(!valid(adminToken))adminToken='';
  function busy(value){document.querySelectorAll('body>.brand-stage,body>main,body>.footer,body>.view,body>.overlay,body>.zoom-view').forEach(el=>el.inert=value);get('catalog').setAttribute('aria-busy',String(value))}
- function lock(message='') {get('catalogLoading').hidden=true;document.body.classList.remove('shop-checking');document.body.classList.add('shop-locked');busy(true);get('accessError').textContent=message;get('accessCheck').hidden=!token;get('accessSignout').hidden=!token;get('accessForm').hidden=!!token;get('accessGoogle').hidden=!!token;get('accessPrivacyLabel').hidden=!!token||!register;get('accessTabs').hidden=!!token;get('accessGooglePrivacyLabel').hidden=!!token;}
+ function lock(message='') {get('catalogLoading').hidden=true;document.body.classList.remove('shop-checking');document.body.classList.add('shop-locked');busy(true);get('accessError').textContent=message;get('accessCheck').hidden=!token;get('accessSignout').hidden=!token;get('accessForm').hidden=!!token;get('accessGoogle').hidden=!!token;get('accessPrivacyLabel').hidden=!!token||!register;get('accessTabs').hidden=!!token;get('accessGooglePrivacyLabel').hidden=!!token;syncFacebookControl();if(!token)loadFacebookAvailability();}
  function checking(message='Verifica dell’accesso…'){get('catalogLoadingMessage').textContent=message;get('catalogLoading').hidden=false;document.body.classList.remove('shop-locked');document.body.classList.add('shop-checking');busy(true)}
  function unlock(){document.body.classList.remove('shop-locked','shop-checking');busy(false)}
  const pendingMessage=()=>profile?.accessStatus==='blocked'?'Accesso sospeso dall’assistenza. Contattaci per informazioni.':'Account registrato. L’assistenza deve autorizzarti prima di mostrarti il catalogo.';
@@ -63,7 +65,7 @@
  async function google(){
   if(!googleClient)googleClient=(async()=>{
    if(!window.supabase?.createClient)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js';script.onload=resolve;script.onerror=()=>reject(Error('Impossibile caricare l’accesso Google. Riprova.'));document.head.append(script)});
-   return window.supabase.createClient('https://qfjwtawsqfwmsmrrgqfi.supabase.co','sb_publishable_-EUVjwsk3txKk2Opqrc7Kw_xFNa9Hw1',{auth:{storageKey:'vg-shop-google-auth',flowType:'pkce',persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});
+   return window.supabase.createClient(supabaseUrl,supabaseKey,{auth:{storageKey:'vg-shop-google-auth',flowType:'pkce',persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});
   })().catch(error=>{googleClient=null;throw error});return googleClient;
  }
  window.shopAccess={
@@ -76,8 +78,26 @@
   async start(load){reloadCatalog=load;
    const fragment=new URLSearchParams(location.hash.replace(/^#/,'')),preview=fragment.get('admin_token'),params=new URLSearchParams(location.search);
    if(valid(preview)){adminToken=preview;token='';store(adminKey,preview);store(key,'');history.replaceState(null,'',location.pathname+location.search)}
-   if(params.has('error')||fragment.has('error')){history.replaceState(null,'',location.pathname);lock('Accesso Google annullato o non riuscito. Riprova.');return}
-   if(params.has('code')){checking('Accesso con Google in corso… Attendi, non serve premere di nuovo.');try{const code=params.get('code');history.replaceState(null,'',location.pathname);const client=await google(),result=await client.auth.exchangeCodeForSession(code);if(result.error)throw result.error;await accept(await rawAction('customer-google',{privacy:true},{Authorization:'Bearer '+result.data.session.access_token}));await client.auth.signOut({scope:'local'}).catch(()=>{});return}catch(error){lock('Accesso Google non riuscito. '+error.message);return}}
+   if(params.has('code')||params.has('error')||fragment.has('error')){
+    let provider='google';
+    try{
+     if(sessionStorage.getItem(oauthProviderKey)==='facebook')provider='facebook';
+     sessionStorage.removeItem(oauthProviderKey);
+    }catch{}
+    const providerName=provider==='facebook'?'Facebook':'Google';
+    history.replaceState(null,'',location.pathname);
+    if(params.has('error')||fragment.has('error')){lock('Accesso '+providerName+' annullato o non riuscito. Riprova.');return}
+    checking('Accesso con '+providerName+' in corso… Attendi, non serve premere di nuovo.');
+    let client;
+    try{
+     client=await google();
+     const result=await client.auth.exchangeCodeForSession(params.get('code'));
+     if(result.error)throw result.error;
+     await accept(await rawAction('customer-'+provider,{privacy:true},{Authorization:'Bearer '+result.data.session.access_token}));
+    }catch(error){lock('Accesso '+providerName+' non riuscito. '+error.message)}
+    finally{if(client)await client.auth.signOut({scope:'local'}).catch(()=>{})}
+    return;
+   }
    await open();
   },
   async logout(){try{if(token)await rawAction('customer-logout',{})}catch{}token='';adminToken='';profile=null;store(key,'');store(adminKey,'');store('vg-shop-shipping-v1','');get('orderForm').reset();document.body.style.overflow='';document.querySelectorAll('.view.open,.overlay.open,.zoom-view.open').forEach(el=>{el.classList.remove('open');el.setAttribute('aria-hidden','true')});history.replaceState(null,'',location.pathname);window.dispatchEvent(new Event('vg-shop-logout'));lock('Accesso terminato su questo dispositivo.')}
@@ -85,7 +105,7 @@
  function mode(value){register=value;get('accessGoRegister').hidden=true;get('accessModeHelp').textContent=value?'Nuovo cliente: compila i dati per creare il tuo account.':'Hai già un account? Inserisci il numero e la password usati per registrarti.';get('accessNameField').hidden=!value;get('accessName').disabled=!value;get('accessName').required=value;get('accessFormTitle').textContent=value?'Registrati · nuovo account':'Accedi · account esistente';get('accessSubmit').textContent=value?'Registrati ed entra':'Accedi al catalogo';get('accessPassword').autocomplete=value?'new-password':'current-password';get('accessPrivacy').required=value;get('accessPrivacyLabel').hidden=!value;get('accessLoginTab').setAttribute('aria-pressed',String(!value));get('accessRegisterTab').setAttribute('aria-pressed',String(value));get('accessError').textContent=''}
  const resetButton=document.createElement('button');resetButton.type='button';resetButton.textContent='Password dimenticata?';resetButton.id='accessForgotPassword';get('accessForm').after(resetButton);
  const resetForm=document.createElement('form');resetForm.hidden=true;resetForm.id='accessResetForm';resetForm.innerHTML='<h2>Recupera la password</h2><p>Chiedi all’assistenza un codice reset. Inseriscilo qui per scegliere una nuova password personale.</p><label>Telefono<input name="phone" type="tel" autocomplete="tel" required maxlength="40"></label><label>Codice ricevuto dall’assistenza<input name="code" type="text" autocomplete="off" required maxlength="40"></label><label>Nuova password<input name="password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label><label>Ripeti nuova password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label><button type="submit">Salva nuova password</button><button type="button" data-cancel-reset>Torna all’accesso</button><p role="status" aria-live="polite"></p>';resetButton.after(resetForm);
- function showRecovery(open){resetForm.hidden=!open;resetButton.hidden=open||!!token;get('accessForm').hidden=open||!!token;get('accessGoogle').hidden=open||!!token;get('accessGooglePrivacyLabel').hidden=open||!!token;get('accessTabs').hidden=open||!!token;get('accessError').textContent='';if(open){resetForm.elements.phone.value=get('accessPhone').value;resetForm.elements.phone.focus()}else lock(profile?pendingMessage():'')}
+ function showRecovery(open){resetForm.hidden=!open;resetButton.hidden=open||!!token;get('accessForm').hidden=open||!!token;get('accessGoogle').hidden=open||!!token;get('accessGooglePrivacyLabel').hidden=open||!!token;get('accessTabs').hidden=open||!!token;get('accessError').textContent='';syncFacebookControl();if(open){resetForm.elements.phone.value=get('accessPhone').value;resetForm.elements.phone.focus()}else lock(profile?pendingMessage():'')}
  resetButton.onclick=()=>showRecovery(true);resetForm.querySelector('[data-cancel-reset]').onclick=()=>{resetForm.reset();showRecovery(false)};
 
  resetForm.onsubmit=async event=>{event.preventDefault();const f=resetForm.elements,status=resetForm.querySelector('[role=status]'),button=resetForm.querySelector('[type=submit]');if(f.password.value!==f.confirmPassword.value){status.textContent='Le due password non coincidono.';return}return window.vgSaveFeedback.run(button,async()=>{await rawAction('customer-reset-complete',{phone:f.phone.value,code:f.code.value,password:f.password.value});get('accessPhone').value=f.phone.value;resetForm.reset();showRecovery(false);mode(false);get('accessPassword').value='';get('accessError').textContent='Password salvata. Ora accedi con il numero e la nuova password.';get('accessPassword').focus();return {ok:true,message:'Password salvata correttamente.'}})};
@@ -94,9 +114,44 @@
  get('accessLoginTab').onclick=()=>choosePhoneMode(false);get('accessRegisterTab').onclick=()=>choosePhoneMode(true);
  get('accessForm').addEventListener('submit',async event=>{event.preventDefault();const button=get('accessSubmit');button.disabled=true;get('accessError').textContent='Verifica…';try{if(register&&!get('accessName').value.trim().match(/^.{2,100}$/u))throw Error('Inserisci il tuo nome (da 2 a 100 caratteri).');await accept(await rawAction(register?'customer-register':'customer-login',{...(register?{name:get('accessName').value.trim()}:{}),phone:get('accessPhone').value,password:get('accessPassword').value,privacy:get('accessPrivacy').checked}))}catch(error){get('accessError').textContent=error.message;get('accessGoRegister').hidden=error.code!=='CUSTOMER_NOT_REGISTERED';get('accessError').scrollIntoView({block:'nearest',behavior:'smooth'})}finally{button.disabled=false}});
  function googleConsentError(invalid){get('accessGooglePrivacyLabel').classList.toggle('consent-invalid',invalid);get('accessGooglePrivacy').setAttribute('aria-invalid',String(invalid));get('accessGoogleConsentError').hidden=!invalid;}
- get('accessGooglePrivacy').addEventListener('change',()=>{if(get('accessGooglePrivacy').checked){googleConsentError(false);if(get('accessError').textContent==='Accetta il trattamento dei dati per continuare con Google.')get('accessError').textContent=''}});
-
- get('accessGoogle').onclick=async()=>{if(!get('accessGooglePrivacy').checked){googleConsentError(true);get('accessError').textContent='Accetta il trattamento dei dati per continuare con Google.';get('accessGooglePrivacy').focus();get('accessGooglePrivacyLabel').scrollIntoView({block:'nearest',behavior:'smooth'});return}googleConsentError(false);const button=get('accessGoogle');button.disabled=true;try{const client=await google(),result=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:googleRedirectUrl(),queryParams:{prompt:'select_account'}}});if(result.error)throw result.error}catch(error){get('accessError').textContent=error.message;button.disabled=false}};
+ const socialConsentMessage='Accetta il trattamento dei dati per continuare con l’accesso social.';
+ get('accessGooglePrivacy').addEventListener('change',()=>{if(get('accessGooglePrivacy').checked){googleConsentError(false);if(get('accessError').textContent===socialConsentMessage)get('accessError').textContent=''}});
+ const facebookButton=document.createElement('button');
+ facebookButton.id='accessFacebook';facebookButton.type='button';facebookButton.className='google-signin';
+ facebookButton.textContent='Accedi con Facebook';facebookButton.hidden=true;
+ get('accessGooglePrivacyLabel').before(facebookButton);
+ let facebookAvailable=false,facebookSettings;
+ function syncFacebookControl(){facebookButton.hidden=!facebookAvailable||!!token||!resetForm.hidden}
+ function loadFacebookAvailability(){
+  if(facebookSettings)return;
+  facebookSettings=fetch(supabaseUrl+'/auth/v1/settings',{headers:{apikey:supabaseKey}}).then(async response=>{
+   if(!response.ok)throw Error('Impostazioni di accesso non disponibili');
+   facebookAvailable=(await response.json()).external?.facebook===true;
+   syncFacebookControl();
+  }).catch(()=>{facebookSettings=null});
+ }
+ async function redirectSocial(provider,button){
+  if(!get('accessGooglePrivacy').checked){
+   googleConsentError(true);get('accessError').textContent=socialConsentMessage;
+   get('accessGooglePrivacy').focus();get('accessGooglePrivacyLabel').scrollIntoView({block:'nearest',behavior:'smooth'});return;
+  }
+  googleConsentError(false);button.disabled=true;
+  try{
+   const client=await google();
+   if(provider==='facebook')sessionStorage.setItem(oauthProviderKey,provider);
+   else try{sessionStorage.removeItem(oauthProviderKey)}catch{}
+   const result=await client.auth.signInWithOAuth({provider,options:{
+    redirectTo:googleRedirectUrl(),
+    ...(provider==='google'?{queryParams:{prompt:'select_account'}}:{scopes:'email'})
+   }});
+   if(result.error)throw result.error;
+  }catch(error){
+   try{sessionStorage.removeItem(oauthProviderKey)}catch{}
+   get('accessError').textContent=error.message;button.disabled=false;
+  }
+ }
+ get('accessGoogle').onclick=()=>redirectSocial('google',get('accessGoogle'));
+ facebookButton.onclick=()=>redirectSocial('facebook',facebookButton);
 
  // Official Google Identity Services button with the browser account chooser.
  const googleInline=document.createElement('div');googleInline.id='accessGoogleInline';googleInline.hidden=true;

@@ -25,4 +25,22 @@ test('Google requires a verified Google identity; phone accounts cannot be claim
  assert.equal((await call(db,'authorize',{id:'11111111-1111-4111-8111-111111111111',status:'approved'})).status,403);
 });
 
+test('Facebook registration opens the catalog and alerts the owner once',async()=>{
+ const db=database(),owner='facebook-test-owner';
+ const user={id:'facebook-user',email:'facebook@example.test',email_confirmed_at:'2026-11-09',user_metadata:{name:'Maria Facebook'},identities:[{provider:'google'}]};
+ db.auth={getUser:async()=>({data:{user},error:null})};
+ const register=privacy=>call(db,'facebook',{privacy},undefined,owner);
+ assert.equal((await register(true)).status,401);
+ user.identities.push({provider:'facebook'});
+ assert.equal((await register(false)).status,400);
+ assert.equal((await register(true)).data.accessStatus,'approved');
+ assert.equal((await register(true)).data.accessStatus,'approved');
+ const [account]=db.rows.vg_shop_customers;
+ assert.equal(account.profile.name,'Maria Facebook');
+ assert.equal(db.rows.vg_shop_customers.length,1);
+ assert.equal(registrationAlerts.filter(n=>n.owner===owner&&n.id===account.id).length,1);
+ account.access_status='blocked';
+ assert.equal((await register(true)).data.accessStatus,'blocked');
+});
+
 test('registration rejects missing, blank and oversized names before writing an account',async()=>{for(const name of [undefined,'','  ','A','x'.repeat(101)]){const db=database();const r=await call(db,'register',{name,phone:'3331234567',password:'Password personale!',privacy:true});assert.equal(r.status,400);assert.equal(db.rows.vg_shop_customers.length,0);assert.equal(db.rows.vg_shop_customer_sessions.length,0)}const db=database(),r=await call(db,'register',{name:'  Maria Rossi  ',phone:'3331234567',password:'Password personale!',privacy:true});assert.equal(r.status,200);assert.equal(r.data.profile.name,'Maria Rossi');});
