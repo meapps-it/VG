@@ -801,7 +801,8 @@ window.addEventListener('error',e=>{
       <h2 id="vgArticleShareTitle">Condividi articolo</h2>
       <label for="vgArticleShareChannel">Didascalia per</label>
       <select id="vgArticleShareChannel">
-        <option value="chat">WhatsApp / Telegram</option>
+        <option value="whatsapp">WhatsApp</option>
+        <option value="chat">Telegram</option>
         <option value="instagram">Instagram</option>
       </select>
       <p id="vgArticleShareHelp"></p>
@@ -9746,6 +9747,18 @@ function shortArticleShareUrl(id){
   return 'https://veglamour.cloud/?a='+code;
 }
 
+async function namedArticleShareUrl(article){
+  const name=String(article.modello||article.codice||'').normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,48);
+  const client=await ensureCloud();
+  if(!client||!cloudSession) return '';
+  const request=client.rpc('vg_claim_article_share_link',{p_product_id:article.id,p_base:name||'articolo'});
+  const {data,error}=await (typeof AbortSignal.timeout==='function' ? request.abortSignal(AbortSignal.timeout(5000)) : request);
+  if(error) throw error;
+  return typeof data==='string'&&/^[a-z0-9]{1,48}(?:-[a-z0-9]{1,32})?$/.test(data)
+    ? 'https://veglamour.cloud/'+data : '';
+}
+
 let nativeArticleShareBusy=false;
 async function shareArticleOnAndroid(bridge, files, caption, isCurrent){
   if(nativeArticleShareBusy) throw new Error('Attendi la condivisione in corso.');
@@ -9789,6 +9802,8 @@ async function openArticleShare(id){
   const published=isUuid(id)&&article.pubblicatoCatalogo!==false&&!isArticleUnavailable(article);
   const url=published ? shortArticleShareUrl(id) : '';
   const captions=articleShareCaptions(article,url);
+  captions.whatsapp=captions.chat;
+  let whatsappUrl=url;
   const channel=get('vgArticleShareChannel');
   const caption=get('vgArticleShareCaption');
   const help=get('vgArticleShareHelp');
@@ -9800,22 +9815,24 @@ async function openArticleShare(id){
   const androidShare=window.VgArticleShareBridge;
   const nativeSupported=typeof androidShare?.postMessage==='function';
   copyLink.hidden=!url;
-  copyLink.onclick=()=>copyText(url,'Link copiato');
-  channel.value='chat';
+  copyLink.onclick=()=>copyText(channel.value==='whatsapp'?whatsappUrl:url,'Link copiato');
+  channel.value='whatsapp';
   channel.onchange=()=>{
     const instagram=channel.value==='instagram';
     caption.value=captions[channel.value];
     help.textContent=instagram
       ? 'Scegli Instagram nel menu del telefono. Se la didascalia non viene inserita, usa Copia didascalia e incollala nel post.'
-      : 'Scegli WhatsApp o Telegram nel menu del telefono, poi seleziona il gruppo.';
+      : 'Scegli '+(channel.value==='whatsapp'?'WhatsApp':'Telegram')+' nel menu del telefono, poi seleziona il gruppo.';
     if(url){
       notice.textContent=instagram
         ? 'Per le Storie, usa Copia link e chiamalo Vanity Glamour nell’adesivo Link.'
-        : 'Su Telegram puoi scrivere Vanity Glamour, selezionarlo e incollare il link con Crea link.';
+        : channel.value==='chat' ? 'Su Telegram puoi scrivere Vanity Glamour, selezionarlo e incollare il link con Crea link.' : '';
     }else notice.textContent=instagram ? '' : 'Il link al catalogo è disponibile per gli articoli pubblicati e sincronizzati.';
   };
   channel.onchange();
-  get('vgArticleShareCopy').onclick=()=>copyText(caption.value,'Didascalia copiata');
+  const copyCaption=get('vgArticleShareCopy');
+  copyCaption.onclick=()=>copyText(caption.value,'Didascalia copiata');
+  copyLink.disabled=copyCaption.disabled=published;
   share.disabled=true;
   share.hidden=false;
   share.textContent='Condividi tutte le foto';
@@ -9825,6 +9842,15 @@ async function openArticleShare(id){
   dialog.shareRequest=request;
   const isCurrent=()=>dialog.shareRequest===request&&dialog.open;
   dialog.showModal();
+  if(published){
+    try{
+      whatsappUrl=await namedArticleShareUrl(article)||url;
+    }catch(error){console.warn('Link WhatsApp non disponibile',error);}
+    if(!isCurrent()) return;
+    captions.whatsapp=articleShareCaptions(article,whatsappUrl).chat;
+    copyLink.disabled=copyCaption.disabled=false;
+    channel.onchange();
+  }
   const shareSupported=typeof navigator.share==='function';
   if(!nativeSupported&&!shareSupported){
     share.hidden=true;
