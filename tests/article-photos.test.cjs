@@ -12,9 +12,36 @@ test('signed image requests deduplicate, expire and can explicitly renew failed 
  await c.getSignedFotoUrl('missing/1.jpg');await c.getSignedFotoUrl('missing/1.jpg');assert.equal(calls,3,'missing legacy objects have bounded negative caching');
  vm.runInContext("FOTO_SIGNED_URL_CACHE.get('SKU/1.jpg').expireAt=0",c);await c.getSignedFotoUrl('SKU/1.jpg');assert.equal(calls,4);
 });
-test('photo prefetch failures do not poison the cache as permanently empty',async()=>{
- let fail=true,calls=0;const c=context({ensureCloud:async()=>({from:()=>({select(){return this},in(){return this},order(){return this},then(resolve){calls++;return Promise.resolve(fail?{error:Error('offline')}:{data:[{prodotto_id:'p',path:'SKU/1.jpg',ordine:0}]}).then(resolve)}})})},"const ARTICLE_CLOUD_PHOTO_PATH_CACHE=new Map();let ARTICLE_CLOUD_PHOTO_PATH_INFLIGHT=null;\n"+slice('async function prefetchCloudPhotoPathsForArticles(','function canonicalPhotoSourceKey('));
- await c.prefetchCloudPhotoPathsForArticles([{id:'p'}]);assert.equal(vm.runInContext("ARTICLE_CLOUD_PHOTO_PATH_CACHE.has('p')",c),false);fail=false;await c.prefetchCloudPhotoPathsForArticles([{id:'p'}]);assert.equal(calls,2);assert.equal(vm.runInContext("ARTICLE_CLOUD_PHOTO_PATH_CACHE.get('p')[0]",c),'SKU/1.jpg');
+test('legacy list cover fetches one photo reference and never caches a partial gallery',async()=>{
+ let fail=true,calls=0;
+ const c=context({
+  isUuid:()=>true,
+  ensureCloud:async()=>({from:table=>{
+   assert.equal(table,'prodotti_foto');
+   return {select(fields){assert.equal(fields,'path');return this},eq(){return this},order(){return this},
+    async limit(n){assert.equal(n,1);calls++;return fail?{error:Error('offline')}:{data:[{path:'SKU/1.jpg'}]}}};
+  }})
+ },'const ARTICLE_CLOUD_PHOTO_PATH_CACHE=new Map();\n'+slice('async function getArticleCloudCover(','async function getArticleThumbForList('));
+ await assert.rejects(c.getArticleCloudCover({id:'p'}),/offline/);
+ fail=false;
+ assert.equal(await c.getArticleCloudCover({id:'p'}),'SKU/1.jpg');
+ assert.equal(calls,2);
+ assert.equal(vm.runInContext("ARTICLE_CLOUD_PHOTO_PATH_CACHE.has('p')",c),false);
+});
+test('list thumbnails download only the first source and reuse a cached cover',async()=>{
+ const downloaded=[],resolved=[];
+ let cached=null;
+ const c=context({
+  getArticleThumbCandidates:()=>['cover','gallery'].map(key=>({key})),
+  thumbGet:async()=>cached,
+  resolveArticleThumbCandidateUrl:async({key})=>{resolved.push(key);return key},
+  cacheArticleThumbFromCandidate:async({key})=>{downloaded.push(key);cached={dataUrl:'miniature'};return cached.dataUrl},
+  getArticleCloudCover:async()=>{throw Error('Unexpected gallery lookup')}
+ },slice('async function getArticleThumbForList(','async function clearArticleThumbCache('));
+ assert.equal(await c.getArticleThumbForList({id:'p'}),'miniature');
+ assert.equal(await c.getArticleThumbForList({id:'p'}),'miniature');
+ assert.deepEqual(resolved,['cover']);
+ assert.deepEqual(downloaded,['cover']);
 });
 test('incomplete device photo storage preserves existing cloud pictures and new local additions',async()=>{
  const c=context({getArticleLocalPhotoSources:async()=>['blob:new'],getArticleCloudSourcePaths:async()=>['SKU/1.jpg','SKU/2.jpg'],dedupePhotoSources:(v,n)=>[...new Set(v)].slice(0,n)},slice('async function getArticleCloudSyncSources(','async function getStoredPhotoSources('));
