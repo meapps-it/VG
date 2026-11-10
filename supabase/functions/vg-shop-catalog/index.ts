@@ -92,6 +92,9 @@ Deno.serve(async(req)=>{
       return out({images:paths.map(path=>signed.get(path)).filter(Boolean),imagesExpiresAt});
     }
     if(action!=="catalog")return fail("Operazione non valida",404);
+    const visit=trackVisit(db,OWNER,viewer).catch(()=>console.error("VG shop analytics unavailable"));
+    const runtime=(globalThis as any).EdgeRuntime;
+    if(runtime?.waitUntil)runtime.waitUntil(visit);
     const articleFields="id,sku,nome,descrizione,descrizione_app,marca,qualita,fornitore,prezzo_vendita,in_promozione,prezzo_promozionale,categoria_id,giacenza,colore,taglia,tipo_misura,valore_misura,dimensioni";
     const slug=url.searchParams.get("slug")||"";
     const linkedProduct=/^[a-z0-9]{1,48}(?:-[a-z0-9]{1,32})?$/.test(slug)
@@ -143,9 +146,6 @@ Deno.serve(async(req)=>{
       const description=publicRaw.replace(/\[VGMETA\][\s\S]*?\[\/VGMETA\]/gi,' ').replace(/\[VGMETA\][\s\S]*$/gi,'').replace(/\\n/g,'\n').split(/\r?\n/).filter(line=>!/(?:costo|prezzo).*?(?:\busd\b|fornitor|jayden)/i.test(line)).join('\n').trim();
       return {id:p.id,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p),priceHidden:meta.nascondiPrezzo===true,price:meta.nascondiPrezzo===true?null:(promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita)),originalPrice:meta.nascondiPrezzo===true?null:Number(p.prezzo_vendita),promotion:meta.nascondiPrezzo===true?false:promo,promotionActive:promotionDetails.active,promotionEndsAt:promotionDetails.endsAt,image,images:coversOnly?images.slice(0,1):images,...(coversOnly?{photoCount:photoMap.get(p.id)?.length||0}:{}),availability:p.giacenza>0?"disponibile":"su richiesta",limitedAvailability:Number.isInteger(Number(p.giacenza))&&Number(p.giacenza)>=1&&Number(p.giacenza)<=3};
     });
-    const visit=trackVisit(db,OWNER,viewer).catch(()=>console.error("VG shop analytics unavailable"));
-    const runtime=(globalThis as any).EdgeRuntime;
-    if(runtime?.waitUntil)runtime.waitUntil(visit);else await visit;
     const campaign=promo.data;
     const excluded=new Set(campaign?.excluded_product_ids||[]);
     let promotion=campaign?{
@@ -167,6 +167,7 @@ Deno.serve(async(req)=>{
       if(n.image_path&&n.image_path.startsWith(OWNER+'/catalog-notices/')){const signed=await db.storage.from('articoli').createSignedUrl(n.image_path,IMAGE_TTL_SECONDS);if(signed.error)console.warn('Notice image unavailable');else image_url=signed.data?.signedUrl||''}
       notice={enabled:true,kind:n.kind,title:n.title,body:n.body,image_url};
     }
+    if(!runtime?.waitUntil)await visit;
     return out({items,imagesExpiresAt,administrator:viewer.is_admin,promotion,notice,...(coversPending?{coversPending:true}:{}),...(slug?{linkedProductId:items.some(item=>item.id===linkedProductId)?linkedProductId:null}: {})});
   }
   if(req.method!=="POST")return fail("Metodo non consentito",405);

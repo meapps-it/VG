@@ -6,12 +6,12 @@ const {stripTypeScriptTypes}=require('node:module');
 const source=stripTypeScriptTypes(fs.readFileSync(__dirname+'/../supabase/functions/vg-shop-catalog/index.ts','utf8').replace(/^import .*;\n/gm,''));
 const galleryId="11111111-2222-3333-4444-555555555555";
 async function serve({query="action=catalog",galleryProduct=false,legacyPhotos=[],photos=[],photoError=null,origin=null,method="GET",authorized=true,escapedMetadata=false,promotion=null,notice=null,promoEnd=''}={}){
- let handler;const signedBatches=[],ranges=[];let signing=0,peakSigning=0;
+ let handler;const signedBatches=[],ranges=[];let signing=0,peakSigning=0,visits=0;
  const products=[{id:'one',sku:'B1',nome:'Borsa',descrizione:'Pelle vera\n[VGMETA]{"fornitore":"privato"}[/VGMETA]\nMisure 20 cm',prezzo_vendita:20,giacenza:1},{id:'empty',nome:'Vuoto',prezzo_vendita:5}];
  products[0].descrizione='Pelle vera\n[VGMETA]'+(escapedMetadata?JSON.stringify(JSON.stringify({fornitore:'Jayden',brand:'Louis Vuitton',misura:'35–40',descrizione:'Pelle vera\nCosto fornitore 200 USD',foto:legacyPhotos})).slice(1,-1):JSON.stringify({fornitore:'Jayden',foto:legacyPhotos,promoAttiva:true,prezzoPromo:15,scadenzaPromoPersonale:promoEnd}))+'[/VGMETA]\nMisure 20 cm';
  const db={auth:{getUser:async()=>({error:true,data:null})},from(table){const query={select(){return this},upsert(){return Promise.resolve({error:null})},gt(){return this},async maybeSingle(){if(table==='prodotti')return {data:galleryProduct?{...products[0],id:galleryId}:null};if(table==='vg_shop_promotion')return {data:promotion};if(table==='vg_shop_notice')return {data:notice};return {data:{token_hash:"test-session",is_admin:false,created_at:"2026-10-25T12:00:00Z"}}},async single(){return {data:{updated_at:"2026-10-24T00:00:00Z"}}},eq(){return this},in(){return this},order(){return this},limit(){return this},range(a,b){ranges.push([a,b]);return Promise.resolve({data:photos.slice(a,b+1),error:photoError})},then(resolve,reject){return Promise.resolve({data:table==='prodotti'?products:[]}).then(resolve,reject)}};return query},storage:{from(bucket){assert.equal(bucket,'articoli');return {async createSignedUrl(path,ttl){assert.equal(ttl,600);return {data:{signedUrl:'https://private.test/'+path+'?signed=temporary'}}},async createSignedUrls(paths,ttl){assert.equal(ttl,600);signedBatches.push(paths);peakSigning=Math.max(peakSigning,++signing);await Promise.resolve();signing--;return {data:paths.map(path=>path==='missing'?{path,error:'Not found'}:{path,signedUrl:'https://private.test/'+path+'?token=temporary'})}}}}}};
- vm.runInNewContext(source,{Deno:{env:{get:()=>''},serve:fn=>{handler=fn}},createClient:()=>db,...require('./catalog-server-helpers.cjs'),Response,URL,console,Date,crypto,accessAction:async()=>null,catalogSession:async()=>authorized?{token_hash:"test",is_admin:false}:null,trackVisit:async()=>{}});
- return {response:await handler(new Request('https://test/?'+query,{method,headers:origin?{origin}:{}})),signedBatches,ranges,peakSigning};
+ vm.runInNewContext(source,{Deno:{env:{get:()=>''},serve:fn=>{handler=fn}},createClient:()=>db,...require('./catalog-server-helpers.cjs'),Response,URL,console,Date,crypto,accessAction:async()=>null,catalogSession:async()=>authorized?{token_hash:"test",is_admin:false}:null,trackVisit:async()=>{visits++}});
+ return {response:await handler(new Request('https://test/?'+query,{method,headers:origin?{origin}:{}})),signedBatches,ranges,peakSigning,visits};
 }
 test('all ordered photos, compatible cover, missing objects, clean descriptions, private signing',async()=>{
  const {response,signedBatches}=await serve({photos:[{prodotto_id:'one',path:'a'},{prodotto_id:'one',path:'missing'},{prodotto_id:'one',path:'b'},{prodotto_id:'one',path:'a'}]});
@@ -26,8 +26,10 @@ test('paginates beyond PostgREST cap and batches every photo',async()=>{
  const {response,ranges,signedBatches,peakSigning}=await serve({photos});const body=await response.json();
  assert.equal(body.items[0].images.length,1203);assert.equal(ranges.length,3);assert.equal(signedBatches.length,13);assert.equal(peakSigning,4);
 });
-test('photo query errors fail visibly instead of returning a partial catalog',async()=>{
- const {response}=await serve({photoError:{message:'unavailable'}});assert.equal(response.status,500);
+test('a visit is recorded even when photos fail and the catalog returns an error',async()=>{
+ const {response,visits}=await serve({photoError:{message:'unavailable'}});
+ assert.equal(response.status,500);
+ assert.equal(visits,1);
 });
 
 test('CORS permits only VG and the existing SimplexApp domain, including preflight',async()=>{
@@ -38,7 +40,7 @@ test('CORS permits only VG and the existing SimplexApp domain, including preflig
  const blocked=await serve({origin:'https://unrelated.example'});assert.equal(blocked.response.status,403);
 });
 
-test('catalog refuses unauthenticated requests before any photos are signed',async()=>{const {response,signedBatches}=await serve({authorized:false});assert.equal(response.status,401);assert.equal(signedBatches.length,0)});
+test('catalog refuses unauthenticated requests before any photos are signed',async()=>{const {response,signedBatches,visits}=await serve({authorized:false});assert.equal(response.status,401);assert.equal(signedBatches.length,0);assert.equal(visits,0)});
 
 
 test('legacy metadata photos are merged, deduplicated and limited to associated paths',async()=>{const {response}=await serve({photos:[{prodotto_id:'one',path:'B1/a'}],legacyPhotos:['B1/a','B1/b','other/private','../bad','https://external.test/image']});const body=await response.json();assert.deepEqual(body.items[0].images,['https://private.test/B1/a?token=temporary','https://private.test/B1/b?token=temporary']);assert.equal(body.items[0].quality,'ORIGINALE');assert.equal(body.items[1].quality,'STANDARD')});

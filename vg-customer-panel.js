@@ -10,12 +10,14 @@
  const dialog=document.createElement('dialog');dialog.className='vgStatsDialog vgCustomersPanel';dialog.id='vgCustomersPanel';dialog.setAttribute('aria-labelledby','vgCustomersTitle');
  dialog.innerHTML='<header class="vgStatsHeader"><h2 id="vgCustomersTitle">Clienti catalogo</h2><button id="vgCustomersClose" type="button">Chiudi</button></header><div class="vgStatsContent"><p id="vgCustomerPanelStatus" role="status" aria-live="polite"></p><div class="vgCustomerTools"><button id="vgCustomerRefresh" type="button">Aggiorna</button><button id="vgCustomerRead" type="button">Cancella avvisi di registrazione</button></div><p class="vgCustomerLatestAccess" id="vgCustomerLatestAccess" hidden></p><div class="vgCustomerCounts" id="vgCustomerCounts"></div><section><h3>Nuove registrazioni</h3><div id="vgRegistrationAlerts"></div></section><label for="vgCustomerFilter">Mostra clienti</label><select id="vgCustomerFilter"><option value="">Tutti</option><option value="pending">In attesa</option><option value="approved">Autorizzati</option><option value="blocked">Bloccati</option></select><div id="vgCustomerList"></div><button id="vgCustomerNext" type="button" hidden>Mostra altri clienti</button><details id="vgClientIntegration"><summary>Schede clienti del gestionale · collegamenti</summary><p>Stesso telefono: collegamento automatico. Email e omonimi: integrazione solo dopo conferma.</p><div id="vgClientIntegrationList"></div></details><p class="vgStatsNote">Orari italiani. Le visite con accesso già ricordato sono registrate una volta ogni 30 minuti per sessione. I nuovi login sono registrati separatamente.</p></div>';
  document.body.append(dialog);
- let current=null,offset=0,refreshing=false,lastToken='',controller;
+ let current=null,offset=0,refreshing=false,lastToken='',lastOwner='',dashboardStatus='Caricamento ultimo accesso…',retryTimer=null,retryUsed=false;
  let accessOwner='';
  const seenAccess=new Map();
  async function session(){
   const client=await window.VG_SUPABASE_READY;
-  const auth=client?(await client.auth.getSession()).data?.session:null;
+  const result=client?await client.auth.getSession():null;
+  if(result?.error)throw result.error;
+  const auth=result?.data?.session;
   accessOwner=auth?.user?.id||'';
   return auth?.access_token||null;
  }
@@ -34,16 +36,17 @@
  const reads=new Map(),pending=new Map();let requestToken='',generation=0,viewRevision=0,integrationLoaded=false;
  function resetReads(){reads.clear();pending.clear();generation++}
  async function request(action,body,reuse=false){
-  const token=await session();if(!token)throw Error('Accedi al gestionale come amministratore.');
+  const token=await session(),owner=accessOwner;if(!token)throw Error('Accedi al gestionale come amministratore.');
   if(requestToken!==token){requestToken=token;resetReads()}
   const write=body!==undefined;if(write)resetReads();
   const key=action,epoch=generation,cached=reads.get(key);
   if(!write&&reuse&&cached&&Date.now()-cached.at<30000)return cached.data;
   if(!write&&pending.has(key))return pending.get(key);
   const job=(async()=>{
-   const response=await fetch(endpoint+'?action='+action,{method:write?'POST':'GET',headers:{Authorization:'Bearer '+token,...(write?{'Content-Type':'application/json'}:{})},...(write?{body:JSON.stringify(body)}:{}),cache:'no-store'});
+   const response=await fetch(endpoint+'?action='+action,{method:write?'POST':'GET',headers:{Authorization:'Bearer '+token,...(write?{'Content-Type':'application/json'}:{})},...(write?{body:JSON.stringify(body)}:{}),cache:'no-store',signal:AbortSignal.timeout?.(12000)});
    const data=await response.json();if(!response.ok)throw Error(data.error||'Operazione non riuscita');
-   if(epoch!==generation||token!==await session())throw Error('Sessione aggiornata. Riapri il pannello.');
+   const activeToken=await session();
+   if(epoch!==generation||!activeToken||(owner?owner!==accessOwner:token!==activeToken))throw Error('Sessione aggiornata. Riapri il pannello.');
    if(write)resetReads();else if(action.startsWith('customer-admin'))reads.set(key,{data,at:Date.now()});
    return data;
   })();
@@ -57,7 +60,8 @@
   const count=el('c_catalog_customers'),last=el('c_catalog_last_access');if(!count||!last)return;
   count.textContent=data?Number(data.total||0).toLocaleString('it-IT'):'—';
   const access=data?.latestAccess,who=access&&(access.name||access.email||(access.phone?'+'+access.phone:'Cliente'));
-  last.textContent=data?(access?'Ultimo accesso: '+who+' · '+date(access.at)+' (Italia)':'Nessun accesso ancora registrato.'):'Accedi al gestionale per vedere gli accessi.';
+  last.textContent=data?(access?'Ultimo accesso: '+who+' · '+date(access.at)+' (Italia)':'Nessun accesso ancora registrato.'):dashboardStatus;
+  if(data&&dashboardStatus==='Aggiornamento accessi non riuscito.')last.textContent+=' · '+dashboardStatus;
   const unseen=accessTime(data)>lastSeenAccess();
   const card=el('catalogCustomersStat'),badge=el('c_catalog_new_access');
   card?.classList.toggle('has-new-catalog-access',unseen);
@@ -65,6 +69,7 @@
   if(card)card.setAttribute('aria-label',unseen?'Nuovo accesso. Apri clienti registrati al catalogo':'Apri clienti registrati al catalogo');
  }
  function render(data,append,summaryOnly=false){
+  dashboardStatus='';retryUsed=false;clearTimeout(retryTimer);retryTimer=null;
   if(dialog.open){
    const access=data.latestAccess;
    const latest=el('vgCustomerLatestAccess');
@@ -138,6 +143,32 @@
 
  tile.onclick=opener.onclick=open;const dashboardCard=el('catalogCustomersStat');if(dashboardCard){dashboardCard.onclick=open;dashboardCard.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open()}};}el('vgCustomersClose').onclick=()=>dialog.close();el('vgCustomerRefresh').onclick=()=>load(false);el('vgCustomerFilter').onchange=()=>load(false);el('vgCustomerNext').onclick=()=>load(true);
  el('vgCustomerRead').onclick=async()=>{if(!current)return;dismiss.disabled=true;try{await request('customer-admin-read',{ids:current.notifications.filter(n=>!n.read_at).map(n=>n.id)});await load(false)}catch(e){el('vgCustomerPanelStatus').textContent=e.message;dismiss.textContent='Errore: riprova a cancellare gli avvisi'}finally{dismiss.disabled=false}};
- async function poll(){if(refreshing||document.hidden)return;refreshing=true;try{const token=await session();if(!token){if(lastToken){if(dialog.open)dialog.close();current=null;requestToken='';resetReads();viewRevision++;integrationLoaded=false;el('vgClientIntegration').open=false;el('vgClientIntegrationList').replaceChildren();renderDashboard(null);el('vgCustomerBadge').textContent='Apri';el('vgCustomerTileHint').textContent='Registrazioni e ultimi accessi';el('vgCustomerList').replaceChildren();el('vgRegistrationAlerts').replaceChildren();tile.classList.remove('has-unread');tile.hidden=true}lastToken='';return}lastToken=token;render(await request('customer-admin&status=&offset=0'),false,true)}catch{}finally{refreshing=false}}
- window.VG_CUSTOMERS={open,refresh:poll,renderDashboard};Promise.resolve(window.VG_SUPABASE_READY).then(client=>client?.auth?.onAuthStateChange?.(()=>setTimeout(poll,0))).catch(()=>{});poll();setInterval(poll,30000);document.addEventListener('visibilitychange',poll);
+ async function poll(){
+  if(refreshing||document.hidden)return;
+  refreshing=true;
+  try{
+   const token=await session(),owner=accessOwner;
+   if(lastToken&&(!token||owner!==lastOwner)){
+    if(dialog.open)dialog.close();
+    current=null;requestToken='';resetReads();viewRevision++;integrationLoaded=false;
+    el('vgClientIntegration').open=false;el('vgClientIntegrationList').replaceChildren();
+    el('vgCustomerBadge').textContent='Apri';el('vgCustomerTileHint').textContent='Registrazioni e ultimi accessi';
+    el('vgCustomerList').replaceChildren();el('vgRegistrationAlerts').replaceChildren();
+    tile.classList.remove('has-unread');tile.hidden=true;dismiss.hidden=true;
+   }
+   lastToken=token||'';lastOwner=owner;
+   if(!token){
+    dashboardStatus='Accedi al gestionale per vedere gli accessi.';
+    retryUsed=false;clearTimeout(retryTimer);retryTimer=null;
+    renderDashboard(null);return;
+   }
+   if(!current){dashboardStatus='Caricamento ultimo accesso…';renderDashboard(null)}
+   render(await request('customer-admin&status=&offset=0'),false,true);
+  }catch{
+   dashboardStatus='Aggiornamento accessi non riuscito.';
+   renderDashboard();
+   if(!retryUsed){retryUsed=true;retryTimer=setTimeout(poll,4000)}
+  }finally{refreshing=false}
+ }
+ window.VG_CUSTOMERS={open,refresh:poll,renderDashboard};Promise.resolve(window.VG_SUPABASE_READY).then(client=>client?.auth?.onAuthStateChange?.(()=>setTimeout(poll,0))).catch(()=>{});poll();setInterval(poll,30000);document.addEventListener('visibilitychange',poll);window.addEventListener('online',poll);
 })();

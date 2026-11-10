@@ -62,3 +62,25 @@ test('management font enforces normal bold on body text and controls and initial
  const d=new JSDOM('<p>Testo</p><button>Apri</button><input value="Cliente">',{url:'https://example.test',runScripts:'outside-only',pretendToBeVisual:true}),w=d.window;
  try{const source=fs.readFileSync(__dirname+'/../vg-font-settings.js','utf8');w.eval(source);w.eval(source);await tick();assert.equal(w.document.querySelectorAll('#vg-native-font-style').length,1);for(const el of w.document.querySelectorAll('p,button,input'))assert.equal(w.getComputedStyle(el).fontWeight,'700');}finally{w.close()}
 });
+
+test('catalog access summary handles token refresh, retains the latest visit on error and retries',async()=>{
+ const d=new JSDOM('<section id="vgDashboardAlerts"></section><div id="catalogCustomersStat"><span id="c_catalog_customers"></span><span id="c_catalog_last_access"></span></div>',{url:'https://example.test',runScripts:'outside-only',pretendToBeVisual:true}),w=d.window;
+ const last=()=>w.document.getElementById('c_catalog_last_access').textContent;
+ let token='before-refresh',reply,failed=false,retry;
+ w.setInterval=()=>0;
+ const setTimeout=w.setTimeout.bind(w);
+ w.setTimeout=(fn,delay)=>delay===4000?(retry=fn,0):setTimeout(fn,delay);
+ w.VG_SUPABASE_READY=Promise.resolve({auth:{getSession:async()=>({data:{session:{access_token:token,user:{id:'owner'}}}})}});
+ w.fetch=async()=>{if(failed)throw Error('network offline');return await new Promise(resolve=>reply=name=>resolve({ok:true,json:async()=>({total:1,latestAccess:{name,at:'2026-11-10T10:00:00Z'},customers:[],notifications:[]})}))};
+ try{
+  w.eval(fs.readFileSync(__dirname+'/../vg-customer-panel.js','utf8'));await tick();
+  token='after-refresh';reply('Ultimo visitatore');await tick();
+  assert.match(last(),/Ultimo visitatore/);
+  failed=true;await w.VG_CUSTOMERS.refresh();
+  assert.match(last(),/Ultimo visitatore.*Aggiornamento accessi non riuscito/);
+  assert.equal(typeof retry,'function');
+  failed=false;const pending=retry();await tick();reply('Visitatore successivo');await pending;
+  assert.match(last(),/Visitatore successivo/);
+  assert.doesNotMatch(last(),/non riuscito/);
+ }finally{w.close()}
+});
