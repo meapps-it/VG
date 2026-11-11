@@ -32,7 +32,7 @@ body.shop-checking > #accessGate{visibility:hidden}
 <a href="#" aria-label="Vanity &amp; Glamour, catalogo"><img class="logo" src="/shop-vanity-glamour.webp?v=vg-fix-20261107" alt="Vanity &amp; Glamour"></a>
 <div class="header-actions"><button type="button" id="openCustomer" class="customer-entry" aria-label="I miei ordini"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><span>I miei ordini</span></button><a class="header-whatsapp" data-whatsapp="general" href="https://wa.me/393351604686" target="_blank" rel="noopener noreferrer" aria-label="Contattaci su WhatsApp"><img src="./shop-icons/whatsapp.svg" alt=""></a><button class="cart-action" id="openCart" aria-label="Apri carrello"><img src="./shop-icons/shopping-bag.svg" alt=""><span class="sr-only">Carrello</span><span id="cartCount">0</span></button></div>
 </div></header><div class="vg-install-wrap" id="vgInstallWrap" hidden><button type="button" class="vg-install-btn" id="vgInstallBtn">⬇ Installa come app</button></div></div>
-<div id="catalogLoading"><div class="catalog-loading" role="status" aria-live="polite" aria-atomic="true"><span class="loading-ring" aria-hidden="true"></span><strong>Caricamento catalogo</strong><span id="catalogLoadingMessage">Verifica dell’accesso…</span></div></div><main class="container"><section class="collection-heading" aria-labelledby="collectionTitle"><div class="collection-copy"><span class="collection-kicker">LA SELEZIONE VANITY &amp; GLAMOUR</span><h1 id="collectionTitle">Il tuo stile,<br>nei dettagli.</h1><p>Borse, pelletteria e accessori da scoprire. Scegli quello che ti somiglia.</p><div class="collection-actions"><button type="button" id="browseCollection" class="browse-collection">Esplora la selezione <span aria-hidden="true">↗</span></button><span id="collectionCount" class="collection-count"></span></div></div><div id="collectionMosaic" class="collection-mosaic" aria-label="Articoli della selezione" hidden></div></section><div class="catalog-introduction" id="catalogSection"><div><span class="section-kicker">TROVA IL TUO PREFERITO</span></div><p>Sfoglia le foto, scegli i dettagli.<br>Al resto pensiamo insieme.</p></div><div class="discovery" id="catalogFilters">
+<div id="catalogLoading"><div class="catalog-loading" role="status" aria-live="polite" aria-atomic="true"><span class="loading-ring" aria-hidden="true"></span><strong>Caricamento catalogo</strong><span id="catalogLoadingMessage">Verifica dell’accesso…</span></div></div><main class="container"><div class="catalog-introduction" id="catalogSection"><div><span class="section-kicker">TROVA IL TUO PREFERITO</span></div><p>Sfoglia le foto, scegli i dettagli.<br>Al resto pensiamo insieme.</p></div><div class="discovery" id="catalogFilters">
 <div class="search-row"><div class="search-box"><img src="./shop-icons/search.svg" alt=""><input id="search" placeholder="Cerca nome, marca o codice" aria-label="Cerca prodotti" type="search" maxlength="160" autocomplete="off"><button type="button" id="clearSearch" aria-label="Cancella ricerca" hidden><img src="./shop-icons/x.svg" alt=""></button></div><button type="button" id="toggleFilters" aria-expanded="false" aria-controls="filterPanel" aria-label="Filtri"><img src="./shop-icons/adjustments-horizontal.svg" alt=""><span class="filter-caption">Filtri</span><span id="filterCount" class="sr-only"></span></button></div>
 <p class="quality-filter-label">Qualità degli articoli</p><div class="quality-filter" role="group" aria-label="Filtra per qualità"><button type="button" data-quality="" aria-pressed="true">Tutti</button><button type="button" data-quality="ORIGINALE" aria-pressed="false">Originale</button><button type="button" data-quality="STANDARD" aria-pressed="false">Standard</button></div>
 <nav id="categoryQuick" class="group-tabs" aria-label="Categorie del catalogo"><button type="button" data-category-quick="" aria-pressed="true">Tutte</button></nav>
@@ -98,7 +98,7 @@ offersUrl.searchParams.set('view','promozioni');
 offersUrl.hash='';
 if(offersPage){
  document.title='Promozioni | Vanity &amp; Glamour';
- document.querySelector('.collection-heading').style.display='none';
+ document.querySelector('.collection-heading')?.style.setProperty('display','none');
  const back=document.createElement('a');
  const catalogUrl=new URL(offersUrl);
  catalogUrl.searchParams.delete('view');
@@ -431,8 +431,8 @@ window.addEventListener('vg-amend-order',async event=>{const order=event.detail;
 window.addEventListener('vg-customer-open',()=>{beginShopView('account');hideProduct(false);openCart(false,'none')});
 el('closeProduct').onclick=()=>hideProduct();
 el('productCatalogBack').onclick=()=>hideProduct();
-el('browseCollection').onclick=()=>el('catalogSection').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
-for(const host of [el('collectionMosaic'),el('relatedProducts')]){
+
+for(const host of [el('collectionMosaic'),el('relatedProducts')].filter(Boolean)){
  host.addEventListener('click',event=>{const target=event.target.closest('[data-detail]');if(!target)return;editingCartKey=null;showProduct(target.dataset.detail)});
 }
 
