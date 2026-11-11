@@ -20,6 +20,10 @@ css.textContent=`
 .vg-fav-button{border:1px solid #e1d2c6;border-radius:50%;width:32px;height:32px;display:grid;place-items:center;font-size:19px;background:#fff;color:#6c3d46;cursor:pointer}
 .vg-discovery-item .vg-fav-button{position:absolute;right:5px;top:5px}
 .vg-fav-button[aria-pressed=true]{background:#ffe8ee;color:#a91f4c}
+.vg-fav-button{touch-action:manipulation;pointer-events:auto!important;user-select:none;-webkit-tap-highlight-color:transparent}
+#catalog .vg-fav-card{pointer-events:auto!important;z-index:40!important}
+#catalog .vg-fav-card button{pointer-events:auto!important;position:relative;z-index:41}
+
 .vg-header-favorites{width:40px;height:40px;min-width:40px;border:1px solid #e1d9d2;border-radius:11px;background:#fff;color:#9d2852;display:grid;place-items:center;font-size:23px;cursor:pointer;position:relative}
 .vg-header-favorites:focus-visible{outline:2px solid #9d2852;outline-offset:2px}
 .vg-header-favorites-count{position:absolute;top:-5px;right:-5px;min-width:17px;padding:1px 3px;background:#9d2852;color:#fff;border-radius:20px;font:700 10px/15px system-ui;text-align:center}
@@ -41,6 +45,16 @@ function syncHeader(){
 }
 if(headerFav){headerFav.addEventListener('click',()=>{tab='fav';render();root.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});});syncHeader();}
 const detailFavorite=document.getElementById('vgProductFavorite');if(detailFavorite)detailFavorite.addEventListener('click',e=>{e.stopPropagation();toggleFavorite(detailFavorite.dataset.vgFav)});
+const catalogueRoot=document.getElementById('catalog');
+if(catalogueRoot)catalogueRoot.addEventListener('click',e=>{
+ const target=e.target instanceof Element?e.target:e.target?.parentElement;
+ const button=target?.closest('button[data-vg-fav]');
+ if(!button)return;
+ e.preventDefault();
+ e.stopImmediatePropagation();
+ toggleFavorite(button.dataset.vgFav);
+},true);
+
 
 const fmt=n=>n===null?'Info in privato':Number(n||0).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
 function isPromo(p){return promoIds.has(p.id)&&p.promotionActive===true&&p.promotion===true}
@@ -50,7 +64,7 @@ function candidates(){
  if(tab==='promo')return items.filter(isPromo);
  return items.filter(p=>fav.has(String(p.id)));
 }
-function heart(id){const on=fav.has(String(id));return '<button type="button" class="vg-fav-button" data-vg-fav="'+id+'" onclick="window.vgDiscovery.toggle(this.dataset.vgFav);event.stopPropagation()" aria-label="'+(on?'Rimuovi dai preferiti':'Aggiungi ai preferiti')+'" aria-pressed="'+on+'">'+(on?'♥':'♡')+'</button>'}
+function heart(id){const on=fav.has(String(id));return '<button type="button" class="vg-fav-button" data-vg-fav="'+id+'" aria-label="'+(on?'Rimuovi dai preferiti':'Aggiungi ai preferiti')+'" aria-pressed="'+on+'">'+(on?'♥':'♡')+'</button>'}
 function render(){
  const opts=[['new','✨ Appena arrivati'],['promo','🏷️ Promozioni'],['fav','❤️ Preferiti']];
  root.innerHTML='<div class="vg-discovery-tabs" role="group" aria-label="Esplora il catalogo">'+opts.map(([id,label])=>'<button type="button" data-vg-tab="'+id+'" aria-pressed="'+(id===tab)+'">'+label+'</button>').join('')+'</div><h2>'+({new:'Appena arrivati',promo:'In promozione',fav:'I tuoi preferiti'}[tab])+'</h2>';
