@@ -20,7 +20,7 @@ css.textContent=`
 .vg-fav-button{border:1px solid #e1d2c6;border-radius:50%;width:32px;height:32px;display:grid;place-items:center;font-size:19px;background:#fff;color:#6c3d46;cursor:pointer}
 .vg-discovery-item .vg-fav-button{position:absolute;right:5px;top:5px}
 .vg-fav-button[aria-pressed=true]{background:#ffe8ee;color:#a91f4c}
-.vg-fav-card{position:absolute;right:7px;top:7px;z-index:2}
+.catalog .item{position:relative}.vg-fav-card{position:absolute;right:7px;top:7px;z-index:2}
 .vg-discovery-item .vg-price{display:block;padding:0 8px 9px;font-size:13px;font-weight:800;color:#2e2521}
 @media(max-width:600px){.vg-discovery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vg-discovery{padding:12px 10px}.vg-discovery-tabs button{font-size:12px;padding:9px}}
 `;
