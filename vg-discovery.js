@@ -20,6 +20,10 @@ css.textContent=`
 .vg-fav-button{border:1px solid #e1d2c6;border-radius:50%;width:32px;height:32px;display:grid;place-items:center;font-size:19px;background:#fff;color:#6c3d46;cursor:pointer}
 .vg-discovery-item .vg-fav-button{position:absolute;right:5px;top:5px}
 .vg-fav-button[aria-pressed=true]{background:#ffe8ee;color:#a91f4c}
+.vg-header-favorites{width:40px;height:40px;min-width:40px;border:1px solid #e1d9d2;border-radius:11px;background:#fff;color:#9d2852;display:grid;place-items:center;font-size:23px;cursor:pointer;position:relative}
+.vg-header-favorites:focus-visible{outline:2px solid #9d2852;outline-offset:2px}
+.vg-header-favorites-count{position:absolute;top:-5px;right:-5px;min-width:17px;padding:1px 3px;background:#9d2852;color:#fff;border-radius:20px;font:700 10px/15px system-ui;text-align:center}
+
 .catalog .item{position:relative}.vg-fav-card{position:absolute;right:7px;top:7px;z-index:2}
 .vg-discovery-item .vg-price{display:block;padding:0 8px 9px;font-size:13px;font-weight:800;color:#2e2521}
 @media(max-width:600px){.vg-discovery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vg-discovery{padding:12px 10px}.vg-discovery-tabs button{font-size:12px;padding:9px}}
@@ -29,6 +33,10 @@ document.getElementById('catalogSection')?.before(root);
 let items=[],promoIds=new Set(),tab='new';
 function read(){try{const ids=JSON.parse(localStorage.getItem(STORE)||'[]');return new Set(Array.isArray(ids)?ids.filter(x=>typeof x==='string').slice(0,1000):[])}catch{return new Set()}}
 let fav=read();
+const headerFav=document.getElementById('vgHeaderFavorites');
+function syncHeader(){if(!headerFav)return;const count=headerFav.querySelector('[data-fav-count]');if(count){count.textContent=String(fav.size);count.hidden=!fav.size}headerFav.setAttribute('aria-label','Apri preferiti ('+fav.size+')')}
+if(headerFav){headerFav.addEventListener('click',()=>{tab='fav';render();root.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});});syncHeader();}
+
 const fmt=n=>n===null?'Info in privato':Number(n||0).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
 function isPromo(p){return promoIds.has(p.id)&&p.promotionActive===true&&p.promotion===true}
 function candidates(){
@@ -67,8 +75,8 @@ document.addEventListener('click',e=>{
  if(fav.has(id))fav.delete(id);else fav.add(id);
  try{localStorage.setItem(STORE,JSON.stringify([...fav]))}catch{}
  document.querySelectorAll('[data-vg-fav="'+id+'"]').forEach(b=>{b.textContent=fav.has(id)?'♥':'♡';b.setAttribute('aria-pressed',String(fav.has(id)));b.setAttribute('aria-label',fav.has(id)?'Rimuovi dai preferiti':'Aggiungi ai preferiti')});
- if(tab==='fav')render();
+ syncHeader();if(tab==='fav')render();
 },true);
-window.addEventListener('storage',e=>{if(e.key===STORE){fav=read();render()}});
+window.addEventListener('storage',e=>{if(e.key===STORE){fav=read();syncHeader();render()}});
 window.vgDiscovery={render(products,promotions){items=(products||[]).filter(p=>p&&p.id);promoIds=new Set(promotions||[]);render()},open:null,heart};
 })();
