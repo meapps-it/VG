@@ -34,7 +34,11 @@ let items=[],promoIds=new Set(),tab='new';
 function read(){try{const ids=JSON.parse(localStorage.getItem(STORE)||'[]');return new Set(Array.isArray(ids)?ids.filter(x=>typeof x==='string').slice(0,1000):[])}catch{return new Set()}}
 let fav=read();
 const headerFav=document.getElementById('vgHeaderFavorites');
-function syncHeader(){if(!headerFav)return;const count=headerFav.querySelector('[data-fav-count]');if(count){count.textContent=String(fav.size);count.hidden=!fav.size}headerFav.setAttribute('aria-label','Apri preferiti ('+fav.size+')')}
+function syncHeader(){
+ if(headerFav){const count=headerFav.querySelector('[data-fav-count]');if(count){count.textContent=String(fav.size);count.hidden=!fav.size}headerFav.setAttribute('aria-label','Apri preferiti ('+fav.size+')')}
+ const detail=document.getElementById('vgProductFavorite');
+ if(detail?.dataset.vgFav){const selected=fav.has(detail.dataset.vgFav);detail.setAttribute('aria-pressed',String(selected));detail.setAttribute('aria-label',selected?'Rimuovi dai preferiti':'Aggiungi ai preferiti');detail.innerHTML=selected?'♥ <span>Salvato</span>':'♡ <span>Salva</span>'}
+}
 if(headerFav){headerFav.addEventListener('click',()=>{tab='fav';render();root.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});});syncHeader();}
 
 const fmt=n=>n===null?'Info in privato':Number(n||0).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
@@ -74,9 +78,9 @@ document.addEventListener('click',e=>{
  const id=btn.dataset.vgFav;
  if(fav.has(id))fav.delete(id);else fav.add(id);
  try{localStorage.setItem(STORE,JSON.stringify([...fav]))}catch{}
- document.querySelectorAll('[data-vg-fav="'+id+'"]').forEach(b=>{b.textContent=fav.has(id)?'♥':'♡';b.setAttribute('aria-pressed',String(fav.has(id)));b.setAttribute('aria-label',fav.has(id)?'Rimuovi dai preferiti':'Aggiungi ai preferiti')});
+ document.querySelectorAll('[data-vg-fav="'+id+'"]').forEach(b=>{if(b.id!=='vgProductFavorite')b.textContent=fav.has(id)?'♥':'♡';b.setAttribute('aria-pressed',String(fav.has(id)));b.setAttribute('aria-label',fav.has(id)?'Rimuovi dai preferiti':'Aggiungi ai preferiti')});
  syncHeader();if(tab==='fav')render();
 },true);
 window.addEventListener('storage',e=>{if(e.key===STORE){fav=read();syncHeader();render()}});
-window.vgDiscovery={render(products,promotions){items=(products||[]).filter(p=>p&&p.id);promoIds=new Set(promotions||[]);render()},open:null,heart};
+window.vgDiscovery={sync:syncHeader,render(products,promotions){items=(products||[]).filter(p=>p&&p.id);promoIds=new Set(promotions||[]);render()},open:null,heart};
 })();
