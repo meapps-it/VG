@@ -23,7 +23,7 @@ css.textContent=`
 .vg-fav-button{touch-action:manipulation;pointer-events:auto!important;user-select:none;-webkit-tap-highlight-color:transparent}
 .vg-header-favorites{width:40px;height:40px;min-width:40px;border:1px solid #e1d9d2;border-radius:11px;background:#fff;color:#9d2852;display:grid;place-items:center;font-size:23px;cursor:pointer;position:relative}
 .vg-header-favorites:focus-visible{outline:2px solid #9d2852;outline-offset:2px}
-.vg-header-favorites-count{position:absolute;top:-5px;right:-5px;min-width:17px;padding:1px 3px;background:#9d2852;color:#fff;border-radius:20px;font:700 10px/15px system-ui;text-align:center}
+.brand-stage #vgHeaderFavorites .vg-header-favorites-count{position:absolute;top:-5px;right:-5px;box-sizing:border-box;min-width:22px;padding:1px 4px;background:#801c46;color:#fff!important;border:2px solid #fff;border-radius:20px;font:800 13px/16px system-ui!important;font-variant-numeric:tabular-nums;text-align:center;pointer-events:none}
 
 .catalog .item{position:relative}
 .vg-discovery-item .vg-price{display:block;padding:0 8px 9px;font-size:13px;font-weight:800;color:#2e2521}
