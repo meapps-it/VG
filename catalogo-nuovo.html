@@ -93,7 +93,7 @@ body.shop-checking > #accessGate{visibility:hidden}
     </div>
   </div>
 </section>
-<script src="./vg-discovery.js?v=20261111-heart-promo-0e343ce" onerror="console.warn('Vetrina non caricata: catalogo disponibile')"></script><script src="./shop-boutique.js?v=private-prices-20261031"></script><script src="./shop-access.js?v=facebook-sign-in-20261109"></script><script src="./shop-shipping.js?v=sync-accounts2"></script><script src="./shop-feedback.js?v=3"></script><script src="./shop-variants.js?v=3"></script><script src="./shop-customer.js?v=private-prices-20261031"></script>
+<script src="./shop-discovery.js?v=20261111-preferiti" onerror="console.warn('Vetrina non caricata: catalogo disponibile')"></script><script src="./shop-boutique.js?v=private-prices-20261031"></script><script src="./shop-access.js?v=facebook-sign-in-20261109"></script><script src="./shop-shipping.js?v=sync-accounts2"></script><script src="./shop-feedback.js?v=3"></script><script src="./shop-variants.js?v=3"></script><script src="./shop-customer.js?v=private-prices-20261031"></script>
 <script>
 'use strict';
 const API='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-shop-catalog';
@@ -152,12 +152,9 @@ function cardOffer(p){
  return p.limitedAvailability===true?'<span class="card-stock-note">Disponibilità limitata</span>':'';
 }
 function cardPromoBadge(p){
- if(p.promotion!==true||p.promotionActive!==true)return '';
- const end=String(p.promotionEndsAt||'');
- const valid=/^\d{4}-\d{2}-\d{2}$/.test(end)&&!Number.isNaN(Date.parse(end+'T12:00:00Z'));
- const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
- if(valid&&end<today)return '';
- return '<div class="vg-promo-photo-label"><strong>In promozione</strong>'+(valid?'<small>Fino al '+escapeHtml(end.slice(8,10)+'/'+end.slice(5,7))+'</small>':'')+'</div>';
+ const end=promotionEnd(p);
+ if(!isActivePromotion(p))return '';
+ return '<div class="vg-promo-photo-label"><strong>In promozione</strong>'+(end?'<small>Fino al '+escapeHtml(end.slice(8,10)+'/'+end.slice(5,7))+'</small>':'')+'</div>';
 }
 let visibleCardLimit=30,lastCatalogFilterKey='',catalogMoreObserver=null;
 function render(){
@@ -261,9 +258,9 @@ function requestCatalog(photoMode){
 }
 function renderOffers(promotion){
  const included=new Set(promotion?.enabled?promotion.product_ids:[]);
- offerProducts=products.filter(p=>p.promotionActive===true&&included.has(p.id));
+ offerProducts=products.filter(p=>isActivePromotion(p)&&included.has(p.id));
  window.shopPromotions?.render(promotion,offerProducts,{href:offersPage?'#catalogFilters':offersUrl.href});
- try{window.vgDiscovery?.render(products,offerProducts.map(p=>p.id))}catch(error){console.warn('Vetrina non disponibile:',error)}
+ try{window.vgDiscovery?.render(products,offerProducts.map(p=>p.id),isActivePromotion)}catch(error){console.warn('Vetrina non disponibile:',error)}
 }
 async function loadCovers(snapshot){
  try{
@@ -405,11 +402,19 @@ function publicDescription(raw){
  text=text.replace(/\\n/g,'\n').replace(/\s{3,}/g,' ').trim();
  return text;
 }
-function renderProductPromo(p,today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())){
- const badge=el('productPromoBadge'),end=String(p.promotionEndsAt||'');
- const valid=/^\d{4}-\d{2}-\d{2}$/.test(end)&&!Number.isNaN(Date.parse(end+'T12:00:00Z'))&&new Date(end+'T12:00:00Z').toISOString().slice(0,10)===end;
- badge.hidden=!(p.promotionActive??p.promotion)||(valid&&end<today);
- el('productPromoEnd').textContent=!badge.hidden&&valid?'Fino al '+end.slice(8,10)+'/'+end.slice(5,7)+'/'+end.slice(0,4)+' compreso':'';
+function promotionEnd(p){
+ const end=String(p.promotionEndsAt||'');
+ const date=new Date(end+'T12:00:00Z');
+ return /^\d{4}-\d{2}-\d{2}$/.test(end)&&Number.isFinite(+date)&&date.toISOString().slice(0,10)===end?end:'';
+}
+function isActivePromotion(p,today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())){
+ const end=promotionEnd(p);
+ return p.promotionActive===true&&(!p.promotionEndsAt||(end&&end>=today));
+}
+function renderProductPromo(p,today){
+ const badge=el('productPromoBadge'),end=promotionEnd(p);
+ badge.hidden=!isActivePromotion(p,today);
+ el('productPromoEnd').textContent=!badge.hidden&&end?'Fino al '+end.slice(8,10)+'/'+end.slice(5,7)+'/'+end.slice(0,4)+' compreso':'';
 }
 function showProduct(id,navigate=true){
  const p=products.find(x=>x.id===id);if(!p)return;if(!editingCartKey)el('productAdd').textContent='Ordina ora';

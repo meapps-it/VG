@@ -34,16 +34,22 @@ css.textContent=`
 `;
 document.head.append(css);
 document.getElementById('catalogSection')?.before(root);
-let items=[],promoIds=new Set(),tab='new';
-function read(){try{const ids=JSON.parse(localStorage.getItem(STORE)||'[]');return new Set(Array.isArray(ids)?ids.filter(x=>typeof x==='string').slice(0,1000):[])}catch{return new Set()}}
+let items=[],promoIds=new Set(),activePromotion,tab='new';
+function read(){try{const ids=JSON.parse(localStorage.getItem(STORE)||'[]');return new Set(Array.isArray(ids)?ids.filter(x=>typeof x==='string'):[])}catch{return new Set()}}
 let fav=read();
 const headerFav=document.getElementById('vgHeaderFavorites');
-function syncHeader(){
- if(headerFav){const count=headerFav.querySelector('[data-fav-count]');if(count){count.textContent=String(fav.size);count.hidden=!fav.size}headerFav.setAttribute('aria-label','Apri preferiti ('+fav.size+')')}
+function sync(){
+ document.querySelectorAll('button[data-vg-fav]').forEach(button=>{
+  const selected=fav.has(button.dataset.vgFav);
+  button.setAttribute('aria-pressed',String(selected));
+  button.setAttribute('aria-label',selected?'Rimuovi dai preferiti':'Aggiungi ai preferiti');
+  if(button.id!=='vgProductFavorite')button.textContent=selected?'❤️':'♡';
+ });
+ if(headerFav){const count=headerFav.querySelector('[data-fav-count]');if(count){count.textContent=String(fav.size);count.hidden=false}headerFav.setAttribute('aria-label','Apri preferiti ('+fav.size+')')}
  const detail=document.getElementById('vgProductFavorite');
- if(detail?.dataset.vgFav){const selected=fav.has(detail.dataset.vgFav);detail.setAttribute('aria-pressed',String(selected));detail.setAttribute('aria-label',selected?'Rimuovi dai preferiti':'Aggiungi ai preferiti');detail.innerHTML=selected?'♥ <span>Salvato</span>':'♡ <span>Salva</span>'}
+ if(detail?.dataset.vgFav){const selected=fav.has(detail.dataset.vgFav);detail.setAttribute('aria-pressed',String(selected));detail.setAttribute('aria-label',selected?'Rimuovi dai preferiti':'Aggiungi ai preferiti');detail.innerHTML=selected?'❤️ <span>Salvato</span>':'♡ <span>Salva</span>'}
 }
-if(headerFav){headerFav.addEventListener('click',()=>{tab='fav';render();root.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});});syncHeader();}
+if(headerFav){headerFav.addEventListener('click',()=>{tab='fav';render();root.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});});sync();}
 const detailFavorite=document.getElementById('vgProductFavorite');if(detailFavorite)detailFavorite.addEventListener('click',e=>{e.stopPropagation();toggleFavorite(detailFavorite.dataset.vgFav)});
 const catalogueRoot=document.getElementById('catalog');
 if(catalogueRoot)catalogueRoot.addEventListener('click',e=>{
@@ -57,14 +63,14 @@ if(catalogueRoot)catalogueRoot.addEventListener('click',e=>{
 
 
 const fmt=n=>n===null?'Info in privato':Number(n||0).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
-function isPromo(p){return promoIds.has(p.id)&&p.promotionActive===true&&p.promotion===true}
+function isPromo(p){return promoIds.has(p.id)&&activePromotion(p)}
 function candidates(){
  const cutoff=Date.now()-7*86400000;
  if(tab==='new')return items.filter(p=>{const t=Date.parse(p.createdAt||'');return Number.isFinite(t)&&t>=cutoff&&t<=Date.now()}).sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt));
  if(tab==='promo')return items.filter(isPromo);
  return items.filter(p=>fav.has(String(p.id)));
 }
-function heart(id){const on=fav.has(String(id));return '<button type="button" class="vg-fav-button" data-vg-fav="'+id+'" aria-label="'+(on?'Rimuovi dai preferiti':'Aggiungi ai preferiti')+'" aria-pressed="'+on+'">'+(on?'♥':'♡')+'</button>'}
+function heart(id){const on=fav.has(String(id));return '<button type="button" class="vg-fav-button" data-vg-fav="'+id+'" aria-label="'+(on?'Rimuovi dai preferiti':'Aggiungi ai preferiti')+'" aria-pressed="'+on+'">'+(on?'❤️':'♡')+'</button>'}
 function render(){
  const opts=[['new','✨ Appena arrivati'],['promo','🏷️ Promozioni'],['fav','❤️ Preferiti']];
  root.innerHTML='<div class="vg-discovery-tabs" role="group" aria-label="Esplora il catalogo">'+opts.map(([id,label])=>'<button type="button" data-vg-tab="'+id+'" aria-pressed="'+(id===tab)+'">'+label+'</button>').join('')+'</div><h2>'+({new:'Appena arrivati',promo:'In promozione',fav:'I tuoi preferiti'}[tab])+'</h2>';
@@ -73,14 +79,14 @@ function render(){
  note.textContent=selected.length?'':tab==='new'?'Nessun nuovo articolo negli ultimi 7 giorni. Esplora la collezione qui sotto.':tab==='promo'?'Nessuna promozione attiva in questo momento.':'Tocca il cuoricino sugli articoli che ti piacciono per ritrovarli qui, su questo dispositivo.';
  root.append(note);
  const grid=document.createElement('div');grid.className='vg-discovery-grid';
- selected.slice(0,12).forEach(p=>{
+ (tab==='fav'?selected:selected.slice(0,12)).forEach(p=>{
   const box=document.createElement('article');box.className='vg-discovery-item';
   const open=document.createElement('button');open.type='button';open.className='vg-discovery-open';open.dataset.vgOpen=p.id;
   if(p.image){const img=document.createElement('img');img.src=p.image;img.loading='lazy';img.alt=p.name||'Articolo';open.append(img)}
   const name=document.createElement('span');name.className='vg-discovery-name';name.textContent=p.name||'Articolo';open.append(name);
   const price=document.createElement('span');price.className='vg-price';price.textContent=fmt(p.price);
   box.append(open,price);
-  const like=document.createElement('button');like.type='button';like.className='vg-fav-button';like.dataset.vgFav=p.id;like.setAttribute('aria-pressed',String(fav.has(String(p.id))));like.setAttribute('aria-label',fav.has(String(p.id))?'Rimuovi dai preferiti':'Aggiungi ai preferiti');like.textContent=fav.has(String(p.id))?'♥':'♡';like.addEventListener('click',e=>{e.stopPropagation();toggleFavorite(p.id)});box.append(like);grid.append(box);
+  const like=document.createElement('button');like.type='button';like.className='vg-fav-button';like.dataset.vgFav=p.id;like.setAttribute('aria-pressed',String(fav.has(String(p.id))));like.setAttribute('aria-label',fav.has(String(p.id))?'Rimuovi dai preferiti':'Aggiungi ai preferiti');like.textContent=fav.has(String(p.id))?'❤️':'♡';like.addEventListener('click',e=>{e.stopPropagation();toggleFavorite(p.id)});box.append(like);grid.append(box);
  });root.append(grid);
 }
 root.addEventListener('click',e=>{
@@ -92,13 +98,7 @@ function toggleFavorite(id){
  if(!id)return;
  if(fav.has(id))fav.delete(id);else fav.add(id);
  try{localStorage.setItem(STORE,JSON.stringify([...fav]))}catch(error){console.warn('Preferiti non persistenti su questo browser',error)}
- document.querySelectorAll('[data-vg-fav]').forEach(b=>{
-  if(b.dataset.vgFav!==id)return;
-  if(b.id!=='vgProductFavorite')b.textContent=fav.has(id)?'♥':'♡';
-  b.setAttribute('aria-pressed',String(fav.has(id)));
-  b.setAttribute('aria-label',fav.has(id)?'Rimuovi dai preferiti':'Aggiungi ai preferiti');
- });
- syncHeader();
+ sync();
  if(tab==='fav')render();
  let status=document.getElementById('vgFavFeedback');
  if(!status){status=document.createElement('div');status.id='vgFavFeedback';status.setAttribute('role','status');status.style.cssText='position:fixed;bottom:72px;left:50%;transform:translateX(-50%);z-index:99999;background:#372821;color:white;padding:11px 18px;border-radius:22px;font:600 14px system-ui;box-shadow:0 4px 18px #0003;pointer-events:none';document.body.append(status)}
@@ -107,6 +107,6 @@ function toggleFavorite(id){
  toggleFavorite.feedbackTimer=setTimeout(()=>{status.textContent='';status.hidden=true},1800);
  status.hidden=false;
 }
-window.addEventListener('storage',e=>{if(e.key===STORE){fav=read();syncHeader();render()}});
-window.vgDiscovery={toggle:toggleFavorite,sync:syncHeader,render(products,promotions){items=(products||[]).filter(p=>p&&p.id);promoIds=new Set(promotions||[]);render()},open:null,heart};
+window.addEventListener('storage',e=>{if(e.key===STORE){fav=read();sync();render()}});
+window.vgDiscovery={toggle:toggleFavorite,sync,render(products,promotions,isActivePromotion){activePromotion=isActivePromotion;items=(products||[]).filter(p=>p&&p.id);promoIds=new Set(promotions||[]);render()},open:null,heart};
 })();
