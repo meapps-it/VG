@@ -1,19 +1,33 @@
-# Notifiche push per il catalogo Vanity & Glamour
+# Vanity & Glamour — notifiche push web
 
-## Stato
-Prima fase, **non pronta per la pubblicazione**. Frontend e service worker sono predisposti. Le notifiche non saranno proposte finché l'endpoint di configurazione non risponde con `enabled: true` e una chiave VAPID pubblica valida.
+## Componenti realizzati
 
-## Consenso
-La preferenza è inizialmente **attiva**, come richiesto, ma nessuna notifica può essere inviata senza un'azione esplicita del cliente che autorizza il browser. Se il cliente rifiuta, la preferenza viene disattivata. Non tentare di aggirare il prompt di sistema.
+- `vg-push.js`: preferenza inizialmente attiva, richiesta esplicita del consenso del browser dopo il caricamento catalogo, iscrizione, rinnovo e disiscrizione.
+- `service-worker.js`: gestione eventi `push` e `notificationclick` per aprire il catalogo.
+- `notifiche-admin.html`: pannello riservato all'amministratore Supabase, statistiche e invio messaggi.
+- `backend/vg-push-subscriptions/index.ts`: Edge Function Supabase già distribuita con slug `vg-push-subscriptions`. Richiede Auth Supabase con ID proprietario per statistiche e invio.
+- Database produzione: `public.vg_catalog_push_subscriptions` e `public.vg_catalog_push_send_log`, RLS attiva, accesso negato a `anon` e `authenticated`.
+- Due chiavi VAPID memorizzate cifrate in Supabase Vault. Una RPC `public.vg_catalog_vapid_keys()` accessibile soltanto a `service_role` le fornisce al backend, senza inserire il segreto nel codice.
 
-## Endpoint server necessario
-Supabase Edge Function `vg-push-subscriptions`:
-- `GET ?action=config` => `{enabled:true,publicKey:"..."}`
-- `POST {action:"subscribe",subscription:{endpoint,keys:{p256dh,auth}}}`
-- `POST {action:"unsubscribe",endpoint:"..."}`
+## Sicurezza e comportamento
 
-**Sicurezza obbligatoria:** salvare e verificare le subscription lato server, rate limiting, CORS limitato al catalogo, VAPID private key solo come secret nel backend (mai nel repository), accesso all'invio limitato agli amministratori con autorizzazione verificata lato server. Predisporre rimozione endpoint scaduti 404/410 e disiscrizione. Servono poi API di invio, pannello amministratore e contatore iscritti prima di pubblicare.
+Il consenso browser è **obbligatorio** anche se la preferenza è inizialmente attivata. L'utente può rifiutare o disiscriversi. L'endpoint `subscribe` accetta solo URL HTTPS e limita a 5 nuovi dispositivi per hash IP in 24 ore. L'invio è limitato agli utenti autenticati come proprietario; URL destinazioni vincolati a `veglamour.cloud`.
 
-Il service worker è quello già attivo nella root, modificato per supportare gli eventi `push` e `notificationclick`. Testare su Chrome Android con opt-in, rifiuto, refresh, disiscrizione e apertura del link.
+## Endpoint
 
-Non dichiarare le notifiche operative finché non sono stati eseguiti test end-to-end su un telefono reale.
+- `GET .../vg-push-subscriptions?action=config` (pubblico) restituisce `{ enabled, publicKey }`.
+- `POST` con `action=subscribe` o `action=unsubscribe` (pubblico).
+- `GET ...?action=stats` con Bearer JWT proprietario.
+- `POST` con `action=send`, titolo, messaggio, URL e Bearer JWT proprietario.
+
+## Test ancora necessari
+
+1. Controllare la risposta HTTPS a `config` da Chrome Android.
+2. Aprire il catalogo su smartphone, dare consenso, verificare l'iscrizione in database e il contatore.
+3. Provare invio con telefono bloccato e apertura del link.
+4. Disattivare le notifiche, verificare la rimozione dal database.
+5. Verificare la navigazione del menu amministratore e l'accesso Google.
+6. Verificare compilazione ed esecuzione dell'import `npm:web-push` in runtime Supabase.
+7. Solo dopo, unire la PR e distribuire il frontend tramite il flusso Cloudflare/GitHub corrente.
+
+**Nota:** la funzione backend è attiva nel progetto Supabase; il frontend resta in PR bozza. Nessun test Android end-to-end è stato completato.
