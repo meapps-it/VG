@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
    const result=await request('send',{title:e('title').value.trim(),message:e('body').value.trim(),url:e('link').value.trim()});
    message('Invio terminato. Accettate dai servizi push: '+result.accepted+' su '+result.attempted+'. Fallite: '+result.failed+'. La consegna finale al telefono non è garantita.');
    await refresh();
+   message('Invio terminato. Accettate dai servizi push: '+result.accepted+' su '+result.attempted+'. Fallite: '+result.failed+'. La consegna finale al telefono non è garantita.');
   }catch(err){message('Invio non riuscito: '+err.message)}
   finally{e('sendButton').disabled=false}
  };
