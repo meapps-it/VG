@@ -38,9 +38,21 @@
     container.querySelector('#vgPushNo').onclick=()=>{save(false);container.remove()};
     container.querySelector('#vgPushYes').onclick=async()=>{const yes=container.querySelector('#vgPushYes');yes.disabled=true;yes.textContent='Attivazione…';try{const perm=await Notification.requestPermission();if(perm!=='granted'){save(false);container.remove();return}await sync(true);save(true);container.remove()}catch(e){yes.disabled=false;yes.textContent='Riprova';console.warn('[VG Push]',e);alert('Notifiche al momento non disponibili. Riprova più tardi.')}};
   }
-  document.addEventListener('DOMContentLoaded',async()=>{
+  async function activateWhenReady(){
     if(!pref()||Notification.permission==='denied')return;
     try{await loadConfig();if(Notification.permission==='granted'){await sync(true)}else if(Notification.permission==='default')show()}catch(e){console.info('[VG Push] Servizio non ancora configurato:',e.message)}
-  });
+  }
+  const launch=()=>{if(document.body.classList.contains('shop-locked')||document.body.classList.contains('shop-checking'))return;activateWhenReady()};
+  window.addEventListener('vg-catalog-ready',launch,{once:true});
+  if(document.readyState!=='loading')launch();else document.addEventListener('DOMContentLoaded',launch,{once:true});
+  function addSettings(){
+    if(document.getElementById('vgPushSettings')||!document.body)return;
+    const element=document.createElement('button');element.id='vgPushSettings';element.type='button';element.textContent='🔔 Notifiche';
+    element.style.cssText='display:block;margin:20px auto 12px;padding:7px 12px;border:1px solid #d9cbd1;background:#fff;border-radius:10px;color:#55444c;font:12px system-ui;cursor:pointer';
+    const footer=document.querySelector('footer')||document.body;
+    footer.appendChild(element);
+    element.onclick=async()=>{if(pref()){if(!confirm('Vuoi disattivare le notifiche di Vanity & Glamour su questo dispositivo?'))return;try{await window.VGPush.disable();alert('Notifiche disattivate.')}catch(e){alert('Non è stato possibile disattivare le notifiche.')}}else{window.VGPush.enable()}};
+  }
+  window.addEventListener('vg-catalog-ready',addSettings,{once:true});
   window.VGPush={enable:async()=>{save(true);if(Notification.permission==='granted')await sync(true);else show()},disable:async()=>{save(false);await sync(false)}};
 })();
