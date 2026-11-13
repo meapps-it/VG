@@ -1,0 +1,46 @@
+/* Vanity & Glamour: preferenza notifiche ON, permesso browser sempre esplicito. */
+(()=>{
+  'use strict';
+  const API='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-push-subscriptions';
+  const KEY='vg-push-preference-v1';
+  const pref=()=>{try{return localStorage.getItem(KEY)!=='off'}catch{return true}};
+  const save=value=>{try{localStorage.setItem(KEY,value?'on':'off')}catch{}};
+  const supported='Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window && window.isSecureContext;
+  if(!supported)return;
+  const base64ToBytes=s=>{const padded=s+'='.repeat((4-s.length%4)%4);const binary=atob(padded.replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(binary,c=>c.charCodeAt(0))};
+  let config=null;
+  async function loadConfig(){
+    if(config)return config;
+    const response=await fetch(API+'?action=config',{cache:'no-store'});
+    if(!response.ok)throw new Error('Servizio notifiche non configurato');
+    const json=await response.json();
+    if(!json.publicKey || !json.enabled)throw new Error('Servizio notifiche non disponibile');
+    config=json;return config;
+  }
+  async function sync(enabled){
+    const registration=await navigator.serviceWorker.register('/service-worker.js',{scope:'/'});
+    const old=await registration.pushManager.getSubscription();
+    if(!enabled){
+      if(old){await fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'unsubscribe',endpoint:old.endpoint})});await old.unsubscribe()}
+      return;
+    }
+    const cfg=await loadConfig();
+    const subscription=old||await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:base64ToBytes(cfg.publicKey)});
+    const response=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'subscribe',subscription:subscription.toJSON()})});
+    if(!response.ok)throw new Error('Iscrizione alle notifiche non riuscita');
+  }
+  function show(){
+    if(document.getElementById('vgPushPanel'))return;
+    const container=document.createElement('div');container.id='vgPushPanel';
+    container.style.cssText='position:fixed;bottom:18px;left:12px;right:12px;z-index:500;max-width:420px;margin:auto;background:#fff;color:#242424;border:1px solid #e6dee3;border-radius:16px;box-shadow:0 10px 36px #0003;padding:14px;font:14px system-ui,sans-serif';
+    container.innerHTML='<strong>🔔 Novità Vanity & Glamour</strong><p style="margin:8px 0 12px">Ricevi avvisi per offerte e nuovi arrivi. Le notifiche sono selezionate per impostazione predefinita, ma Android richiede il tuo consenso.</p><div style="display:flex;justify-content:flex-end;gap:10px"><button type="button" id="vgPushNo" style="padding:9px;border:1px solid #ddd;border-radius:9px;background:white">Non ora</button><button type="button" id="vgPushYes" style="padding:9px;border:0;border-radius:9px;background:#a61557;color:white;font-weight:bold">Attiva notifiche</button></div>';
+    document.body.appendChild(container);
+    container.querySelector('#vgPushNo').onclick=()=>{save(false);container.remove()};
+    container.querySelector('#vgPushYes').onclick=async()=>{const yes=container.querySelector('#vgPushYes');yes.disabled=true;yes.textContent='Attivazione…';try{const perm=await Notification.requestPermission();if(perm!=='granted'){save(false);container.remove();return}await sync(true);save(true);container.remove()}catch(e){yes.disabled=false;yes.textContent='Riprova';console.warn('[VG Push]',e);alert('Notifiche al momento non disponibili. Riprova più tardi.')}};
+  }
+  document.addEventListener('DOMContentLoaded',async()=>{
+    if(!pref()||Notification.permission==='denied')return;
+    try{await loadConfig();if(Notification.permission==='granted'){await sync(true)}else if(Notification.permission==='default')show()}catch(e){console.info('[VG Push] Servizio non ancora configurato:',e.message)}
+  });
+  window.VGPush={enable:async()=>{save(true);if(Notification.permission==='granted')await sync(true);else show()},disable:async()=>{save(false);await sync(false)}};
+})();
