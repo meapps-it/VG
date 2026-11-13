@@ -123,7 +123,7 @@ self.addEventListener('push', event => {
   if(url.origin!==self.location.origin)url.href=self.location.origin+'/';
   event.waitUntil(self.registration.showNotification(title,{
     body:String(data.body||'Scopri le novità del catalogo'),
-    icon:'/shop-icons/icon-192.png',badge:'/shop-icons/icon-192.png',
+    icon:'/shop-vanity-glamour.webp',badge:'/shop-vanity-glamour.webp',
     tag:String(data.tag||'vg-news'),data:{url:url.href}
   }));
 });
