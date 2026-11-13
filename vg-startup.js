@@ -20,6 +20,15 @@ if (catalogLink) {
   catalogLink.href = 'https://veglamour.cloud/';
   catalogLink.querySelector('.topMenuTitle').textContent = 'Vanity & Glamour';
 }
+// Accesso rapido alle campagne push dal menu del gestionale.
+if (menu && !menu.querySelector('[data-vg-push-admin]')) {
+  const notifications = document.createElement('a');
+  notifications.href = './notifiche-admin.html';
+  notifications.dataset.vgPushAdmin = '1';
+  notifications.textContent = '🔔 Notifiche clienti';
+  notifications.style.cssText = 'display:block;padding:12px 15px;text-decoration:none;color:inherit;font-weight:700';
+  menu.appendChild(notifications);
+}
 const favicon = document.querySelector('link[rel="icon"]');
 if (favicon) favicon.href = './favicon-v1-32.png?v=vg-brand-1';
 })();
