@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notifiche clienti | Vanity &amp; Glamour</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+:root{font-family:system-ui,-apple-system,Arial,sans-serif;color:#252029;background:#faf7f8}
+*{box-sizing:border-box}body{margin:0;padding:24px 15px}main{max-width:660px;margin:auto}
+header{display:flex;align-items:center;gap:15px;margin-bottom:23px}header img{width:72px;height:72px;object-fit:contain}h1{font-size:25px;margin:0}.sub{color:#6c5d68;font-size:14px}
+section{background:white;border:1px solid #eddee6;border-radius:18px;padding:20px;margin:14px 0;box-shadow:0 4px 20px #430b2110}
+label{display:block;font-weight:650;margin:13px 0 5px}input,textarea{width:100%;font:inherit;border:1px solid #d8cbd3;border-radius:10px;padding:11px;background:white}textarea{min-height:95px;resize:vertical}
+button{border:0;background:#a61557;color:white;padding:12px 18px;font:inherit;font-weight:700;border-radius:11px;cursor:pointer}button:disabled{opacity:.45;cursor:wait}.secondary{background:#eee3ea;color:#6b2143}
+#message{font-size:14px;white-space:pre-wrap;line-height:1.5}#count{font-size:32px;font-weight:800;color:#9a1c55}.hidden{display:none}li{margin:8px 0;font-size:14px}
+</style></head><body><main>
+<header><img src="./shop-vanity-glamour.webp" alt=""><div><h1>🔔 Notifiche clienti</h1><div class="sub">Vanity &amp; Glamour · Solo amministratore</div></div></header>
+<section id="login"><h2>Accesso riservato</h2><p>Accedi con l'account amministratore del gestionale.</p><button id="signIn">Accedi con Google</button></section>
+<div id="app" class="hidden">
+<section><div class="sub">Dispositivi iscritti e autorizzati</div><div id="count">…</div><div id="status" class="sub"></div><button class="secondary" id="refresh" type="button">Aggiorna</button></section>
+<section><h2>Invia una notifica</h2><p class="sub">Un messaggio arriverà ai dispositivi che hanno autorizzato le notifiche.</p>
+<form id="sendForm"><label for="title">Titolo</label><input id="title" maxlength="90" minlength="3" required value="✨ Novità Vanity & Glamour">
+<label for="body">Messaggio</label><textarea id="body" minlength="3" maxlength="220" required placeholder="Scopri i nuovi arrivi nel catalogo."></textarea>
+<label for="link">Link da aprire</label><input id="link" type="url" required value="https://veglamour.cloud/">
+<p class="sub">Puoi inviare soltanto link al catalogo Vanity &amp; Glamour.</p>
+<button id="sendButton" type="submit">🔔 Invia notifica</button></form></section>
+<section><h2>Ultimi invii</h2><ul id="history"><li>Nessun invio</li></ul><button class="secondary" id="signOut" type="button">Esci</button></section>
+</div>
+<section id="message" role="status" aria-live="polite">Verifica dell'accesso…</section>
+</main><script src="./supabaseClient.js"></script><script>
+(()=>{
+'use strict';
+const API='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-push-subscriptions';
+const e=id=>document.getElementById(id);
+let client;
+let accessToken='';
+const message=s=>e('message').textContent=s;
+async function request(action,body){
+  const result=await fetch(API+(body?'':'?action='+encodeURIComponent(action)),{method:body?'POST':'GET',headers:{Authorization:'Bearer '+accessToken,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify({...body,action}):undefined,cache:'no-store'});
+  const json=await result.json();
+  if(!result.ok)throw new Error(json.error||'Richiesta non riuscita');
+  return json;
+}
+async function refresh(){
+ const data=await request('stats');
+ e('count').textContent=String(data.subscribers);
+ e('status').textContent=data.enabled?'Servizio notifiche pronto':'Invio non ancora abilitato: manca configurazione VAPID sul server';
+ e('sendButton').disabled=!data.enabled;
+ e('history').replaceChildren();
+ for(const item of data.history||[]){
+   const li=document.createElement('li');
+   li.textContent=new Date(item.created_at).toLocaleString('it-IT')+' · '+item.title+' · Accettate '+item.delivered+'/'+item.attempted;
+   e('history').append(li);
+ }
+ if(!data.history?.length)e('history').textContent='Non ci sono ancora invii.';
+ message('Sezione amministrativa pronta.');
+}
+async function auth(){
+ const session=(await client.auth.getSession()).data.session;
+ accessToken=session?.access_token||'';
+ if(!accessToken){e('login').classList.remove('hidden');e('app').classList.add('hidden');message('Per continuare effettua l’accesso.');return}
+ try{await refresh();e('login').classList.add('hidden');e('app').classList.remove('hidden')}
+ catch(error){e('login').classList.remove('hidden');e('app').classList.add('hidden');message('Accesso amministratore non autorizzato: '+error.message)}
+}
+document.addEventListener('DOMContentLoaded',async()=>{
+ try{
+ client=await window.VG_SUPABASE_READY;
+ if(!client)throw Error('Connessione non disponibile');
+ e('signIn').onclick=async()=>{await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.href}})};
+ e('signOut').onclick=async()=>{await client.auth.signOut();location.reload()};
+ e('refresh').onclick=async()=>{try{await refresh()}catch(error){message(error.message)}};
+ e('sendForm').onsubmit=async ev=>{
+  ev.preventDefault();
+  if(!confirm('Inviare questa notifica a tutti i dispositivi iscritti?'))return;
+  e('sendButton').disabled=true;message('Invio in corso…');
+  try{
+   const result=await request('send',{title:e('title').value.trim(),message:e('body').value.trim(),url:e('link').value.trim()});
+   message('Invio terminato. Accettate dai servizi push: '+result.accepted+' su '+result.attempted+'. Fallite: '+result.failed+'. La consegna finale al telefono non è garantita.');
+   await refresh();
+  }catch(err){message('Invio non riuscito: '+err.message)}
+  finally{e('sendButton').disabled=false}
+ };
+ await auth();
+ }catch(error){message('Errore di inizializzazione: '+error.message)}
+});
+})();
+</script></body></html>
