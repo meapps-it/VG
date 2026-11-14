@@ -5,8 +5,45 @@ function render(){
  const stat=document.querySelector('#c_profit_total')?.closest('.stat');
  if(!stat)return false;
  stat.removeAttribute('data-go');
- stat.innerHTML='<div class="k">Clienti online <span aria-hidden="true" style="color:#1a9b59">●</span></div><div id="vg_online_customers" class="v big" style="color:#168e51">—</div><div id="vg_online_subtitle" class="sub">Attivi negli ultimi 5 minuti</div><span id="c_profit_total" hidden aria-hidden="true"></span>';
+ stat.setAttribute('role','button');
+ stat.setAttribute('tabindex','0');
+ stat.setAttribute('aria-label','Apri clienti online e storico accessi');
+ stat.style.cursor='pointer';
+ stat.onclick=showDetails;
+ stat.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showDetails()}};
+
+ stat.innerHTML='<div class="k">Clienti online <span aria-hidden="true" style="color:#1a9b59">●</span></div><div id="vg_online_customers" class="v big" style="color:#168e51">—</div><div id="vg_online_subtitle" class="sub">Attivi negli ultimi 5 minuti · Tocca per i dettagli</div><span id="c_profit_total" hidden aria-hidden="true"></span>';
  return true;
+}
+function escapeHTML(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function dateTime(value){const d=new Date(value);return Number.isNaN(d.getTime())?'—':d.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+let modal=null;
+async function showDetails(){
+ if(modal)return;
+ modal=document.createElement('div');
+ modal.id='vgOnlineDialog';
+ modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-label','Clienti online e storico accessi');
+ modal.style.cssText='position:fixed;inset:0;z-index:2147483646;background:#0c1939a8;display:flex;align-items:center;justify-content:center;padding:16px';
+ modal.innerHTML='<div style="background:#fff;color:#172b4d;border-radius:20px;width:min(100%,560px);max-height:85vh;overflow:auto;padding:22px;box-shadow:0 12px 45px #0003"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h2 style="margin:0;font-size:23px">👥 Clienti catalogo</h2><button id="vgOnlineClose" type="button" style="padding:8px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#172b4d">Chiudi ✕</button></div><div id="vgOnlineBody" style="margin-top:20px">Caricamento dati…</div></div>';
+ document.body.appendChild(modal);
+ const close=()=>{modal?.remove();modal=null;document.removeEventListener('keydown',esc)};
+ const esc=e=>{if(e.key==='Escape')close()};
+ modal.querySelector('#vgOnlineClose').onclick=close;
+ modal.addEventListener('click',e=>{if(e.target===modal)close()});
+ document.addEventListener('keydown',esc);
+ try{
+  const client=await window.VG_SUPABASE_READY;
+  const {data:{session}}=await client.auth.getSession();
+  if(!session?.access_token)throw Error('Sessione amministratore non disponibile');
+  const response=await fetch(API.replace('action=stats','action=details'),{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});
+  if(!response.ok)throw Error('Impossibile leggere lo storico');
+  const data=await response.json();
+  const active=data.online||[],history=data.history||[];
+  const onlineRows=active.map(x=>'<div style="padding:10px 0;border-bottom:1px solid #e2e8f0"><b>🟢 '+escapeHTML(x.name)+'</b><div style="font-size:13px;color:#64748b">Ultima attività: '+escapeHTML(dateTime(x.lastSeenAt))+'</div></div>').join('');
+  const historyRows=history.map(x=>'<div style="padding:9px 0;border-bottom:1px solid #e2e8f0"><b>'+escapeHTML(x.name)+'</b><div style="font-size:13px;color:#64748b">'+(x.type==='login'?'Accesso':'Visita')+' · '+escapeHTML(dateTime(x.at))+'</div></div>').join('');
+  const body=modal?.querySelector('#vgOnlineBody');
+  if(body)body.innerHTML='<h3 style="margin:0 0 8px">🟢 Online adesso ('+active.length+')</h3><p style="font-size:13px;color:#64748b;margin:0 0 8px">Attivi negli ultimi 5 minuti, escluso amministratore</p>'+(onlineRows||'<p>Nessun cliente online.</p>')+'<h3 style="margin:24px 0 8px">📋 Storico accessi</h3><p style="font-size:13px;color:#64748b;margin:0 0 8px">Ultimi 100 eventi registrati, escluse le tue attività</p>'+(historyRows||'<p>Nessun accesso registrato.</p>');
+ }catch(e){const body=modal?.querySelector('#vgOnlineBody');if(body)body.textContent='Impossibile caricare i dati. Riprova tra poco.'}
 }
 let busy=false;
 async function refresh(){
