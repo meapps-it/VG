@@ -51,8 +51,8 @@
     element.style.cssText='display:block;margin:20px auto 12px;padding:7px 12px;border:1px solid #d9cbd1;background:#fff;border-radius:10px;color:#55444c;font:12px system-ui;cursor:pointer';
     const footer=document.querySelector('footer')||document.body;
     footer.appendChild(element);
-    element.onclick=async()=>{if(pref()){if(!confirm('Vuoi disattivare le notifiche di Vanity & Glamour su questo dispositivo?'))return;try{await window.VGPush.disable();alert('Notifiche disattivate.')}catch(e){alert('Non è stato possibile disattivare le notifiche.')}}else{window.VGPush.enable()}};
+    element.onclick=async()=>{if(pref()){if(!confirm('Vuoi disattivare le notifiche di Vanity & Glamour su questo dispositivo?'))return;try{await window.VGPush.disable();alert('Notifiche disattivate.')}catch(e){alert('Non è stato possibile disattivare le notifiche.')}}else{try{await window.VGPush.enable()}catch(e){alert('Impossibile attivare le notifiche: '+(e.message||'servizio non disponibile'))}}};
   }
-  window.addEventListener('vg-catalog-ready',addSettings,{once:true});
-  window.VGPush={enable:async()=>{save(true);if(Notification.permission==='granted')await sync(true);else show()},disable:async()=>{save(false);await sync(false)}};
+  window.addEventListener('vg-catalog-ready',addSettings,{once:true});\n  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addSettings,{once:true});else addSettings();
+  window.VGPush={enable:async()=>{await loadConfig();save(true);if(Notification.permission==='granted')await sync(true);else show()},disable:async()=>{save(false);await sync(false)}};
 })();
