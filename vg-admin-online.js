@@ -5,7 +5,7 @@ function render(){
  const stat=document.querySelector('#c_profit_total')?.closest('.stat');
  if(!stat)return false;
  stat.removeAttribute('data-go');
- stat.innerHTML='<div class="k">Clienti online <span aria-hidden="true" style="color:#1a9b59">●</span></div><div id="vg_online_customers" class="v big" style="color:#168e51">—</div><div id="vg_online_subtitle" class="sub">Attivi negli ultimi 5 minuti</div>';
+ stat.innerHTML='<div class="k">Clienti online <span aria-hidden="true" style="color:#1a9b59">●</span></div><div id="vg_online_customers" class="v big" style="color:#168e51">—</div><div id="vg_online_subtitle" class="sub">Attivi negli ultimi 5 minuti</div><span id="c_profit_total" hidden aria-hidden="true"></span>';
  return true;
 }
 let busy=false;
