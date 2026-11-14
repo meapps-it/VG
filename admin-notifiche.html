@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notifiche | Vanity &amp; Glamour</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#26202a;background:#f7f5f7}
+*{box-sizing:border-box}body{margin:0;padding:24px 14px}main{max-width:680px;margin:auto}
+h1{font-size:1.6rem;margin:0 0 8px}p{line-height:1.5;color:#655b65}
+section{background:#fff;border:1px solid #e7e0e5;border-radius:16px;padding:20px;margin:18px 0;box-shadow:0 5px 22px #3010200b}
+label{display:block;font-weight:650;margin:16px 0 6px}
+input,textarea{width:100%;padding:12px;border:1px solid #cbbdc7;border-radius:10px;font:inherit}
+textarea{min-height:110px;resize:vertical}button{padding:12px 18px;border:0;border-radius:10px;background:#9e1754;color:white;font:inherit;font-weight:700;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}a{color:#9e1754}.muted{font-size:.85rem;color:#756b73}
+#status{white-space:pre-wrap}#status[role="alert"]{color:#a11236}
+table{width:100%;border-collapse:collapse;font-size:.9rem}td,th{padding:10px 6px;border-bottom:1px solid #eee;text-align:left}
+</style>
+<script src="./supabaseClient.js"></script>
+</head><body><main>
+<p><a href="./">← Torna al gestionale</a></p>
+<h1>🔔 Notifiche manuali</h1>
+<p>Invia comunicazioni ai clienti che hanno autorizzato le notifiche sul proprio dispositivo.</p>
+<div id="status" role="status" aria-live="polite">Verifica accesso amministratore…</div>
+<div id="private" hidden>
+<section><strong>Dispositivi iscritti: <span id="subscribers">…</span></strong><p class="muted">Il numero indica dispositivi, non necessariamente clienti distinti. L'accettazione dal servizio push non garantisce la visualizzazione.</p></section>
+<section><h2>Nuovo messaggio</h2>
+<form id="sendForm">
+<label for="title">Titolo (3–90 caratteri)</label><input id="title" maxlength="90" minlength="3" required value="Novità Vanity &amp; Glamour">
+<label for="message">Messaggio (3–220 caratteri)</label><textarea id="message" maxlength="220" minlength="3" required placeholder="Scrivi il messaggio per i clienti"></textarea>
+<label for="destination">Link di apertura (facoltativo)</label><input id="destination" type="url" placeholder="https://veglamour.cloud/">
+<p class="muted">Sono consentiti solo link a veglamour.cloud. Nessun invio automatico.</p>
+<button id="send" type="submit">Invia notifica</button>
+</form></section>
+<section><h2>Ultimi invii</h2><div id="history">Caricamento…</div></section>
+</div>
+</main><script>
+(async()=>{
+'use strict';
+const API='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-push-subscriptions';
+const $=id=>document.getElementById(id),status=$('status');
+let client;
+function message(s,error=false){status.textContent=s;status.setAttribute('role',error?'alert':'status')}
+async function token(){
+ const session=await client.auth.getSession();
+ if(session.error||!session.data.session?.access_token)throw Error('Accedi al gestionale come amministratore, poi riapri questa pagina.');
+ return session.data.session.access_token;
+}
+async function request(action,body){
+ const jwt=await token();
+ const response=await fetch(API+(body?'':'?action='+encodeURIComponent(action)),{
+ method:body?'POST':'GET',headers:{Authorization:'Bearer '+jwt,...(body?{'Content-Type':'application/json'}:{})},
+ ...(body?{body:JSON.stringify({...body,action})}:{})});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(data.error||'Servizio non disponibile ('+response.status+')');
+ return data;
+}
+async function refresh(){
+ const data=await request('stats');
+ $('subscribers').textContent=String(data.subscribers??0);
+ const history=$('history');history.replaceChildren();
+ if(!data.history?.length){history.textContent='Nessuna notifica inviata finora.';return}
+ const table=document.createElement('table'),thead=document.createElement('thead'),tr=document.createElement('tr');
+ ['Data','Titolo','Accettate','Fallite'].forEach(v=>{const th=document.createElement('th');th.textContent=v;tr.appendChild(th)});
+ thead.appendChild(tr);table.appendChild(thead);
+ const tbody=document.createElement('tbody');
+ data.history.forEach(h=>{const row=document.createElement('tr');[new Date(h.created_at).toLocaleString('it-IT'),h.title,h.delivered,h.failed].forEach(v=>{const td=document.createElement('td');td.textContent=String(v??'');row.appendChild(td)});tbody.appendChild(row)});
+ table.appendChild(tbody);history.appendChild(table);
+}
+try{
+ client=await window.VG_SUPABASE_READY;
+ if(!client)throw Error('Connessione al gestionale non disponibile.');
+ await refresh();$('private').hidden=false;message('Accesso amministratore verificato.');
+}catch(e){message(e.message||'Accesso non disponibile.',true)}
+$('sendForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const title=$('title').value.trim(),msg=$('message').value.trim(),url=$('destination').value.trim()||'https://veglamour.cloud/';
+ if(!confirm('Inviare questa notifica a tutti i dispositivi iscritti?\n\n'+title+'\n'+msg))return;
+ const button=$('send');button.disabled=true;message('Invio in corso…');
+ try{const result=await request('send',{title,message:msg,url});
+ message('Invio completato. Accettate dal servizio push: '+result.accepted+'; fallite: '+result.failed+'.');
+ await refresh();
+ }catch(e){message(e.message||'Invio non riuscito.',true)}
+ finally{button.disabled=false}
+});
+})();
+</script></body></html>
