@@ -22,8 +22,9 @@ css.textContent=`
 .vg-fav-button[aria-pressed=true]{background:#ffe8ee;color:#a32250!important}
 .vg-fav-button{touch-action:manipulation;pointer-events:auto!important;user-select:none;-webkit-tap-highlight-color:transparent}
 .vg-header-favorites{width:40px;height:40px;min-width:40px;border:1px solid #e1d9d2;border-radius:11px;background:#fff;color:#9d2852;display:grid;place-items:center;font-size:23px;cursor:pointer;position:relative}
+.vg-header-favorites-count[hidden]{display:none!important}
 .vg-header-favorites:focus-visible{outline:2px solid #9d2852;outline-offset:2px}
-.brand-stage #vgHeaderFavorites .vg-header-favorites-count{position:absolute;top:-5px;right:-5px;box-sizing:border-box;min-width:22px;padding:1px 4px;background:#801c46;color:#fff!important;border:2px solid #fff;border-radius:20px;font:800 13px/16px system-ui!important;font-variant-numeric:tabular-nums;text-align:center;pointer-events:none}
+.brand-stage #vgHeaderFavorites .vg-header-favorites-count{position:absolute;top:-5px;right:-5px;box-sizing:border-box;min-width:26px;min-height:26px;padding:1px 5px;background:#801c46;color:#fff!important;border:2px solid #fff;border-radius:20px;font:900 16px/20px system-ui!important;font-variant-numeric:tabular-nums;text-align:center;pointer-events:none}
 
 .catalog .item{position:relative}
 .vg-discovery-item .vg-price{display:block;padding:0 8px 9px;font-size:13px;font-weight:800;color:#2e2521}
@@ -42,7 +43,7 @@ function sync(){
   button.setAttribute('aria-label',selected?'Rimuovi dai preferiti':'Aggiungi ai preferiti');
   if(button.id!=='vgProductFavorite')button.textContent=selected?'♥︎':'♡';
  });
- if(headerFav){const count=headerFav.querySelector('[data-fav-count]');if(count){count.textContent=String(fav.size);count.hidden=false}headerFav.setAttribute('aria-label','Apri preferiti ('+fav.size+')')}
+ if(headerFav){const count=headerFav.querySelector('[data-fav-count]');if(count){count.textContent=fav.size>0?String(fav.size):'';count.hidden=fav.size===0}headerFav.setAttribute('aria-label','Apri preferiti ('+fav.size+')')}
  const detail=document.getElementById('vgProductFavorite');
  if(detail?.dataset.vgFav){const selected=fav.has(detail.dataset.vgFav);detail.setAttribute('aria-pressed',String(selected));detail.setAttribute('aria-label',selected?'Rimuovi dai preferiti':'Aggiungi ai preferiti');detail.innerHTML=selected?'♥︎ <span>Salvato</span>':'♡ <span>Salva</span>'}
 }
