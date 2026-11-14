@@ -79,7 +79,7 @@
 /* Dashboard: online catalog customers */
 (function(){
   const script=document.createElement('script');
-  script.src='./vg-admin-online.js?v=3';
+  script.src='./vg-admin-online.js?v=4';
   script.defer=true;
   document.head.appendChild(script);
 })();
