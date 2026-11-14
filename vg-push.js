@@ -18,7 +18,7 @@
     config=json;return config;
   }
   async function sync(enabled){
-    const registration=await navigator.serviceWorker.register('/service-worker.js',{scope:'/'});
+    const registration=await navigator.serviceWorker.register('/vg-push-sw.js',{scope:'/'});
     const old=await registration.pushManager.getSubscription();
     if(!enabled){
       if(old){await fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'unsubscribe',endpoint:old.endpoint})});await old.unsubscribe()}
