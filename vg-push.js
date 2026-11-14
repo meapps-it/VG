@@ -45,6 +45,22 @@
   const launch=()=>{if(document.body.classList.contains('shop-locked')||document.body.classList.contains('shop-checking'))return;activateWhenReady()};
   window.addEventListener('vg-catalog-ready',launch,{once:true});
   if(document.readyState!=='loading')launch();else document.addEventListener('DOMContentLoaded',launch,{once:true});
+  function addInvitation(){
+    if(document.getElementById('vgPushInvitation')||Notification.permission==='granted'||Notification.permission==='denied')return;
+    if(!pref()||sessionStorage.getItem('vg-push-invite-dismissed')==='yes')return;
+    const anchor=document.getElementById('catalogFilters');
+    if(!anchor||!anchor.parentNode)return;
+    const card=document.createElement('section');
+    card.id='vgPushInvitation';
+    card.setAttribute('aria-label','Novità e promozioni');
+    card.style.cssText='margin:16px 0;padding:15px 16px;border:1px solid #efd5e1;border-radius:17px;background:#fff7fb;box-shadow:0 2px 12px #55223b0b;color:#38232f;font:14px system-ui,sans-serif';
+    card.innerHTML='<div style="display:flex;align-items:start;gap:10px"><span style="font-size:26px" aria-hidden="true">🔔</span><div style="flex:1"><strong style="font-size:16px">Non perderti le prossime offerte!</strong><p style="margin:6px 0 12px;line-height:1.5">Ricevi un avviso quando arrivano nuovi articoli o iniziano le promozioni. Solo le novità che scegliamo di comunicarti.</p><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button type="button" id="vgPushInviteEnable" style="border:0;border-radius:10px;padding:10px 14px;background:#a61557;color:white;font-weight:700;cursor:pointer">Attiva notifiche</button><button type="button" id="vgPushInviteDismiss" style="border:0;background:transparent;color:#75636c;padding:8px;cursor:pointer">Non ora</button></div></div></div>';
+    anchor.insertAdjacentElement('afterend',card);
+    card.querySelector('#vgPushInviteEnable').onclick=async()=>{try{await window.VGPush.enable();if(Notification.permission==='granted')card.remove()}catch(e){alert('Notifiche non disponibili: '+(e.message||'riprova più tardi'))}};
+    card.querySelector('#vgPushInviteDismiss').onclick=()=>{sessionStorage.setItem('vg-push-invite-dismissed','yes');card.remove()};
+  }
+  window.addEventListener('vg-catalog-ready',addInvitation,{once:true});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addInvitation,{once:true});else addInvitation();
   function addSettings(){
     if(document.getElementById('vgPushSettings')||!document.body)return;
     const element=document.createElement('button');element.id='vgPushSettings';element.type='button';element.textContent='🔔 Notifiche';
@@ -54,6 +70,9 @@
     element.setAttribute('aria-label','Attiva o gestisci le notifiche');
     element.style.cssText='display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0 8px;min-height:40px;border:1px solid #e5ddd9;background:#fff;border-radius:10px;color:#a61557;font:600 12px system-ui;cursor:pointer';
     element.textContent='🔔';
+    element.style.background='#fff1f7';
+    element.style.border='2px solid #b01760';
+    element.style.fontSize='19px';
     element.title='Notifiche';
     header.insertBefore(element,header.firstChild);
     element.onclick=async()=>{
