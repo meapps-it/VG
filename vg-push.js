@@ -71,6 +71,7 @@
       }catch(e){alert('Impossibile attivare le notifiche: '+(e.message||'servizio non disponibile'))}
     };
   }
-  window.addEventListener('vg-catalog-ready',addSettings,{once:true});\n  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addSettings,{once:true});else addSettings();
+  window.addEventListener('vg-catalog-ready',addSettings,{once:true});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addSettings,{once:true});else addSettings();
   window.VGPush={enable:async()=>{await loadConfig();save(true);if(Notification.permission==='granted')await sync(true);else show()},disable:async()=>{save(false);await sync(false)}};
 })();
