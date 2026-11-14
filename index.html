@@ -621,6 +621,10 @@ window.addEventListener('error',e=>{
 .vgArtShareButton{display:inline-grid;place-items:center;flex:none;width:44px;height:44px;padding:0;border:0;border-radius:10px;background:transparent;color:#164e99;cursor:pointer}
 .vgArtShareButton:hover,.vgArtShareButton:focus-visible{background:#dce8f8}
 .vgArtShareButton svg{width:20px;height:20px;pointer-events:none}
+#sec_articoli .artPriceRow .artPriceInfo{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+#sec_articoli .artPriceRow .artLastShared{font-size:9px;line-height:1.2;color:#67768a;font-weight:650;letter-spacing:-.02em;white-space:nowrap}
+#sec_articoli .artPriceRow .artLastShared time{display:block;color:#52647c;font-weight:750;font-size:10px}
+
 </style>
 </head>
 <body class="auth-locked vg-workspace">
@@ -9477,6 +9481,73 @@ function renderArtStats(items){
   box.innerHTML=`<span class="artStatsItem">Totale articoli: <strong>${total}</strong></span>${withoutPhotos>0 ? `<button type="button" class="artStatsItem noPhoto" data-action="openArticlesWithoutPhotos">Senza foto: <strong>${withoutPhotos}</strong></button>` : ''}`;
 }
 
+
+/* Cronologia condivisioni nel catalogo: disponibile soltanto al proprietario tramite RLS. */
+const ARTICLE_LAST_SHARE_AT=new Map();
+let articleLastSharesLoadedFor='';
+let articleLastSharesLoading=null;
+
+function refreshArticleLastShareLabels(){
+  document.querySelectorAll('#sec_articoli [data-last-shared-for]').forEach(node=>{
+    const value=ARTICLE_LAST_SHARE_AT.get(node.dataset.lastSharedFor);
+    const d=value ? new Date(value) : null;
+    if(!d||Number.isNaN(d.getTime())){
+      node.textContent='Mai condiviso';
+      node.removeAttribute('title');
+      return;
+    }
+    const short=d.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const full=d.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    node.textContent='Ultima condivisione';
+    const time=document.createElement('time');
+    time.dateTime=d.toISOString();
+    time.textContent=short;
+    node.appendChild(time);
+    node.title='Ultima condivisione: '+full;
+  });
+}
+
+async function loadArticleLastShares(){
+  const sb=await ensureCloud();
+  const owner=cloudSession?.user?.id;
+  if(!sb||!owner)return;
+  if(articleLastSharesLoadedFor===owner){
+    refreshArticleLastShareLabels();
+    return;
+  }
+  if(articleLastSharesLoading)return articleLastSharesLoading;
+  ARTICLE_LAST_SHARE_AT.clear();
+  refreshArticleLastShareLabels();
+  articleLastSharesLoading=(async()=>{
+    const {data,error}=await sb.from('prodotti').select('id,last_shared_at').eq('user_id',owner).limit(2000);
+    if(error)throw error;
+    if(cloudSession?.user?.id!==owner)return;
+    for(const row of data||[])if(row.id&&row.last_shared_at)ARTICLE_LAST_SHARE_AT.set(String(row.id),row.last_shared_at);
+    articleLastSharesLoadedFor=owner;
+    refreshArticleLastShareLabels();
+  })().catch(error=>console.warn('Storico condivisioni non disponibile',error))
+     .finally(()=>{articleLastSharesLoading=null;});
+  return articleLastSharesLoading;
+}
+
+async function recordArticleLastShare(id){
+  const sb=await ensureCloud();
+  if(!sb||!cloudSession?.user?.id||!isUuid(id))throw new Error('Articolo non sincronizzato o sessione assente');
+  const value=new Date().toISOString();
+  const {data,error}=await sb.from('prodotti')
+    .update({last_shared_at:value}).eq('id',id).eq('user_id',cloudSession.user.id)
+    .select('id,last_shared_at').single();
+  if(error)throw error;
+  ARTICLE_LAST_SHARE_AT.set(String(id),data.last_shared_at||value);
+  refreshArticleLastShareLabels();
+}
+function noteArticleLastShare(id){
+  recordArticleLastShare(id).catch(error=>{
+    console.warn('Registrazione ultima condivisione fallita',error);
+    toast('Condivisione avviata, ma la data non è stata salvata. Controlla la connessione.');
+  });
+}
+
 function articleShareButtonHtml(article){
   const label='Condividi '+(article.modello||article.codice||'articolo');
   return `<button type="button" class="vgArtShareButton" data-action="shareCatalogArticle" data-id="${esc(article.id)}" aria-label="${esc(label)}" title="${esc(label)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8.6 10.5 6.8-3.9m-6.8 6.9 6.8 3.9"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="5" r="3"/><circle cx="18" cy="19" r="3"/></svg></button>`;
@@ -9905,8 +9976,12 @@ async function openArticleShare(id){
         if(nativeSupported){
           status.textContent='Apertura del menu di Android…';
           await shareArticleOnAndroid(androidShare,files,caption.value,isCurrent);
+          noteArticleLastShare(id);
           if(isCurrent()) status.textContent='Scegli l’app dal menu di Android.';
-        }else await navigator.share(photosOnly ? {files} : {title:captions.model,text:caption.value,files});
+        }else{
+          await navigator.share(photosOnly ? {files} : {title:captions.model,text:caption.value,files});
+          noteArticleLastShare(id);
+        }
       }catch(error){
         if(!isCurrent()) return;
         if(nativeSupported){
@@ -9992,12 +10067,14 @@ function renderArt(){
     const noteHtml=notePreview ? `<div class="artCardNote" title="${esc(notePreview)}">${esc(notePreview)}</div>` : '';
     const promoActive=promoValid(a);
     const promoBadge=promoActive ? `<div class="artPromoBadge">🔥 IN PROMOZIONE</div>` : '';
-    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''} ${promoActive ? 'is-promo' : ''}" data-open="art" data-id="${a.id}">${noteHtml}${promoBadge}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s">${a.codice?`Cod. ${esc(a.codice)} • `:''}${esc(metaLine)}</div>${unavailable}<label class="shopPublishControl" style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" data-shop-publish="${a.id}" ${a.pubblicatoCatalogo!==false?"checked":""} style="width:18px;height:18px;accent-color:#167447"> Pubblicato nel catalogo clienti</label></div><div class="artPriceRow"><div class="artPrice">${money(currentPrice(a))}</div>${articleShareButtonHtml(a)}</div>${articleUnderMarginListBadgeHtml(a)}</div>`;
+    return `<div class="artCard tight ${blocked ? 'is-unavailable' : ''} ${promoActive ? 'is-promo' : ''}" data-open="art" data-id="${a.id}">${noteHtml}${promoBadge}<div class="artThumbBox"><img class="artThumbLarge" data-photo-for="${a.id}"/><div class="artPlaceholder" data-placeholder-for="${a.id}"><img class="artPlaceholderImg" alt="Anteprima ${esc(a.modello||'articolo')}" src="${artIconForCategory(a.categoria)}"/></div></div><div class="artMeta"><div class="t">${esc(a.modello||'-')}</div><div class="s">${a.codice?`Cod. ${esc(a.codice)} • `:''}${esc(metaLine)}</div>${unavailable}<label class="shopPublishControl" style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" data-shop-publish="${a.id}" ${a.pubblicatoCatalogo!==false?"checked":""} style="width:18px;height:18px;accent-color:#167447"> Pubblicato nel catalogo clienti</label></div><div class="artPriceRow"><div class="artPriceInfo"><div class="artPrice">${money(currentPrice(a))}</div><div class="artLastShared" data-last-shared-for="${esc(a.id)}">Mai condiviso</div></div>${articleShareButtonHtml(a)}</div>${articleUnderMarginListBadgeHtml(a)}</div>`;
   }).join('');
   const emptyText=noPhotoOnly ? 'Nessun articolo senza foto.' : (promoOnly ? 'Nessuna promozione attiva.' : 'Nessun articolo trovato.');
   const activeHtml=cards || `<div class="card" style="grid-column:1/-1"><div class="small">${emptyText}</div></div>`;
   el.innerHTML=activeHtml + articleArchiveFolderHtml(archivedItems);
   hydrateArticleThumbs(items);
+  refreshArticleLastShareLabels();
+  void loadArticleLastShares();
 }
 let ARTICLE_THUMB_HYDRATE_TOKEN=0;
 function articleThumbSelector(id, attr){
