@@ -49,9 +49,27 @@
     if(document.getElementById('vgPushSettings')||!document.body)return;
     const element=document.createElement('button');element.id='vgPushSettings';element.type='button';element.textContent='🔔 Notifiche';
     element.style.cssText='display:block;margin:20px auto 12px;padding:7px 12px;border:1px solid #d9cbd1;background:#fff;border-radius:10px;color:#55444c;font:12px system-ui;cursor:pointer';
-    const footer=document.querySelector('footer')||document.body;
-    footer.appendChild(element);
-    element.onclick=async()=>{if(pref()){if(!confirm('Vuoi disattivare le notifiche di Vanity & Glamour su questo dispositivo?'))return;try{await window.VGPush.disable();alert('Notifiche disattivate.')}catch(e){alert('Non è stato possibile disattivare le notifiche.')}}else{try{await window.VGPush.enable()}catch(e){alert('Impossibile attivare le notifiche: '+(e.message||'servizio non disponibile'))}}};
+    const header=document.querySelector('.header-actions');
+    if(!header)return;
+    element.setAttribute('aria-label','Attiva o gestisci le notifiche');
+    element.style.cssText='display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0 8px;min-height:40px;border:1px solid #e5ddd9;background:#fff;border-radius:10px;color:#a61557;font:600 12px system-ui;cursor:pointer';
+    element.textContent='🔔';
+    element.title='Notifiche';
+    header.insertBefore(element,header.firstChild);
+    element.onclick=async()=>{
+      try{
+        if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window))throw new Error('Questo browser non supporta le notifiche push');
+        if(Notification.permission==='granted'){
+          const registration=await navigator.serviceWorker.getRegistration('/');
+          const subscription=registration?await registration.pushManager.getSubscription():null;
+          if(subscription){
+            if(!confirm('Vuoi disattivare le notifiche di Vanity & Glamour su questo dispositivo?'))return;
+            await window.VGPush.disable();alert('Notifiche disattivate.');return;
+          }
+        }
+        await window.VGPush.enable();
+      }catch(e){alert('Impossibile attivare le notifiche: '+(e.message||'servizio non disponibile'))}
+    };
   }
   window.addEventListener('vg-catalog-ready',addSettings,{once:true});\n  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addSettings,{once:true});else addSettings();
   window.VGPush={enable:async()=>{await loadConfig();save(true);if(Notification.permission==='granted')await sync(true);else show()},disable:async()=>{save(false);await sync(false)}};
