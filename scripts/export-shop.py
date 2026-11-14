@@ -19,6 +19,6 @@ for source in sorted(root.glob('shop-*')):
             shutil.copytree(source,dest/source.name,dirs_exist_ok=True)
     elif source.suffix.lower() in public_types:
         shutil.copy2(source,dest/source.name)
-for name in ['customer-profile-ui.js','vg-save-feedback.js']:
+for name in ['customer-profile-ui.js','vg-save-feedback.js','vg-push.js','vg-push-sw.js','supabaseClient.js','admin-notifiche.html']:
     shutil.copy2(root/name,dest/name)
 print(f'Exported public catalog to {dest}')
