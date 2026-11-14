@@ -75,3 +75,11 @@
     });
   })();
 })();
+
+/* Dashboard: online catalog customers */
+(function(){
+  const script=document.createElement('script');
+  script.src='./vg-admin-online.js?v=1';
+  script.defer=true;
+  document.head.appendChild(script);
+})();
