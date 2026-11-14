@@ -786,8 +786,8 @@ window.addEventListener('error',e=>{
       <div class="grid2 artFilterGrid" style="margin-top:10px">
         <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
         <div><select id="qArtBrand"><option value="">Tutte le marche</option></select></div>
-
       </div>
+      <div style="margin-top:10px"><select id="qArtQuality" aria-label="Filtra per qualità" style="width:100%"><option value="">Tutte le qualità</option><option value="Originale">Originale</option><option value="Standard">Standard</option></select></div>
       <div class="artModeSwitch" role="group" aria-label="Visualizza articoli" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
         <button id="btnArtAllMixed" class="btn artAllBtn" type="button" data-action="openAllArticlesMixed">Tutto</button>
         <button id="btnArtPromoOnly" class="btn promoOnlyBtn" type="button" data-action="openPromoArticles">🔥 Solo promo</button>
@@ -9932,7 +9932,7 @@ function renderArt(){
   const q=document.getElementById('qArt').value.trim().toLowerCase();
   const catFilter=String(document.getElementById('qArtCat')?.value||'').trim();
   const brandFilter=String(document.getElementById('qArtBrand')?.value||'').trim();
-  const qualityFilter='';
+  const qualityFilter=String(document.getElementById('qArtQuality')?.value||'').trim();
   const promoOnly=artBrowseState.level==='promo';
   const noPhotoOnly=artBrowseState.level==='noPhoto';
   const archivedItems=(db.articoli||[]).filter(a=>isArticleUnavailable(a)).sort((a,b)=>Number(b?._ts||0)-Number(a?._ts||0));
@@ -14351,6 +14351,7 @@ document.addEventListener('keydown',(ev)=>{
 document.getElementById('visualAiResults')?.addEventListener('click',e=>{ if(e.target.closest('[data-open="art"]')) vgCloseVisualArticleSearch(); });
 document.getElementById('qArtCat')?.addEventListener('change', ()=>{ setArtBrowse('mixed','','',false); renderArt(); });
 document.getElementById('qArtBrand')?.addEventListener('change', renderArt);
+document.getElementById('qArtQuality')?.addEventListener('change', renderArt);
 document.getElementById('pricingMarkupMode')?.addEventListener('change',()=>{
   const value=document.getElementById('pricingMarkupValue');
   const mode=document.getElementById('pricingMarkupMode').value;
