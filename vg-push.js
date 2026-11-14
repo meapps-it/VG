@@ -45,9 +45,12 @@
   const launch=()=>{if(document.body.classList.contains('shop-locked')||document.body.classList.contains('shop-checking'))return;activateWhenReady()};
   window.addEventListener('vg-catalog-ready',launch,{once:true});
   if(document.readyState!=='loading')launch();else document.addEventListener('DOMContentLoaded',launch,{once:true});
-  function addInvitation(){
-    if(document.getElementById('vgPushInvitation')||Notification.permission==='granted'||Notification.permission==='denied')return;
-    if(!pref()||sessionStorage.getItem('vg-push-invite-dismissed')==='yes')return;
+  async function addInvitation(){
+    if(document.getElementById('vgPushInvitation')||Notification.permission==='denied')return;
+    if(sessionStorage.getItem('vg-push-invite-dismissed')==='yes')return;
+    if(pref() && Notification.permission==='granted'){
+      try{const reg=await navigator.serviceWorker.getRegistration('/');if(reg && await reg.pushManager.getSubscription())return}catch(e){console.info('[VG Push] Stato iscrizione non verificabile:',e)}
+    }
     const anchor=document.getElementById('catalogFilters');
     if(!anchor||!anchor.parentNode)return;
     const card=document.createElement('section');
