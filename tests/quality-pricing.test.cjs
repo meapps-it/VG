@@ -14,7 +14,7 @@ const values=new Map([['vg_pricing_settings_v2',JSON.stringify({mode:'fixed',val
 const fields=Object.fromEntries(['pricingMarkupMode','pricingMarkupValue','pricingVatDefault','pricingVatCategories'].map(id=>[id,{value:'',disabled:false,addEventListener(e,fn){this[e]=fn}}]));
 const ctx=vm.createContext({VgQualityPricing:rules,document:{getElementById:id=>fields[id]},localStorage:{getItem:k=>values.get(k)||null,setItem:(k,v)=>values.set(k,v)},normalizeTextKey:s=>s.toLowerCase().trim(),normalizeSpaceText:s=>String(s||'').trim(),toast:()=>{},renderArtAutoFields:()=>{}});
 let start=source.indexOf('function qualityPricingKey(');vm.runInContext(source.slice(start,source.indexOf('function getEffectiveArticleSupplier(',start)),ctx);
-start=source.indexOf('const PRICING_SETTINGS_KEY=');vm.runInContext(source.slice(start,source.indexOf("function articleQualityLabel(){",start)),ctx);
+start=source.indexOf('const PRICING_SETTINGS_KEY=');vm.runInContext(source.slice(start,source.indexOf("function articleMarginInfo(){",start)),ctx);
 assert.equal(vm.runInContext('loadPricingSettings().mode',ctx),'quality','one-time migration activates requested quality tiers');
 assert.equal(vm.runInContext('loadPricingSettings().value',ctx),45,'retain previous custom amount');
 assert.equal(vm.runInContext('loadPricingSettings().vatDefault',ctx),10,'retain VAT settings');
