@@ -17,6 +17,7 @@ function render(){
 }
 function escapeHTML(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function dateTime(value){const d=new Date(value);return Number.isNaN(d.getTime())?'—':d.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+const withTimeout=(promise,ms=12000)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Tempo di attesa superato')),ms))]);
 let modal=null;
 async function showDetails(){
  if(modal)return;
@@ -32,18 +33,21 @@ async function showDetails(){
  modal.addEventListener('click',e=>{if(e.target===modal)close()});
  document.addEventListener('keydown',esc);
  try{
-  const client=await window.VG_SUPABASE_READY;
-  const {data:{session}}=await client.auth.getSession();
+  const client=await withTimeout(window.VG_SUPABASE_READY,8000);
+  const {data:{session}}=await withTimeout(client.auth.getSession(),8000);
   if(!session?.access_token)throw Error('Sessione amministratore non disponibile');
-  const response=await fetch(API.replace('action=stats','action=details'),{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),12000);
+  let response;
+  try{response=await fetch(API.replace('action=stats','action=details'),{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store',signal:controller.signal});}finally{clearTimeout(timer)}
   if(!response.ok)throw Error('Impossibile leggere lo storico');
-  const data=await response.json();
+  const data=await withTimeout(response.json(),5000);
   const active=data.online||[],history=data.history||[];
   const onlineRows=active.map(x=>'<div style="padding:10px 0;border-bottom:1px solid #e2e8f0"><b>🟢 '+escapeHTML(x.name)+'</b><div style="font-size:13px;color:#64748b">Ultima attività: '+escapeHTML(dateTime(x.lastSeenAt))+'</div></div>').join('');
   const historyRows=history.map(x=>'<div style="padding:9px 0;border-bottom:1px solid #e2e8f0"><b>'+escapeHTML(x.name)+'</b><div style="font-size:13px;color:#64748b">'+(x.type==='login'?'Accesso':'Visita')+' · '+escapeHTML(dateTime(x.at))+'</div></div>').join('');
   const body=modal?.querySelector('#vgOnlineBody');
   if(body)body.innerHTML='<h3 style="margin:0 0 8px">🟢 Online adesso ('+active.length+')</h3><p style="font-size:13px;color:#64748b;margin:0 0 8px">Attivi negli ultimi 5 minuti, escluso amministratore</p>'+(onlineRows||'<p>Nessun cliente online.</p>')+'<h3 style="margin:24px 0 8px">📋 Storico accessi</h3><p style="font-size:13px;color:#64748b;margin:0 0 8px">Ultimi 100 eventi registrati, escluse le tue attività</p>'+(historyRows||'<p>Nessun accesso registrato.</p>');
- }catch(e){const body=modal?.querySelector('#vgOnlineBody');if(body)body.textContent='Impossibile caricare i dati. Riprova tra poco.'}
+ }catch(e){console.error('Storico clienti:',e);const body=modal?.querySelector('#vgOnlineBody');if(body)body.textContent='Impossibile caricare i dati: '+(e?.name==='AbortError'?'connessione scaduta':e?.message||'errore di rete')+'. Chiudi e riprova.'}
 }
 let busy=false;
 async function refresh(){
