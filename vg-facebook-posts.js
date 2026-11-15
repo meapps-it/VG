@@ -114,7 +114,7 @@ add('📤 Condividi con altre app','other-share',()=>{
 });
 add('Opzioni e foto','share-options',()=>{options.hidden=!options.hidden});
 add('📘 Copia testo e apri il gruppo','facebook',()=>{
-  const url='https://www.facebook.com/share/g/1H7BwZrGvJ/';
+  const url='https://m.facebook.com/groups/1902940953839880/';
   const copying=copyText(content);
   window.open(url,'_blank','noopener,noreferrer');
   copying.then(
