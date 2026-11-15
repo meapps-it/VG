@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-share-fallback-20261115';
+const VERSION = 'gestionale-vg-native-share-20261115';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json', './vg-quality-pricing.js', './vg-bold-theme.css?v=1.0.156', './vg-startup.js?v=1.0.156',
@@ -60,6 +60,20 @@ self.addEventListener('fetch', event => {
         return withFontSettings(fresh);
       }catch(_e){
         return withFontSettings((await caches.match('./index.html')) || Response.error());
+      }
+    })());
+    return;
+  }
+
+  if(url.origin===self.location.origin && url.pathname===new URL('./vg-facebook-posts.js',self.location.href).pathname){
+    event.respondWith((async()=>{
+      const cache=await caches.open(CACHE);
+      try{
+        const fresh=await fetch(req,{cache:'no-store'});
+        if(fresh.ok)await cache.put(req,fresh.clone());
+        return fresh;
+      }catch{
+        return (await cache.match(req)) || Response.error();
       }
     })());
     return;

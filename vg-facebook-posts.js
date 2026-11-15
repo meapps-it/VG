@@ -11,7 +11,6 @@ dialog.innerHTML=`<header class="vgStatsHeader"><h2 id="vgPostsHeading">👜 Pos
 <label>Titolo<input name="title" required maxlength="120" placeholder="Es. La storia della borsa a tracolla"></label>
 <label>Testo del post<textarea name="body" required rows="7" maxlength="6000" placeholder="Racconta una curiosità, un dettaglio storico o un consiglio di stile…"></textarea></label>
 <label>Link da condividere (facoltativo)<input name="link" type="url" placeholder="https://veglamour.cloud/"></label>
-<label>Foto da condividere (facoltativa, da riselezionare quando condividi)<input name="photo" type="file" accept="image/*"></label>
 <div class="vgPostsTwo"><label>Data prevista<input name="date" type="date" required></label><label>Ora prevista<input name="time" type="time" required></label></div>
 <div class="vgPostsActions"><button type="submit">💾 Salva post</button><button type="button" data-reset>Nuovo post</button></div>
 </form><p id="vgPostsStatus" role="status" aria-live="polite"></p>
@@ -28,6 +27,42 @@ const write=posts=>localStorage.setItem(KEY,JSON.stringify(posts));
 const printDate=(d,t)=>{if(!d)return 'Non indicata';const p=d.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]+' alle '+(t||'00:00'):d};
 const fullText=p=>[p.title,p.body,p.link].filter(Boolean).join('\n\n');
 const info=s=>{status.textContent=s};
+async function copyText(text){
+  const previous=document.activeElement;
+  const input=document.createElement('textarea');
+  input.value=text;
+  input.readOnly=true;
+  input.style.cssText='position:fixed;left:-9999px;top:0';
+  dialog.append(input);
+  let copied=false;
+  try{
+    input.select();
+    copied=document.execCommand('copy');
+  }catch{}finally{
+    input.remove();
+    previous?.focus();
+  }
+  if(!copied)await navigator.clipboard.writeText(text);
+}
+async function sharePost(post,photo){
+  if(typeof navigator.share!=='function'){
+    info('Menu di sistema non disponibile. Usa WhatsApp, Telegram o Copia nelle opzioni.');
+    return;
+  }
+  const data={text:fullText(post)};
+  const includePhoto=photo&&navigator.canShare?.({...data,files:[photo]});
+  if(photo&&!includePhoto){
+    info('Questo browser non può allegare la foto. Usa «Condividi con altre app» per il solo testo, oppure allega la foto nell’app di destinazione.');
+    return;
+  }
+  if(includePhoto)data.files=[photo];
+  try{
+    await navigator.share(data);
+    info('Contenuto consegnato al sistema di condivisione.');
+  }catch(error){
+    if(error.name!=='AbortError')info('Condivisione non riuscita. Usa WhatsApp, Telegram o Copia nelle opzioni.');
+  }
+}
 function reset(){form.reset();el('id').value='';el('date').value=today();el('time').value=now();info('Nuovo post pronto.')}
 function render(){
 list.replaceChildren();const posts=read().sort((a,b)=>((b.date||'')+' '+(b.time||'')).localeCompare((a.date||'')+' '+(a.time||'')));
@@ -39,93 +74,59 @@ const meta=document.createElement('div');meta.className='vgPostMeta';meta.textCo
 const body=document.createElement('p');body.textContent=p.body;
 const buttons=document.createElement('div');buttons.className='vgPostButtons';
 const add=(label,action,fn)=>{const b=document.createElement('button');b.type='button';b.setAttribute('data-'+action,'');b.textContent=label;b.onclick=fn;buttons.append(b)};
-add('✏️ Modifica','edit',()=>{el('id').value=p.id;el('category').value=p.category;el('title').value=p.title;el('body').value=p.body;el('link').value=p.link||'';el('date').value=p.date;el('time').value=p.time;el('photo').value='';form.scrollIntoView({behavior:'smooth',block:'start'});info('Modifica il post e premi Salva post.')});
-add('📋 Copia','copy',async()=>{try{await navigator.clipboard.writeText(fullText(p));info('Testo copiato. Incollalo su Facebook.')}catch{info('Copia non disponibile: seleziona il testo dal post.')}});
-add('📤 Condividi','other-share',()=>{
- const content=fullText(p);
- // The installed PWA may expose navigator.share without a reliable native chooser.
- // Show explicit destinations immediately, rather than silently failing.
- let chooser=card.querySelector('#vgPostsShareFallback');
- if(chooser){chooser.remove();return}
- chooser=document.createElement('div');
- chooser.id='vgPostsShareFallback';
- chooser.style.cssText='margin:12px 0;padding:12px;background:#fff;border:1px solid #a5b7d1;border-radius:14px;display:flex;gap:8px;flex-wrap:wrap';
- const label=document.createElement('p');label.textContent='Scegli Facebook, WhatsApp, Telegram oppure il menu Android. Per Facebook puoi incollare il testo copiato; la foto va selezionata nell’app di destinazione.';
- label.style.cssText='width:100%;margin:0 0 5px';
- chooser.append(label);
- const link=(title,url)=>{
-   const a=document.createElement('a');a.textContent=title;a.href=url;a.target='_blank';a.rel='noopener noreferrer';
-   a.style.cssText='display:inline-block;padding:10px 12px;border-radius:10px;background:#244c97;color:white;text-decoration:none;font-weight:700';
-   chooser.append(a);
- };
- const facebook=document.createElement('button');facebook.type='button';facebook.textContent='📘 Facebook';
- facebook.style.cssText='padding:10px 12px;border-radius:10px;background:#1877f2;color:#fff;border:0;font-weight:700;cursor:pointer';
- chooser.append(facebook);
- const fbTargets=document.createElement('div');fbTargets.hidden=true;
- fbTargets.style.cssText='width:100%;gap:8px;flex-wrap:wrap;padding:10px;background:#eff5ff;border:1px solid #c4d7f8;border-radius:10px';
- const fbInfo=document.createElement('p');fbInfo.style.cssText='width:100%;margin:0;font-size:14px';
- fbInfo.textContent='Apri la finestra di condivisione Facebook e scegli gruppo o pagina dall’elenco proposto. Il testo del post viene copiato per incollarlo nella descrizione.';
- fbTargets.append(fbInfo);
- const fbShare=document.createElement('button');fbShare.type='button';
- fbShare.textContent='📘 Scegli gruppo o pagina';
- fbShare.style.cssText='padding:10px 12px;border:0;border-radius:10px;background:#1877f2;color:#fff;font-weight:700;cursor:pointer';
- fbTargets.append(fbShare);
- const fbFallback=document.createElement('p');fbFallback.style.cssText='width:100%;margin:0;font-size:13px';
- fbFallback.textContent='Se Facebook non mostra gruppi e pagine, usa le opzioni interne dell’app Facebook. La disponibilità dipende dal tuo account.';
- fbTargets.append(fbFallback);
- const shareLink=p.link&&/^https:\/\//i.test(p.link)?p.link:'https://veglamour.cloud/';
- fbShare.onclick=async()=>{
-   let copied=false;
-   try{await navigator.clipboard.writeText(content);copied=true}catch(_e){
-     const input=document.createElement('textarea');input.value=content;input.style.cssText='position:fixed;left:-9999px;top:0';
-     document.body.append(input);input.select();try{copied=document.execCommand('copy')}catch(_error){}input.remove();
-   }
-   if(!copied){info('Copia del testo non riuscita. Puoi comunque aprire Facebook e copiare il testo dal post.')}
-   else info('Testo copiato. Nella finestra Facebook scegli gruppo o pagina, poi incolla il testo prima di pubblicare.');
-   // Facebook's share dialog lets Facebook decide which destinations are offered.
-   // It only shares a URL, not arbitrary text written by the caller.
-   const url='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(shareLink);
-   window.open(url,'_blank','noopener,noreferrer');
- };
- facebook.onclick=()=>{
-   fbTargets.hidden=!fbTargets.hidden;
-   fbTargets.style.display=fbTargets.hidden?'none':'flex';
-   if(!fbTargets.hidden)info('Premi «Scegli gruppo o pagina» per aprire il dialogo Facebook.');
- };
- chooser.append(fbTargets);
- const txt=encodeURIComponent(content);
- link('WhatsApp','https://api.whatsapp.com/send?text='+txt);
- link('Telegram','https://t.me/share/url?url='+encodeURIComponent(p.link||'')+'&text='+encodeURIComponent([p.title,p.body].filter(Boolean).join('\\n\\n')));
- const copyBtn=document.createElement('button');copyBtn.type='button';copyBtn.textContent='📋 Copia per altre app';
- copyBtn.onclick=async()=>{
-   try{await navigator.clipboard.writeText(content);info('Testo copiato. Apri l’app desiderata e incolla.')}
-   catch(_e){
-     const input=document.createElement('textarea');input.value=content;input.style.cssText='position:fixed;left:-9999px;top:0';
-     document.body.append(input);input.select();
-     let copied=false;try{copied=document.execCommand('copy')}catch(_err){}
-     input.remove();info(copied?'Testo copiato. Apri l’app desiderata e incolla.':'Copia non riuscita. Usa il pulsante Copia sul post.');
-   }
- };
- chooser.append(copyBtn);
- const nativeBtn=document.createElement('button');nativeBtn.type='button';nativeBtn.textContent='📤 Altre app Android';
- nativeBtn.onclick=async()=>{
-   if(typeof navigator.share!=='function'){
-     info('Il menu di condivisione Android non è disponibile da questa versione del gestionale. Usa Facebook, WhatsApp, Telegram o Copia.');return;
-   }
-   const data={title:p.title,text:content};
-   const photo=el('id').value===p.id?el('photo').files?.[0]:null;
-   if(photo&&navigator.canShare?.({files:[photo]}))data.files=[photo];
-   try{await navigator.share(data);info('Menu Android aperto. Verifica nell’app scelta che il contenuto sia stato ricevuto.')}
-   catch(e){if(e.name!=='AbortError')info('Android non ha aperto la condivisione: '+(e.message||'operazione non supportata')+'. Usa le destinazioni qui sopra.')}
- };
- chooser.append(nativeBtn);
- const dismiss=document.createElement('button');dismiss.type='button';dismiss.textContent='Chiudi opzioni';dismiss.onclick=()=>chooser.remove();chooser.append(dismiss);
- buttons.after(chooser);
- info('Scegli un’app qui sotto. Per il menu Android premi «Altre app Android».');
+add('✏️ Modifica','edit',()=>{el('id').value=p.id;el('category').value=p.category;el('title').value=p.title;el('body').value=p.body;el('link').value=p.link||'';el('date').value=p.date;el('time').value=p.time;form.scrollIntoView({behavior:'smooth',block:'start'});info('Modifica il post e premi Salva post.')});
+const content=fullText(p);
+add('📋 Copia','copy',async()=>{
+  try{await copyText(content);info('Testo copiato.')}
+  catch{info('Copia non riuscita. Seleziona il testo del post.')}
+});
+const options=document.createElement('div');
+options.className='vgPostButtons';
+options.hidden=true;
+options.style.marginTop='12px';
+const photoLabel=document.createElement('label');
+photoLabel.textContent='Foto da allegare (facoltativa) ';
+const photo=document.createElement('input');
+photo.type='file';
+photo.accept='image/*';
+photoLabel.append(photo);
+options.append(photoLabel);
+const sharePhoto=document.createElement('button');
+sharePhoto.type='button';
+sharePhoto.textContent='Condividi con foto';
+sharePhoto.disabled=true;
+photo.onchange=()=>{sharePhoto.disabled=!photo.files[0]};
+sharePhoto.onclick=()=>sharePost(p,photo.files[0]);
+options.append(sharePhoto);
+function shareLink(label,url){
+  const link=document.createElement('a');
+  link.textContent=label;
+  link.href=url;
+  link.target='_blank';
+  link.rel='noopener noreferrer';
+  options.append(link);
+}
+shareLink('WhatsApp','https://api.whatsapp.com/send?text='+encodeURIComponent(content));
+shareLink('Telegram','https://t.me/share/url?url='+encodeURIComponent(p.link||'')+'&text='+encodeURIComponent(fullText({...p,link:''})));
+add('📤 Condividi con altre app','other-share',()=>{
+  options.hidden=false;
+  return sharePost(p);
+});
+add('Opzioni e foto','share-options',()=>{options.hidden=!options.hidden});
+add('📘 Copia e apri Facebook','facebook',()=>{
+  const url='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(
+    p.link&&/^https:\/\//i.test(p.link)?p.link:'https://veglamour.cloud/'
+  );
+  const copying=copyText(content);
+  window.open(url,'_blank','noopener,noreferrer');
+  copying.then(
+    ()=>info('Testo copiato. Incollalo su Facebook prima di pubblicare.'),
+    ()=>info('Copia non riuscita. Torna al post e premi «Copia».')
+  );
 });
 add(p.publishedAt?'↩️ Torna a bozza':'✅ Segna pubblicato','published',()=>{const arr=read(),item=arr.find(x=>x.id===p.id);if(!item)return;item.publishedAt=item.publishedAt?null:new Date().toISOString();write(arr);render();info(item.publishedAt?'Data e ora effettive registrate.':'Post riportato in bozza.')});
 add('🗑️ Elimina','remove',()=>{if(!confirm('Eliminare questo post salvato?'))return;write(read().filter(x=>x.id!==p.id));render();info('Post eliminato.')});
-card.append(h,meta,body,buttons);if(p.link){const a=document.createElement('a');a.href=p.link;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Apri link';card.insertBefore(a,buttons)}list.append(card)
+card.append(h,meta,body,buttons,options);if(p.link){const a=document.createElement('a');a.href=p.link;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Apri link';card.insertBefore(a,buttons)}list.append(card)
 }}
 async function checkOwner(){const db=await window.VG_SUPABASE_READY;if(!db)throw Error('Accedi al gestionale.');const {data,error}=await db.auth.getUser();if(error||data.user?.id!==OWNER)throw Error('Accesso riservato all’amministratore.')}
 let opening=false;
