@@ -79,6 +79,39 @@ add('📤 Condividi con altre app','other-share',async()=>{
    a.style.cssText='display:inline-block;padding:10px 12px;border-radius:10px;background:#244c97;color:white;text-decoration:none;font-weight:700';
    chooser.append(a);
  };
+ const facebook=document.createElement('button');facebook.type='button';facebook.textContent='📘 Facebook';
+ facebook.style.cssText='padding:10px 12px;border-radius:10px;background:#1877f2;color:#fff;border:0;font-weight:700;cursor:pointer';
+ chooser.append(facebook);
+ const fbTargets=document.createElement('div');fbTargets.hidden=true;
+ fbTargets.style.cssText='width:100%;gap:8px;flex-wrap:wrap;padding:10px;background:#eff5ff;border:1px solid #c4d7f8;border-radius:10px';
+ const fbInfo=document.createElement('p');fbInfo.style.cssText='width:100%;margin:0;font-size:14px';
+ fbInfo.textContent='Scegli dove pubblicare. Copiamo il testo, poi su Facebook seleziona il gruppo o la pagina e incollalo nel nuovo post.';
+ fbTargets.append(fbInfo);
+ const fbChoice=(name,url)=>{
+   const btn=document.createElement('button');btn.type='button';btn.textContent=name;
+   btn.style.cssText='padding:10px 12px;border:0;border-radius:10px;background:#1877f2;color:#fff;font-weight:700;cursor:pointer';
+   btn.onclick=async()=>{
+     let copied=false;
+     try{await navigator.clipboard.writeText(content);copied=true}catch(_e){
+       const input=document.createElement('textarea');input.value=content;input.style.cssText='position:fixed;left:-9999px;top:0';
+       document.body.append(input);input.select();try{copied=document.execCommand('copy')}catch(_error){}input.remove();
+     }
+     if(!copied){info('Impossibile copiare il testo. Premi prima il pulsante Copia del post.');return}
+     // No app can choose Facebook posting identity on the user's behalf via a URL alone.
+     // Let Facebook show the user's own managed groups/pages.
+     info('Testo copiato! Scegli il gruppo o la pagina su Facebook, crea il post e tieni premuto per Incolla.');
+     window.open(url,'_blank','noopener,noreferrer');
+   };
+   fbTargets.append(btn);
+ };
+ fbChoice('👥 Gruppo','https://www.facebook.com/groups/');
+ fbChoice('📄 Pagina','https://www.facebook.com/pages/');
+ facebook.onclick=()=>{
+   fbTargets.hidden=!fbTargets.hidden;
+   fbTargets.style.display=fbTargets.hidden?'none':'flex';
+   if(!fbTargets.hidden)info('Seleziona Gruppo o Pagina, poi scegli la destinazione su Facebook.');
+ };
+ chooser.append(fbTargets);
  const txt=encodeURIComponent(content);
  link('WhatsApp','https://api.whatsapp.com/send?text='+txt);
  link('Telegram','https://t.me/share/url?url='+encodeURIComponent(p.link||'')+'&text='+encodeURIComponent([p.title,p.body].filter(Boolean).join('\\n\\n')));
