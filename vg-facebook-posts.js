@@ -68,7 +68,41 @@ add('🗑️ Elimina','remove',()=>{if(!confirm('Eliminare questo post salvato?'
 card.append(h,meta,body,buttons);if(p.link){const a=document.createElement('a');a.href=p.link;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Apri link';card.insertBefore(a,buttons)}list.append(card)
 }}
 async function checkOwner(){const db=await window.VG_SUPABASE_READY;if(!db)throw Error('Accedi al gestionale.');const {data,error}=await db.auth.getUser();if(error||data.user?.id!==OWNER)throw Error('Accesso riservato all’amministratore.')}
-trigger.onclick=async()=>{try{await checkOwner()}catch(e){alert(e.message);return}if(typeof window.setTopMenuOpen==='function')window.setTopMenuOpen(false);reset();render();dialog.showModal()};
+let opening=false;
+trigger.onclick=async(event)=>{
+ event.preventDefault();
+ event.stopPropagation();
+ if(opening||dialog.open)return;
+ opening=true;
+ trigger.disabled=true;
+ const originalLabel=trigger.textContent;
+ trigger.textContent='⏳ Apertura Post Facebook…';
+ // Show a modal immediately so taps cannot pass through to another menu entry.
+ // Keep saved posts hidden until the owner check has succeeded.
+ const content=dialog.querySelector('.vgPostsContent');
+ content.hidden=true;
+ const waiting=document.createElement('p');
+ waiting.id='vgPostsLoading';
+ waiting.setAttribute('role','status');
+ waiting.textContent='Verifica accesso in corso…';
+ dialog.append(waiting);
+ if(typeof window.setTopMenuOpen==='function')window.setTopMenuOpen(false);
+ try{
+   dialog.showModal();
+   await checkOwner();
+   reset();
+   render();
+   content.hidden=false;
+ }catch(e){
+   dialog.close();
+   alert(e.message||'Impossibile aprire Post Facebook.');
+ }finally{
+   waiting.remove();
+   trigger.disabled=false;
+   trigger.textContent=originalLabel;
+   opening=false;
+ }
+};
 dialog.querySelector('#vgPostsClose').onclick=()=>dialog.close();
 dialog.querySelector('[data-reset]').onclick=reset;
 form.onsubmit=e=>{e.preventDefault();if(!form.reportValidity())return;const id=el('id').value||crypto.randomUUID(),posts=read(),existing=posts.find(x=>x.id===id),item={id,category:el('category').value,title:el('title').value.trim(),body:el('body').value.trim(),link:el('link').value.trim(),date:el('date').value,time:el('time').value,publishedAt:existing?.publishedAt||null,updatedAt:new Date().toISOString()};if(!item.title||!item.body){info('Inserisci titolo e testo.');return}try{if(existing)Object.assign(existing,item);else posts.push(item);write(posts);render();el('id').value=id;info('Post salvato su questo dispositivo. Data e ora previste: '+printDate(item.date,item.time)+'.')}catch{info('Salvataggio non riuscito. Verifica lo spazio disponibile nel browser.')}};
