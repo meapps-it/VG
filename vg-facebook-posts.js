@@ -41,7 +41,28 @@ const buttons=document.createElement('div');buttons.className='vgPostButtons';
 const add=(label,action,fn)=>{const b=document.createElement('button');b.type='button';b.dataset[action]='';b.textContent=label;b.onclick=fn;buttons.append(b)};
 add('✏️ Modifica','edit',()=>{el('id').value=p.id;el('category').value=p.category;el('title').value=p.title;el('body').value=p.body;el('link').value=p.link||'';el('date').value=p.date;el('time').value=p.time;el('photo').value='';form.scrollIntoView({behavior:'smooth',block:'start'});info('Modifica il post e premi Salva post.')});
 add('📋 Copia','copy',async()=>{try{await navigator.clipboard.writeText(fullText(p));info('Testo copiato. Incollalo su Facebook.')}catch{info('Copia non disponibile: seleziona il testo dal post.')}});
-add('📤 Condividi','share',async()=>{const data={title:p.title,text:fullText(p)};const photo=el('id').value===p.id?el('photo').files?.[0]:null;if(photo&&navigator.canShare?.({files:[photo]}))data.files=[photo];try{if(navigator.share){await navigator.share(data);info('Condivisione avviata. Segna il post come pubblicato solo dopo averlo effettivamente pubblicato su Facebook.')}else{await navigator.clipboard.writeText(fullText(p));info('Testo copiato. Apri Facebook e incollalo nel tuo post.');window.open('https://www.facebook.com/','_blank','noopener,noreferrer')}}catch(e){if(e.name!=='AbortError')info('Condivisione non riuscita: '+e.message)}});
+add('📋 Copia e apri Facebook','share',async()=>{
+ const text=fullText(p);
+ // Facebook non garantisce l'inserimento di testi condivisi tramite Web Share API.
+ // Copiamo esplicitamente il testo e apriamo Facebook per incollarlo nel compositore.
+ let copied=false;
+ try{await navigator.clipboard.writeText(text);copied=true}catch(_e){}
+ if(!copied){
+   const t=document.createElement('textarea');t.value=text;t.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';document.body.append(t);t.select();
+   try{copied=document.execCommand('copy')}catch(_e){}finally{t.remove()}
+ }
+ if(!copied){info('Copia automatica non disponibile: usa il pulsante 📋 Copia, poi incolla il testo su Facebook.');return}
+ info('✅ Testo copiato. Su Facebook tocca «Scrivi qualcosa…», tieni premuto e scegli Incolla. La pubblicazione va confermata su Facebook.');
+ window.open('https://www.facebook.com/','_blank','noopener,noreferrer');
+});
+add('📤 Condividi con altre app','other-share',async()=>{
+ const data={title:p.title,text:fullText(p)};
+ const photo=el('id').value===p.id?el('photo').files?.[0]:null;
+ if(photo&&navigator.canShare?.({files:[photo]}))data.files=[photo];
+ if(!navigator.share){info('Condivisione nativa non disponibile: premi «Copia e apri Facebook».');return}
+ try{await navigator.share(data);info('Menu di condivisione chiuso. Controlla nell’app scelta se testo e foto sono stati inseriti; Facebook potrebbe ignorare il testo.')}
+ catch(e){if(e.name!=='AbortError')info('Condivisione non riuscita: '+e.message)}
+});
 add(p.publishedAt?'↩️ Torna a bozza':'✅ Segna pubblicato','published',()=>{const arr=read(),item=arr.find(x=>x.id===p.id);if(!item)return;item.publishedAt=item.publishedAt?null:new Date().toISOString();write(arr);render();info(item.publishedAt?'Data e ora effettive registrate.':'Post riportato in bozza.')});
 add('🗑️ Elimina','remove',()=>{if(!confirm('Eliminare questo post salvato?'))return;write(read().filter(x=>x.id!==p.id));render();info('Post eliminato.')});
 card.append(h,meta,body,buttons);if(p.link){const a=document.createElement('a');a.href=p.link;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Apri link';card.insertBefore(a,buttons)}list.append(card)
