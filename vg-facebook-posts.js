@@ -38,7 +38,7 @@ const h=document.createElement('h4');h.textContent=p.title;
 const meta=document.createElement('div');meta.className='vgPostMeta';meta.textContent=p.category+' · Previsto: '+printDate(p.date,p.time)+(p.publishedAt?' · Pubblicato: '+new Date(p.publishedAt).toLocaleString('it-IT',{dateStyle:'short',timeStyle:'short'}):' · Bozza');
 const body=document.createElement('p');body.textContent=p.body;
 const buttons=document.createElement('div');buttons.className='vgPostButtons';
-const add=(label,action,fn)=>{const b=document.createElement('button');b.type='button';b.dataset[action]='';b.textContent=label;b.onclick=fn;buttons.append(b)};
+const add=(label,action,fn)=>{const b=document.createElement('button');b.type='button';b.setAttribute('data-'+action,'');b.textContent=label;b.onclick=fn;buttons.append(b)};
 add('✏️ Modifica','edit',()=>{el('id').value=p.id;el('category').value=p.category;el('title').value=p.title;el('body').value=p.body;el('link').value=p.link||'';el('date').value=p.date;el('time').value=p.time;el('photo').value='';form.scrollIntoView({behavior:'smooth',block:'start'});info('Modifica il post e premi Salva post.')});
 add('📋 Copia','copy',async()=>{try{await navigator.clipboard.writeText(fullText(p));info('Testo copiato. Incollalo su Facebook.')}catch{info('Copia non disponibile: seleziona il testo dal post.')}});
 add('📋 Copia e apri Facebook','share',async()=>{
