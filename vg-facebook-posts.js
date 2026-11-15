@@ -113,12 +113,12 @@ add('📤 Condividi con altre app','other-share',()=>{
   return sharePost(p);
 });
 add('Opzioni e foto','share-options',()=>{options.hidden=!options.hidden});
-add('📘 Copia e apri Facebook','facebook',()=>{
-  const url='https://www.facebook.com/';
+add('📘 Copia testo e apri il gruppo','facebook',()=>{
+  const url='https://www.facebook.com/share/g/1H7BwZrGvJ/';
   const copying=copyText(content);
   window.open(url,'_blank','noopener,noreferrer');
   copying.then(
-    ()=>info('Testo copiato. Incollalo su Facebook prima di pubblicare.'),
+    ()=>info('Testo copiato. Incollalo nel post del gruppo e aggiungi la foto con «Foto/video».'),
     ()=>info('Copia non riuscita. Torna al post e premi «Copia».')
   );
 });
