@@ -9524,7 +9524,7 @@ async function loadArticleLastShares(){
     if(cloudSession?.user?.id!==owner)return;
     for(const row of data||[])if(row.id&&row.last_shared_at)ARTICLE_LAST_SHARE_AT.set(String(row.id),row.last_shared_at);
     articleLastSharesLoadedFor=owner;
-    refreshArticleLastShareLabels();
+    if(ARTICLE_LAST_SHARE_AT.size)renderArt();
   })().catch(error=>console.warn('Storico condivisioni non disponibile',error))
      .finally(()=>{articleLastSharesLoading=null;});
   return articleLastSharesLoading;
@@ -9539,7 +9539,7 @@ async function recordArticleLastShare(id){
     .select('id,last_shared_at').single();
   if(error)throw error;
   ARTICLE_LAST_SHARE_AT.set(String(id),data.last_shared_at||value);
-  refreshArticleLastShareLabels();
+  renderArt();
 }
 function noteArticleLastShare(id){
   recordArticleLastShare(id).catch(error=>{
@@ -9791,6 +9791,9 @@ function vgCloseVisualArticleSearch(){
 }
 
 function compareArticlesForPreview(a,b){
+  const aShared=Date.parse(ARTICLE_LAST_SHARE_AT.get(String(a.id)))||0;
+  const bShared=Date.parse(ARTICLE_LAST_SHARE_AT.get(String(b.id)))||0;
+  if(aShared!==bShared)return aShared-bShared;
   const aTs=Number(a?._ts||0);
   const bTs=Number(b?._ts||0);
   if(aTs!==bTs) return bTs-aTs;
