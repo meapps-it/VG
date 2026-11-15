@@ -41,37 +41,16 @@ const buttons=document.createElement('div');buttons.className='vgPostButtons';
 const add=(label,action,fn)=>{const b=document.createElement('button');b.type='button';b.setAttribute('data-'+action,'');b.textContent=label;b.onclick=fn;buttons.append(b)};
 add('✏️ Modifica','edit',()=>{el('id').value=p.id;el('category').value=p.category;el('title').value=p.title;el('body').value=p.body;el('link').value=p.link||'';el('date').value=p.date;el('time').value=p.time;el('photo').value='';form.scrollIntoView({behavior:'smooth',block:'start'});info('Modifica il post e premi Salva post.')});
 add('📋 Copia','copy',async()=>{try{await navigator.clipboard.writeText(fullText(p));info('Testo copiato. Incollalo su Facebook.')}catch{info('Copia non disponibile: seleziona il testo dal post.')}});
-add('📋 Copia e apri Facebook','share',async()=>{
- const text=fullText(p);
- // Facebook non garantisce l'inserimento di testi condivisi tramite Web Share API.
- // Copiamo esplicitamente il testo e apriamo Facebook per incollarlo nel compositore.
- let copied=false;
- try{await navigator.clipboard.writeText(text);copied=true}catch(_e){}
- if(!copied){
-   const t=document.createElement('textarea');t.value=text;t.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';document.body.append(t);t.select();
-   try{copied=document.execCommand('copy')}catch(_e){}finally{t.remove()}
- }
- if(!copied){info('Copia automatica non disponibile: usa il pulsante 📋 Copia, poi incolla il testo su Facebook.');return}
- info('✅ Testo copiato. Su Facebook tocca «Scrivi qualcosa…», tieni premuto e scegli Incolla. La pubblicazione va confermata su Facebook.');
- window.open('https://www.facebook.com/','_blank','noopener,noreferrer');
-});
-add('📤 Condividi con altre app','other-share',async()=>{
+add('📤 Condividi','other-share',()=>{
  const content=fullText(p);
- const data={title:p.title,text:content};
- const photo=el('id').value===p.id?el('photo').files?.[0]:null;
- if(photo&&navigator.canShare?.({files:[photo]}))data.files=[photo];
- if(typeof navigator.share==='function'){
-   try{await navigator.share(data);info('Condivisione avviata. Controlla nell’app scelta che testo e foto siano presenti.');return}
-   catch(e){if(e.name==='AbortError')return;info('La condivisione nativa non è riuscita. Usa una delle opzioni qui sotto.')}
- }
- // The installed WebView may not expose Web Share. Use explicit app links instead
- // of showing a dead button or pretending Android's chooser has opened.
- let chooser=dialog.querySelector('#vgPostsShareFallback');
- if(chooser)chooser.remove();
+ // The installed PWA may expose navigator.share without a reliable native chooser.
+ // Show explicit destinations immediately, rather than silently failing.
+ let chooser=card.querySelector('#vgPostsShareFallback');
+ if(chooser){chooser.remove();return}
  chooser=document.createElement('div');
  chooser.id='vgPostsShareFallback';
  chooser.style.cssText='margin:12px 0;padding:12px;background:#fff;border:1px solid #a5b7d1;border-radius:14px;display:flex;gap:8px;flex-wrap:wrap';
- const label=document.createElement('p');label.textContent='Scegli dove condividere. Per Facebook copia il testo e incollalo nel post. La foto va selezionata nell’app di destinazione.';
+ const label=document.createElement('p');label.textContent='Scegli Facebook, WhatsApp, Telegram oppure il menu Android. Per Facebook puoi incollare il testo copiato; la foto va selezionata nell’app di destinazione.';
  label.style.cssText='width:100%;margin:0 0 5px';
  chooser.append(label);
  const link=(title,url)=>{
@@ -128,9 +107,21 @@ add('📤 Condividi con altre app','other-share',async()=>{
    }
  };
  chooser.append(copyBtn);
+ const nativeBtn=document.createElement('button');nativeBtn.type='button';nativeBtn.textContent='📤 Altre app Android';
+ nativeBtn.onclick=async()=>{
+   if(typeof navigator.share!=='function'){
+     info('Il menu di condivisione Android non è disponibile da questa versione del gestionale. Usa Facebook, WhatsApp, Telegram o Copia.');return;
+   }
+   const data={title:p.title,text:content};
+   const photo=el('id').value===p.id?el('photo').files?.[0]:null;
+   if(photo&&navigator.canShare?.({files:[photo]}))data.files=[photo];
+   try{await navigator.share(data);info('Menu Android aperto. Verifica nell’app scelta che il contenuto sia stato ricevuto.')}
+   catch(e){if(e.name!=='AbortError')info('Android non ha aperto la condivisione: '+(e.message||'operazione non supportata')+'. Usa le destinazioni qui sopra.')}
+ };
+ chooser.append(nativeBtn);
  const dismiss=document.createElement('button');dismiss.type='button';dismiss.textContent='Chiudi opzioni';dismiss.onclick=()=>chooser.remove();chooser.append(dismiss);
  buttons.after(chooser);
- info('Sul tuo dispositivo manca la condivisione nativa: usa WhatsApp, Telegram o copia il testo per altre app.');
+ info('Scegli un’app qui sotto. Per il menu Android premi «Altre app Android».');
 });
 add(p.publishedAt?'↩️ Torna a bozza':'✅ Segna pubblicato','published',()=>{const arr=read(),item=arr.find(x=>x.id===p.id);if(!item)return;item.publishedAt=item.publishedAt?null:new Date().toISOString();write(arr);render();info(item.publishedAt?'Data e ora effettive registrate.':'Post riportato in bozza.')});
 add('🗑️ Elimina','remove',()=>{if(!confirm('Eliminare questo post salvato?'))return;write(read().filter(x=>x.id!==p.id));render();info('Post eliminato.')});
