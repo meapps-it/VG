@@ -32,3 +32,6 @@ if (menu && !menu.querySelector('[data-vg-push-admin]')) {
 const favicon = document.querySelector('link[rel="icon"]');
 if (favicon) favicon.href = './favicon-v1-32.png?v=vg-brand-1';
 })();
+
+// Modulo Post Facebook: caricato separatamente, senza modificare le altre sezioni.
+(()=>{if(document.querySelector('script[data-vg-facebook-posts]'))return;const s=document.createElement('script');s.src='./vg-facebook-posts.js?v=20261115';s.defer=true;s.dataset.vgFacebookPosts='1';document.head.appendChild(s)})();
