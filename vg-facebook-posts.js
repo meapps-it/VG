@@ -25,7 +25,7 @@ const now=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes(
 const read=()=>{try{const x=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(x)?x:[]}catch{return []}};
 const write=posts=>localStorage.setItem(KEY,JSON.stringify(posts));
 const printDate=(d,t)=>{if(!d)return 'Non indicata';const p=d.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]+' alle '+(t||'00:00'):d};
-const fullText=p=>[p.title,p.body,p.link].filter(Boolean).join('\n\n');
+const fullText=p=>[p.title,p.body].filter(Boolean).join('\n\n');
 const info=s=>{status.textContent=s};
 async function copyText(text){
   const previous=document.activeElement;
@@ -107,50 +107,14 @@ function shareLink(label,url){
   options.append(link);
 }
 shareLink('WhatsApp','https://api.whatsapp.com/send?text='+encodeURIComponent(content));
-shareLink('Telegram','https://t.me/share/url?url='+encodeURIComponent(p.link||'')+'&text='+encodeURIComponent(fullText({...p,link:''})));
+shareLink('Telegram','https://t.me/share/url?url='+encodeURIComponent('')+'&text='+encodeURIComponent(content));
 add('📤 Condividi con altre app','other-share',()=>{
   options.hidden=false;
   return sharePost(p);
 });
 add('Opzioni e foto','share-options',()=>{options.hidden=!options.hidden});
-const facebookLink=document.createElement('a');
-facebookLink.textContent='Apri la scheda su Facebook';
-facebookLink.target='_blank';
-facebookLink.rel='noopener noreferrer';
-facebookLink.hidden=true;
-options.append(facebookLink);
-add('📘 Prepara post per Facebook','facebook-post',async event=>{
-  const button=event.currentTarget;
-  button.disabled=true;
-  options.hidden=false;
-  facebookLink.hidden=true;
-  info('Preparazione della scheda del post…');
-  try{
-    const db=await window.VG_SUPABASE_READY;
-    const {data}=await db.auth.getSession();
-    if(!data.session?.access_token)throw Error('Accedi di nuovo al gestionale.');
-    const payload=new FormData();
-    for(const key of ['title','body','link'])payload.set(key,p[key]||'');
-    if(photo.files[0])payload.set('photo',photo.files[0]);
-    const response=await fetch('./post-share/',{
-      method:'POST',headers:{Authorization:'Bearer '+data.session.access_token},body:payload
-    });
-    if(response.status===400||response.status===413)throw Error('Controlla la foto. Sono supportati JPEG, PNG e WebP fino a 5 MB.');
-    if(!response.ok)throw Error('Scheda non disponibile. Riprova oppure usa «Copia e apri Facebook».');
-    const {url}=await response.json();
-    facebookLink.href='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(url);
-    facebookLink.hidden=false;
-    info('Scheda pronta. Tocca «Apri la scheda su Facebook» per scegliere dove condividerla.');
-  }catch(error){
-    info(error.message||'Impossibile preparare la scheda.');
-  }finally{
-    button.disabled=false;
-  }
-});
 add('📘 Copia e apri Facebook','facebook',()=>{
-  const url='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(
-    p.link&&/^https:\/\//i.test(p.link)?p.link:'https://veglamour.cloud/'
-  );
+  const url='https://www.facebook.com/';
   const copying=copyText(content);
   window.open(url,'_blank','noopener,noreferrer');
   copying.then(
@@ -204,4 +168,3 @@ form.onsubmit=e=>{e.preventDefault();if(!form.reportValidity())return;const id=e
 };
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
 })();
-
