@@ -34,4 +34,4 @@ if (favicon) favicon.href = './favicon-v1-32.png?v=vg-brand-1';
 })();
 
 // Modulo Post Facebook: caricato separatamente, senza modificare le altre sezioni.
-(()=>{if(document.querySelector('script[data-vg-facebook-posts]'))return;const s=document.createElement('script');s.src='./vg-facebook-posts.js?v=20261115-facebook-destinations';s.defer=true;s.dataset.vgFacebookPosts='1';document.head.appendChild(s)})();
+(()=>{if(document.querySelector('script[data-vg-facebook-posts]'))return;const s=document.createElement('script');s.src='./vg-facebook-posts.js?v=20261115-share-dialog';s.defer=true;s.dataset.vgFacebookPosts='1';document.head.appendChild(s)})();
