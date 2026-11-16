@@ -4,7 +4,13 @@
  const formatter=new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',dateStyle:'short',timeStyle:'short'}),date=v=>v?formatter.format(new Date(v)):'Mai';
  const statusLabel=s=>({approved:'Autorizzato',pending:'In attesa',blocked:'Bloccato'})[s]||s;
  const tile=document.createElement('button');tile.type='button';tile.className='vgCustomersTile';tile.id='vgCustomersTile';tile.innerHTML='<span><strong>Clienti catalogo</strong><span id="vgCustomerTileHint">Registrazioni e ultimi accessi</span></span><span id="vgCustomerBadge" role="status" aria-live="polite">Apri</span>';
- el('vgDashboardAlerts')?.append(tile);tile.hidden=true;
+ const installationAlerts=document.createElement('details');
+ installationAlerts.className='vgOrderAlert';
+ installationAlerts.hidden=true;
+ const installationSummary=document.createElement('summary');
+ const installationList=document.createElement('ul');
+ installationAlerts.append(installationSummary,installationList);
+ el('vgDashboardAlerts')?.append(tile,installationAlerts);tile.hidden=true;
  const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='btn';dismiss.textContent='Cancella avvisi di registrazione';dismiss.hidden=true;tile.after(dismiss);dismiss.onclick=()=>el('vgCustomerRead').click();
  const opener=document.createElement('button');opener.type='button';opener.className='topMenuLink';opener.id='vgCustomerModuleOpen';opener.textContent='Clienti catalogo · registrazioni e accessi';el('vgCatalogStatsOpen')?.after(opener);
  const dialog=document.createElement('dialog');dialog.className='vgStatsDialog vgCustomersPanel';dialog.id='vgCustomersPanel';dialog.setAttribute('aria-labelledby','vgCustomersTitle');
@@ -57,6 +63,15 @@
  function line(root,text){const p=document.createElement('p');p.textContent=text;root.append(p);return p}
  function button(root,text,handler){const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=async()=>{b.disabled=true;try{await handler(b)}catch(e){el('vgCustomerPanelStatus').textContent=e.message}finally{b.disabled=false}};root.append(b);return b}
  function renderDashboard(data=current){
+  const installations=data?.installations||[];
+  installationAlerts.hidden=!installations.length;
+  installationSummary.textContent='Installazioni catalogo · '+installations.length+(installations.length===30?' più recenti':'');
+  installationList.replaceChildren(...installations.map(installation=>{
+   const item=document.createElement('li');
+   const event=installation.signal==='installed'?'Installazione rilevata':'Prima apertura dall’icona rilevata';
+   item.textContent=installation.name+' · '+event+' · '+date(installation.at);
+   return item;
+  }));
   const count=el('c_catalog_customers'),last=el('c_catalog_last_access');if(!count||!last)return;
   count.textContent=data?Number(data.total||0).toLocaleString('it-IT'):'—';
   const access=data?.latestAccess,who=access&&(access.name||access.email||(access.phone?'+'+access.phone:'Cliente'));

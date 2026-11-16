@@ -51,6 +51,27 @@
   if(token){try{profile=await rawAction('customer-me')}catch(error){if(error.status===403){token='';profile=null;store(key,'')}else throw error}}
   return profile;
  }
+ const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+ let installSignal = standalone ? 'standalone' : '';
+ let recordedInstallToken = '';
+ let recordingInstall = false;
+ async function recordInstall(){
+  if(!installSignal || !token || profile?.accessStatus !== 'approved' || recordedInstallToken === token || recordingInstall) return;
+  const currentToken = token;
+  recordingInstall = true;
+  try {
+   await rawAction('catalog-installation', {signal: installSignal});
+   recordedInstallToken = currentToken;
+  } catch (error) {
+   console.warn('Registrazione installazione catalogo non riuscita', error);
+  } finally {
+   recordingInstall = false;
+  }
+ }
+ window.addEventListener('appinstalled', () => {
+  installSignal = 'installed';
+  void recordInstall();
+ });
  async function open(verified=false){
   checking();try{
    if(!verified)await restore();
@@ -59,6 +80,7 @@
   }catch(error){lock(error.message||'Connessione non disponibile. Riprova.');return}
   // A verified session opens the catalogue; product loading is a separate state.
   unlock();window.dispatchEvent(new Event('vg-customer-ready'));
+  void recordInstall();
   try{await reloadCatalog()}catch(error){console.error('Caricamento catalogo:',error)}
  }
  async function accept(data){if(!valid(data.token))throw Error('Risposta di accesso non valida');token=data.token;profile=data;adminToken='';store(adminKey,'');store(key,token);get('accessPassword').value='';await open(true)}

@@ -23,7 +23,15 @@ export async function customerAdminAction(db:any,req:Request,owner:string,action
   for(const r of results)if(r.error)throw r.error;
   const latest=[...(results[5].data||[]).map((c:any)=>({...c,at:c.last_access_at})),...(results[6].data||[]).map((c:any)=>({...c,at:c.last_login_at}))].filter(c=>c.at).sort((a,b)=>Date.parse(b.at)-Date.parse(a.at))[0];
   const latestAccess=latest?{customerId:latest.id,name:typeof latest.profile?.name==='string'?latest.profile.name:'',phone:latest.phone,email:latest.email,at:latest.at}:null;
-  return out({latestAccess,total:results[0].count||0,pending:results[1].count||0,unread:results[2].count||0,customers:(results[3].data||[]).map((c:any)=>({id:c.id,name:typeof c.profile?.name==='string'?c.profile.name:'',phone:c.phone,email:c.email,status:c.access_status,registeredAt:c.created_at,lastLoginAt:c.last_login_at,lastAccessAt:c.last_access_at})),notifications:results[4].data||[],hasMore:results[3].data?.length===50,offset});
+  const installations=await db.from('vg_shop_customers')
+    .select('id,phone,email,profile,catalog_installed_seen_at,catalog_install_signal')
+    .eq('owner_id',owner).not('catalog_installed_seen_at','is',null)
+    .order('catalog_installed_seen_at',{ascending:false}).order('id').limit(30);
+  if(installations.error)console.warn('Installazioni catalogo non disponibili',installations.error.code);
+  return out({installations:(installations.data||[]).map((c:any)=>({
+    name:c.profile?.name||c.email||c.phone||'Cliente catalogo',
+    at:c.catalog_installed_seen_at,signal:c.catalog_install_signal
+  })),latestAccess,total:results[0].count||0,pending:results[1].count||0,unread:results[2].count||0,customers:(results[3].data||[]).map((c:any)=>({id:c.id,name:typeof c.profile?.name==='string'?c.profile.name:'',phone:c.phone,email:c.email,status:c.access_status,registeredAt:c.created_at,lastLoginAt:c.last_login_at,lastAccessAt:c.last_access_at})),notifications:results[4].data||[],hasMore:results[3].data?.length===50,offset});
  }
  if(action==='customer-access-history'&&req.method==='GET'){
   const id=url.searchParams.get('id')||'';if(!uuid(id))return out({error:'Cliente non valido'},400);

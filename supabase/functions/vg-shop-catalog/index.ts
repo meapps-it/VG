@@ -77,6 +77,21 @@ Deno.serve(async(req)=>{
   const handled=await accessAction(db,req,OWNER,action,out);if(handled)return handled;
   if(['customer-login','customer-register','customer-google','customer-facebook','customer-me','customer-logout','customer-authorize'].includes(action)){const result=await customerAction(db,req,OWNER,action,out);if(result)return result;}
   const viewer=await catalogSession(db,req,OWNER);if(!viewer)return fail("Accedi con un account autorizzato dal negozio",401);
+  if(action==='catalog-installation'){
+    if(req.method!=='POST')return fail('Metodo non consentito',405);
+    const account=await customerSession(db,req,OWNER);
+    if(!account)return fail('Accedi con un account cliente',403);
+    const raw=await req.text();
+    if(raw.length>128)return fail('Richiesta troppo grande',413);
+    let signal;
+    try{signal=JSON.parse(raw)?.signal}catch{return fail('Richiesta non valida')}
+    if(signal!=='installed'&&signal!=='standalone')return fail('Segnale non valido');
+    const result=await db.from('vg_shop_customers')
+      .update({catalog_installed_seen_at:new Date().toISOString(),catalog_install_signal:signal})
+      .eq('owner_id',OWNER).eq('id',account.customer_id).is('catalog_installed_seen_at',null);
+    if(result.error)throw result.error;
+    return out({ok:true});
+  }
   const customerHandled=await customerAction(db,req,OWNER,action,out);if(customerHandled)return customerHandled;
 
   if(req.method==="GET"){
