@@ -109,8 +109,8 @@
     header.prepend(button);
     invitation=document.createElement('section');
     invitation.id='vgPushInvitation';
-    invitation.style.cssText='padding:12px;margin:12px 0;border:1px solid #efd5e1;border-radius:12px;background:#fff7fb';
-    invitation.innerHTML='<p>Ricevi un avviso per nuovi articoli e promozioni.</p><button type="button">Attiva notifiche</button> <button type="button">Non ora</button>';
+    invitation.setAttribute('aria-labelledby','vgPushInvitationTitle');
+    invitation.innerHTML='<div class="vg-push-copy"><span class="vg-push-icon" aria-hidden="true">🔔</span><div><h2 id="vgPushInvitationTitle">Novità e promozioni</h2><p>Ricevi un avviso quando arrivano nuovi articoli o offerte.</p></div></div><div class="vg-push-actions"><button type="button">Attiva notifiche</button><button type="button">Non ora</button></div>';
     const [enable,skip]=invitation.querySelectorAll('button');
     enable.onclick=()=>change(true);
     skip.onclick=()=>{write('sessionStorage',dismissed,'yes');render()};
