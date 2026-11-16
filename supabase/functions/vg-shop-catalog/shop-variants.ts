@@ -25,7 +25,7 @@ export function articleOptions(p:any,category?:string){
  const count=Math.min(50,Math.max(Number(meta.colorCount)||0,Number(meta.colorData?.count)||0,labels.length));
  const multiple=count>1||meta.colorMode==='multiple'||meta.colorType==='numbered';
  const colors=multiple?Array.from({length:Math.max(1,count)},(_,i)=>({value:String(i+1),number:i+1,label:clean(labels[i],80)||'Colore '+(i+1)})):[];
- return {sizes:sizes.length>1?sizes:[],colors,fixedSize:sizes.length===1?sizes[0]:sizes.length?'':fixed,fixedColor:colors.length?'':clean(p.colore||meta.colore,80),sizeLabel:belt?'Larghezza':/cm/i.test(fixed)?'Misura (cm)':'Numero / taglia',...(belt?{lengths:Array.from({length:31},(_,i)=>String(95+i))}:{})};
+ return {sizes:sizes.length>1?sizes:[],colors,fixedSize:sizes.length===1?sizes[0]:sizes.length?'':fixed,fixedColor:colors.length?'':clean(p.colore||meta.colore,80),sizeLabel:belt?'Larghezza':/cm/i.test(fixed)?'Misura (cm)':'Numero / taglia',...(belt?{lengths:['95','100','105','110','115','120','125']}:{})};
 }
 export function requestedVariant(p:any,entry:any,category?:string){
  const options=articleOptions(p,category),size=clean(entry?.size,160),color=clean(entry?.color,80);
