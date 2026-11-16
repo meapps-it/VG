@@ -17,8 +17,11 @@
   }
 
   async function register(){
-    // Use the same root registration as the gestionale to preserve existing subscriptions.
-    return navigator.serviceWorker.register('/service-worker.js?v=1.0.137',{scope:'/',updateViaCache:'none'});
+    const current=await navigator.serviceWorker.getRegistration('/');
+    const worker=current?.active||current?.waiting||current?.installing;
+    if(worker && new URL(worker.scriptURL).origin===location.origin &&
+      ['/service-worker.js','/vg-push-sw.js'].includes(new URL(worker.scriptURL).pathname)) return current;
+    return navigator.serviceWorker.register('/vg-push-sw.js',{scope:'/',updateViaCache:'none'});
   }
 
   async function sync(){
