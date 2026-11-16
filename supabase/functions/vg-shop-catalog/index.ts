@@ -100,18 +100,21 @@ Deno.serve(async(req)=>{
     const linkedProduct=/^[a-z0-9]{1,48}(?:-[a-z0-9]{1,32})?$/.test(slug)
       ? db.from("vg_article_share_links").select("product_id").eq("owner_id",OWNER).eq("slug",slug).maybeSingle()
       : Promise.resolve({data:null,error:null});
-    const [{data,error},{data:categories,error:categoryError},promo,noticeResult,link]=await Promise.all([
+    const [{data,error},{data:categories,error:categoryError},promo,noticeResult,link,pagesResult]=await Promise.all([
       published(db.from("prodotti").select(articleFields).order("nome",{ascending:true}).limit(400)),
       db.from("categorie").select("id,nome").eq("user_id",OWNER),
       db.from('vg_shop_promotion').select('enabled,title,body,image_url,product_ids,excluded_product_ids').eq('owner_id',OWNER).eq('enabled',true).maybeSingle(),
       db.from('vg_shop_notice').select('enabled,kind,title,body,image_url,image_path').eq('owner_id',OWNER).eq('enabled',true).maybeSingle(),
       linkedProduct,
+      db.from('vg_catalog_pages').select('id,kind,title,body').eq('owner_id',OWNER)
+        .eq('published',true).order('updated_at',{ascending:false}).order('id'),
     ]);
     if(error)throw error;
     if(categoryError)throw categoryError;
     if(promo.error)throw promo.error;
     if(noticeResult.error)throw noticeResult.error;
     if(link.error)throw link.error;
+    if(pagesResult.error)console.warn('VG catalog pages unavailable',pagesResult.error.code);
     const products=data||[];
     const linkedProductId=link.data?.product_id||null;
     if(linkedProductId&&!products.some(p=>p.id===linkedProductId)){
@@ -168,7 +171,7 @@ Deno.serve(async(req)=>{
       notice={enabled:true,kind:n.kind,title:n.title,body:n.body,image_url};
     }
     if(!runtime?.waitUntil)await visit;
-    return out({items,imagesExpiresAt,administrator:viewer.is_admin,promotion,notice,...(coversPending?{coversPending:true}:{}),...(slug?{linkedProductId:items.some(item=>item.id===linkedProductId)?linkedProductId:null}: {})});
+    return out({items,imagesExpiresAt,administrator:viewer.is_admin,promotion,notice,pages:pagesResult.data||[],...(coversPending?{coversPending:true}:{}),...(slug?{linkedProductId:items.some(item=>item.id===linkedProductId)?linkedProductId:null}: {})});
   }
   if(req.method!=="POST")return fail("Metodo non consentito",405);
   const length=Number(req.headers.get("content-length")||0);

@@ -609,7 +609,8 @@ window.addEventListener('error',e=>{
 <script src="./vg-fullscreen-pages.js?v=dialog-navigation-20261109" defer></script>
 <link rel="stylesheet" href="./vg-catalog-stats.css?v=1.0.160">
 <script src="./vg-catalog-stats.js?v=unseen-access-20261109" defer></script>
-<link rel="stylesheet" href="./vg-admin-workspace.css?v=client-group-20261108">
+<script src="./vg-catalog-pages.js?v=1" defer></script>
+<link rel="stylesheet" href="./vg-admin-workspace.css?v=catalog-layout-20261116">
 <style>
 #vgArticleShare{width:min(540px,calc(100% - 24px));max-height:calc(100dvh - 24px);padding:18px;border:1px solid #b5c9e7;border-radius:14px;color:#142840;background:white}
 #vgArticleShare::backdrop{background:#14284085}
@@ -779,19 +780,19 @@ window.addEventListener('error',e=>{
 
   <div id="sec_articoli" class="section">
     <div class="card artToolbarCard">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="h2">Articoli</div><button class="btn" type="button" data-action="newArt">+ Nuovo</button></div>
+      <div class="artToolbarHeading"><h2 class="h2">Articoli</h2><button class="btn primary" type="button" data-action="newArt">+ Nuovo articolo</button></div>
       <div style="margin-top:10px">
-        <div class="searchWrap"><input id="qArt" placeholder="Cerca articolo, marca o codice" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
+        <div class="searchWrap"><input id="qArt" aria-label="Cerca articolo, marca o codice" placeholder="Cerca articolo, marca o codice" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="qArtSuggest" class="searchSuggest"></div></div>
         <div style="display:none!important">
           <input id="visualSearchFile" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif"/>
           <div id="visualSearchStatus"></div>
         </div>
       </div>
       <div class="grid2 artFilterGrid" style="margin-top:10px">
-        <div><select id="qArtCat"><option value="">Tutte le categorie</option></select></div>
-        <div><select id="qArtBrand"><option value="">Tutte le marche</option></select></div>
+        <div><select id="qArtCat" aria-label="Filtra per categoria"><option value="">Tutte le categorie</option></select></div>
+        <div><select id="qArtBrand" aria-label="Filtra per marca"><option value="">Tutte le marche</option></select></div>
+        <div><select id="qArtQuality" aria-label="Filtra per qualità" style="width:100%"><option value="">Tutte le qualità</option><option value="Originale">Originale</option><option value="Standard">Standard</option></select></div>
       </div>
-      <div style="margin-top:10px"><select id="qArtQuality" aria-label="Filtra per qualità" style="width:100%"><option value="">Tutte le qualità</option><option value="Originale">Originale</option><option value="Standard">Standard</option></select></div>
       <div class="artModeSwitch" role="group" aria-label="Visualizza articoli" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
         <button id="btnArtAllMixed" class="btn artAllBtn" type="button" data-action="openAllArticlesMixed">Tutto</button>
         <button id="btnArtPromoOnly" class="btn promoOnlyBtn" type="button" data-action="openPromoArticles">🔥 Solo promo</button>

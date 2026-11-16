@@ -281,3 +281,24 @@ html body.vg-workspace #vgDashboardAlerts :is(.vgCustomersTile,.vgOrderAlert) {
   min-height: 0;
   margin: 0 5px 0 0;
 }
+
+.vg-workspace .artToolbarHeading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.vg-workspace .artToolbarHeading h2 { margin: 0; }
+.vg-workspace .artToolbarHeading .btn { min-height: 44px; }
+.vg-workspace .artFilterGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.vg-workspace .artFilterGrid select { width: 100%; min-height: 44px; }
+@media (max-width: 460px) {
+  .vg-workspace .artFilterGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vg-workspace .artFilterGrid > :last-child { grid-column: 1 / -1; }
+}
+#vgCatalogPagesForm { display: grid; gap: 12px; }
+#vgCatalogPagesForm label { display: grid; gap: 4px; }
+#vgCatalogPagesForm .vgPagePublish { display: flex; align-items: center; gap: 8px; }
+#vgCatalogPagesForm :is(select, input:not([type=checkbox]), textarea) { width: 100%; }
+#vgCatalogPagesForm button { min-height: 44px; }
