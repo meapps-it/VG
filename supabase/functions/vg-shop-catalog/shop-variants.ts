@@ -12,6 +12,13 @@ export function articleMetadata(p:any){let meta:any={};for(const raw of [p.descr
 export function articleOptions(p:any,category?:string){
  const meta=articleMetadata(p);
  const belt=String(category||meta.categoria||'').trim().toLowerCase()==='cinture';
+ const beltWidth=()=>{
+  const explicit=meta.altezzaCintura||meta.hCintura||meta.h||meta.altezza||
+    (/larghezza|altezza/i.test(p.tipo_misura||'')?p.valore_misura:'');
+  const legacy=clean(meta.variante,80);
+  const width=clean(String(explicit||(/^\d+(?:[.,]\d+)?\s*cm$/i.test(legacy)?legacy:'')),80);
+  return width.replace(/\s*cm$/i,' cm');
+ };
  const raw=meta.taglie||meta.misure||p.valore_misura||meta.misura||p.taglia||p.dimensioni||'';
  let sizes:string[]=[];const fixed=clean(raw,160);
  if(Array.isArray(raw))sizes=raw.map(x=>clean(String(x),40)).filter(Boolean);
@@ -25,12 +32,12 @@ export function articleOptions(p:any,category?:string){
  const count=Math.min(50,Math.max(Number(meta.colorCount)||0,Number(meta.colorData?.count)||0,labels.length));
  const multiple=count>1||meta.colorMode==='multiple'||meta.colorType==='numbered';
  const colors=multiple?Array.from({length:Math.max(1,count)},(_,i)=>({value:String(i+1),number:i+1,label:clean(labels[i],80)||'Colore '+(i+1)})):[];
- return {sizes:sizes.length>1?sizes:[],colors,fixedSize:sizes.length===1?sizes[0]:sizes.length?'':fixed,fixedColor:colors.length?'':clean(p.colore||meta.colore,80),sizeLabel:belt?'Larghezza':/cm/i.test(fixed)?'Misura (cm)':'Numero / taglia',...(belt?{lengths:['95','100','105','110','115','120','125']}:{})};
+ return {sizes:!belt&&sizes.length>1?sizes:[],colors,fixedSize:belt?beltWidth():sizes.length===1?sizes[0]:sizes.length?'':fixed,fixedColor:colors.length?'':clean(p.colore||meta.colore,80),sizeLabel:belt?'Larghezza':/cm/i.test(fixed)?'Misura (cm)':'Numero / taglia',...(belt?{lengths:['95','100','105','110','115','120','125']}:{})};
 }
 export function requestedVariant(p:any,entry:any,category?:string){
  const options=articleOptions(p,category),size=clean(entry?.size,160),color=clean(entry?.color,80);
  if(options.sizes.length&&!options.sizes.includes(size))throw new Error('Scegli una misura valida per '+p.nome);
- if(!options.sizes.length&&size&&size!==options.fixedSize)throw new Error('Misura non prevista per '+p.nome);
+ if(!options.lengths&&!options.sizes.length&&size&&size!==options.fixedSize)throw new Error('Misura non prevista per '+p.nome);
  const length=clean(entry?.length,10);
  if(options.lengths&&!options.lengths.includes(length))throw new Error('Scegli una lunghezza valida per '+p.nome);
  const chosen=options.colors.find(x=>x.value===color);
