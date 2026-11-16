@@ -1186,14 +1186,14 @@ window.addEventListener('error',e=>{
           <option value="">Seleziona brand</option>
           <option value="__ALTRO__">Altro</option>
         </select>
-        <input id="a_brand_custom" placeholder="Scrivi il brand" autocomplete="off" autocapitalize="off" spellcheck="false" style="display:none;margin-top:8px"/>
+        <input id="a_brand_custom" autocomplete="off" autocapitalize="off" spellcheck="false" style="display:none;margin-top:8px"/>
       </div>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k">Modello</div><input id="a_mod" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
       <div><div class="k">Categoria</div><select id="a_cat"><option value="">Seleziona categoria</option></select></div>
     </div>
-    <div hidden style="display:none!important"><textarea aria-hidden="true" tabindex="-1" id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Descrizione articolo da inserire nel post Facebook sotto il nome modello..."></textarea></div>
+    <div hidden style="display:none!important"><textarea aria-hidden="true" tabindex="-1" id="a_desc" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea></div>
     <div style="margin-top:10px"><div class="k">Disponibilità</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_unavailable" type="checkbox" style="width:auto;margin-right:8px"/>Segna come NON DISPONIBILE</label><div class="k" style="margin-top:12px">Catalogo clienti</div><label class="pill" style="justify-content:center;cursor:pointer"><input id="a_shop_published" type="checkbox" style="width:auto;margin-right:8px"/>Pubblicato nel catalogo clienti</label><div class="helper" style="margin-top:6px">Gli articoli non pubblicati restano nel gestionale, ma non appaiono nel catalogo clienti.</div><div class="helper" style="margin-top:6px">L'articolo viene spostato nella cartella Archivio articoli e può essere ripristinato in qualsiasi momento.</div></div>
     <div style="margin-top:10px"><div class="k">Fornitore</div><select id="a_forn"></select><div id="a_forn_hint" class="date" style="margin-top:6px">Riconoscimento automatico dal link fornitore, sempre modificabile.</div></div>
   </div>
@@ -1201,7 +1201,7 @@ window.addEventListener('error',e=>{
   <div class="formBlock varianti inputSoft">
     <div class="blockTitle">Varianti e dettagli</div>
     <div class="grid2">
-      <div><div class="k">Materiale</div><input id="a_taglia" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Es. Pelle di vitello impressa"/></div>
+      <div><div class="k">Materiale</div><input id="a_taglia" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
       <div><div class="k">Variante</div><input id="a_variante" autocomplete="off" autocapitalize="off" spellcheck="false"/></div>
     </div>
     <div class="grid2" style="margin-top:10px">
@@ -1214,22 +1214,22 @@ window.addEventListener('error',e=>{
       </div>
       <div id="a_color_single_wrap">
         <div class="k" id="a_colore_label">Colore</div>
-        <input id="a_colore" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Es. Nero, Beige, Testa di moro"/>
+        <input id="a_colore" autocomplete="off" autocapitalize="off" spellcheck="false"/>
         <div id="a_colore_hint" class="helper">Scrivi il colore normalmente.</div>
       </div>
     </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k" id="a_mis_label">Mis.</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_mis_hint" class="helper"></div></div>
-      <div id="a_belt_h_wrap" style="display:none"><label class="k" for="a_belt_h">Larghezza (cm)</label><input id="a_belt_h" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Es. 3,5 cm"/><div id="a_belt_h_hint" class="helper">Larghezza fissa della cintura.</div></div>
+      <div id="a_belt_h_wrap" style="display:none"><label class="k" for="a_belt_h">H (largh., cm)</label><input id="a_belt_h" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_belt_h_hint" class="helper">Larghezza fissa della cintura.</div></div>
       <div id="a_color_count_wrap">
         <div class="k" id="a_color_count_label">Colori disponibili</div>
-        <input id="a_color_count" inputmode="numeric" autocomplete="off" placeholder="Es. 5"/>
+        <input id="a_color_count" inputmode="numeric" autocomplete="off"/>
         <div id="a_color_count_hint" class="helper" style="display:none">Se scegli Più colori, negli ordini il numero colore sarà obbligatorio.</div>
       </div>
     </div>
     <div id="a_color_labels_wrap" style="margin-top:10px;display:none">
       <div class="k">Abbinamento numero / colore</div>
-      <textarea id="a_color_labels" rows="4" placeholder="1 - Rosa&#10;2 - Beige&#10;3 - Argento"></textarea>
+      <textarea id="a_color_labels" rows="4"></textarea>
       <div class="helper">Facoltativo. L'app può provare a suggerire i colori dalla prima foto dell'articolo, ma il risultato va controllato.</div>
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
         <button type="button" class="btn secondary" id="a_color_suggest_btn">Suggerisci da foto</button>
@@ -1246,7 +1246,7 @@ window.addEventListener('error',e=>{
       <div class="blockTitle">Promo fornitore</div>
       <label style="display:flex;gap:10px;align-items:center;margin:10px 0;font-weight:700"><input id="a_supplier_promo_on" type="checkbox" style="width:22px;height:22px;flex-shrink:0"/>Attiva promo fornitore</label>
       <div class="grid2">
-        <div><label class="k" for="a_usd_promo">Prezzo promo USD</label><input id="a_usd_promo" inputmode="decimal" autocomplete="off" placeholder="Es. 68"/></div>
+        <div><label class="k" for="a_usd_promo">Prezzo promo USD</label><input id="a_usd_promo" inputmode="decimal" autocomplete="off"/></div>
         <div><label class="k" for="a_supplier_promo_end">Scadenza promo</label><input id="a_supplier_promo_end" type="date"/></div>
       </div>
       <label style="display:flex;gap:10px;align-items:center;margin-top:12px"><input id="a_supplier_date_unknown" type="checkbox" style="width:22px;height:22px;flex-shrink:0"/>Scadenza non comunicata</label>
@@ -1286,8 +1286,8 @@ window.addEventListener('error',e=>{
 
   <div class="formBlock postblk inputSoft">
     <div class="blockTitle">Dati aggiuntivi</div>
-    <div hidden style="display:none!important"><textarea aria-hidden="true" tabindex="-1" id="a_post_fb" placeholder="Descrizione dell’articolo"></textarea><div class="actions compact" style="margin-top:8px"></div></div>
-    <div style="margin-top:10px"><div class="k">Link articolo / fornitore</div><input id="a_forn_link" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Incolla https://... oppure annota WhatsApp"/><div class="helper" style="margin-top:6px">I link web si aprono dal dettaglio articolo. Le note WhatsApp restano testo, senza collegamenti inventati.</div></div>
+    <div hidden style="display:none!important"><textarea aria-hidden="true" tabindex="-1" id="a_post_fb"></textarea><div class="actions compact" style="margin-top:8px"></div></div>
+    <div style="margin-top:10px"><div class="k">Link articolo / fornitore</div><input id="a_forn_link" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"/><div class="helper" style="margin-top:6px">I link web si aprono dal dettaglio articolo. Le note WhatsApp restano testo, senza collegamenti inventati.</div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 20 foto totali per articolo.</div></div>
     <div id="a_photo_prev" class="thumbs"></div>
@@ -1305,7 +1305,7 @@ window.addEventListener('error',e=>{
 <div id="mArtBulkPaste" class="modalwrap" style="display:none"><div class="modal">
   <div class="h2">Incolla dati articolo</div>
   <div class="bulkPasteHint">Incolla il blocco preparato da ChatGPT. Descrizione e note vengono ignorate. Se il costo reale manca, puoi importare una stima: resterà sempre indicata come ipotetica.</div>
-  <textarea id="a_bulk_paste" class="bulkPasteBox" style="margin-top:10px" placeholder="CODICE: 202357&#10;BRAND:&#10;MODELLO:&#10;CATEGORIA:&#10;FORNITORE:&#10;MATERIALE:&#10;VARIANTE:&#10;TIPO COLORE:&#10;COLORE:&#10;DISPONIBILE IN COLORI:&#10;ABBINAMENTO NUMERO / COLORE:&#10;MISURE:&#10;ALTEZZA CINTURA:&#10;PREZZO FORNITORE USD:&#10;PREZZO FORNITORE PROMO USD:&#10;SCADENZA PROMO FORNITORE:&#10;LINK: https://...&#10;PREZZO UFFICIALE EUR:&#10;COSTO FORNITORE STIMATO USD:&#10;COSTO FORNITORE STIMATO EUR:&#10;STIMA MINIMA EUR:&#10;STIMA MASSIMA EUR:&#10;AFFIDABILITÀ STIMA:&#10;METODO STIMA:&#10;CAMPIONI STIMA:"></textarea>
+  <textarea id="a_bulk_paste" class="bulkPasteBox" style="margin-top:10px"></textarea>
   <div id="a_bulk_result" class="small" style="margin-top:8px"></div>
   <div class="actions compact" style="margin-top:12px">
     <button type="button" class="btn primary" data-action="readBulkPasteClipboard">Incolla dagli appunti</button>
@@ -11151,6 +11151,8 @@ function parseBulkArticleText(text){
   const lookup={};
   Object.entries(aliases).forEach(([key,vals])=>vals.forEach(v=>lookup[normalizeBulkArticleLabel(v)]=key));
   const lines=String(text||'').replace(/\r/g,'').split('\n');
+  const articleValue=value=>/^\[[^\[\]]+\]$/.test(value) ? '' : value;
+  let hasLabeledFields=false;
   let currentKey='';
   for(const rawLine of lines){
     const line=String(rawLine||'').trim();
@@ -11159,12 +11161,13 @@ function parseBulkArticleText(text){
     if(m){
       const key=lookup[normalizeBulkArticleLabel(m[1])];
       if(key){
+        hasLabeledFields=true;
         // Ogni campo del blocco articolo vale SOLO sulla propria riga.
         // In precedenza currentKey restava attivo e qualunque testo successivo
         // (istruzioni, commenti, prompt, ecc.) veniva appeso al valore precedente,
         // finendo poi nei post FB/TG e perfino nei campi numerici.
         currentKey='';
-        const value=String(m[2]||'').trim();
+        const value=articleValue(String(m[2]||'').trim());
         if(key==='descrizione'||key==='note'){ ignored.push(key); continue; }
         if(value) out[key]=value;
         // Eccezione controllata: gli abbinamenti colore possono occupare più righe
@@ -11182,8 +11185,8 @@ function parseBulkArticleText(text){
 
   }
   // Formato compatto senza etichette: codice, modello, descrizione, colore, materiale, misure, link.
-  if(!out.codice && !Object.keys(out).length){
-    const compact=lines.map(x=>x.trim()).filter(Boolean);
+  if(!hasLabeledFields){
+    const compact=lines.map(x=>x.trim()).filter(Boolean).map(articleValue);
     if(compact.length>=2){
       out.codice=compact[0]||'';
       out.modello=String(compact[1]||'').replace(/\s*[🥈🥇]\s*$/u,'').trim();
@@ -12071,7 +12074,7 @@ async function saveArt(){
     }
     if(isBeltCategoryValue && !altezzaCinturaValue){
       updateArticleMeasureState();
-      toast('Indica la larghezza della cintura in cm');
+      toast('Indica H (largh.) della cintura in cm');
       document.getElementById('a_belt_h')?.focus();
       return;
     }
@@ -12908,7 +12911,6 @@ function updateArticleMeasureState(){
   if(label) label.textContent=isBelt ? 'Lunghezza' : 'Mis.';
   mis.required=needed;
   mis.hidden=isBelt;
-  mis.placeholder=isShoe ? 'Es. 38' : 'Es. 25 x 18 x 8 cm';
   if(hint){
     if(isBelt) hint.textContent='Il cliente sceglie da 95 a 125 cm, a passi di 5 cm.';
     else if(isShoe) hint.textContent='Per le scarpe scegli una misura da 34 a 45.';
@@ -12923,7 +12925,7 @@ function updateArticleMeasureState(){
     }
     if(!isBelt) hInput.value='';
   }
-  if(hHint) hHint.textContent='Larghezza fissa dell’articolo. Esempio: 3,5 cm.';
+  if(hHint) hHint.textContent='Misura fissa della cintura.';
   return needed;
 }
 
