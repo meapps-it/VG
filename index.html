@@ -1305,7 +1305,7 @@ window.addEventListener('error',e=>{
 <div id="mArtBulkPaste" class="modalwrap" style="display:none"><div class="modal">
   <div class="h2">Incolla dati articolo</div>
   <div class="bulkPasteHint">Incolla il blocco preparato da ChatGPT. Descrizione e note vengono ignorate. Se il costo reale manca, puoi importare una stima: resterà sempre indicata come ipotetica.</div>
-  <textarea id="a_bulk_paste" class="bulkPasteBox" style="margin-top:10px"></textarea>
+  <textarea id="a_bulk_paste" class="bulkPasteBox" style="margin-top:10px" aria-label="Dati articolo da incollare" placeholder="CODICE: 202357&#10;BRAND:&#10;MODELLO:&#10;CATEGORIA:&#10;FORNITORE:&#10;MATERIALE:&#10;VARIANTE:&#10;TIPO COLORE:&#10;COLORE:&#10;DISPONIBILE IN COLORI:&#10;ABBINAMENTO NUMERO / COLORE:&#10;MISURE:&#10;ALTEZZA CINTURA:&#10;PREZZO FORNITORE USD:&#10;PREZZO FORNITORE PROMO USD:&#10;SCADENZA PROMO FORNITORE:&#10;LINK: https://...&#10;PREZZO UFFICIALE EUR:&#10;COSTO FORNITORE STIMATO USD:&#10;COSTO FORNITORE STIMATO EUR:&#10;STIMA MINIMA EUR:&#10;STIMA MASSIMA EUR:&#10;AFFIDABILITÀ STIMA:&#10;METODO STIMA:&#10;CAMPIONI STIMA:"></textarea>
   <div id="a_bulk_result" class="small" style="margin-top:8px"></div>
   <div class="actions compact" style="margin-top:12px">
     <button type="button" class="btn primary" data-action="readBulkPasteClipboard">Incolla dagli appunti</button>
@@ -11229,6 +11229,7 @@ async function readBulkPasteClipboard(){
   try{
     const text=await navigator.clipboard.readText();
     if(!text) throw new Error('Appunti vuoti');
+    if(!isModalVisible('mArtBulkPaste')) return;
     if(box) box.value=text;
     // Dopo l'incolla togli subito il focus, così la tastiera non compare.
     try{ box?.blur(); }catch(_e){}
@@ -11242,6 +11243,7 @@ async function readBulkPasteClipboard(){
   }
 }
 function vgReceiveArticleClipboard(text){
+  if(!isModalVisible('mArtBulkPaste')) return;
   const box=document.getElementById('a_bulk_paste');
   if(!text){toast('Appunti vuoti');return;}
   if(box){box.value=text;box.blur();}
@@ -11404,6 +11406,7 @@ async function openArtEdit(id){
     document.getElementById('a_shop_published').checked=false;
     updateArticleColorModeUI();
     syncBrandField('');
+    document.getElementById('a_cat').value='';
     refreshArticleCategorySelects('');
     document.getElementById('a_promo_on').checked=false; document.getElementById('a_supplier_promo_on').checked=false; document.getElementById('a_std_cost_unknown').checked=false; document.getElementById('a_supplier_date_unknown').checked=false;
     document.getElementById('a_photo').value='';
@@ -11412,7 +11415,6 @@ async function openArtEdit(id){
     renderCurrentArtPhotoPreview();
     const fbNewEl=document.getElementById('a_post_fb');
     if(fbNewEl) fbNewEl.dataset.fbCustom='0';
-    restoreArticleDraft('');
     updateArticleMeasureState();
     updateArticleCodeStatus();
     show('mArtEdit');
