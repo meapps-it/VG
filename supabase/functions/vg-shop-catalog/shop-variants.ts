@@ -15,8 +15,10 @@ export function articleOptions(p:any,category?:string){
  const beltWidth=()=>{
   const explicit=meta.altezzaCintura||meta.hCintura||meta.h||meta.altezza||
     (/larghezza|altezza/i.test(p.tipo_misura||'')?p.valore_misura:'');
+  const legacyMeasure=[meta.misura,p.valore_misura].map(value=>clean(value,80))
+    .map(value=>value.match(/^larghezza\s*[:=-]?\s*(\d+(?:[.,]\d+)?\s*cm)$/i)?.[1]).find(Boolean);
   const legacy=clean(meta.variante,80);
-  const width=clean(String(explicit||(/^\d+(?:[.,]\d+)?\s*cm$/i.test(legacy)?legacy:'')),80);
+  const width=clean(String(explicit||legacyMeasure||(/^\d+(?:[.,]\d+)?\s*cm$/i.test(legacy)?legacy:'')),80);
   return width.replace(/\s*cm$/i,' cm');
  };
  const raw=meta.taglie||meta.misure||p.valore_misura||meta.misura||p.taglia||p.dimensioni||'';

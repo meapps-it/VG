@@ -1220,7 +1220,7 @@ window.addEventListener('error',e=>{
     </div>
     <div class="grid2" style="margin-top:10px">
       <div><div class="k" id="a_mis_label">Mis.</div><input id="a_mis" autocomplete="off" autocapitalize="off" spellcheck="false"/><div id="a_mis_hint" class="helper"></div></div>
-      <div id="a_belt_h_wrap" style="display:none"><div class="k">H</div><input id="a_belt_h" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Es. 3,5 cm"/><div id="a_belt_h_hint" class="helper">Altezza cintura.</div></div>
+      <div id="a_belt_h_wrap" style="display:none"><label class="k" for="a_belt_h">Larghezza (cm)</label><input id="a_belt_h" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Es. 3,5 cm"/><div id="a_belt_h_hint" class="helper">Larghezza fissa della cintura.</div></div>
       <div id="a_color_count_wrap">
         <div class="k" id="a_color_count_label">Colori disponibili</div>
         <input id="a_color_count" inputmode="numeric" autocomplete="off" placeholder="Es. 5"/>
@@ -6072,7 +6072,7 @@ function postDimensionLabel(a){
 }
 function postSizeValue(a){
   const misura=compactPostValue(a?.misura||'');
-  return misura || '';
+  return isBeltArticle(a)?'da 95 a 125 cm, a passi di 5 cm':misura || '';
 }
 function postBeltHeightValue(a){
   if(!isBeltArticle(a)) return '';
@@ -6087,7 +6087,7 @@ function formatPostMeasureLine(a, value=postSizeValue(a)){
 }
 function formatPostBeltHeightLine(a, value=postBeltHeightValue(a)){
   const clean=stripMeasurePrefix(value);
-  return (isBeltArticle(a) && clean) ? `H ${clean}` : '';
+  return (isBeltArticle(a) && clean) ? `Larghezza ${clean}` : '';
 }
 
 function safePostDetailValue(value, a){
@@ -12060,18 +12060,18 @@ async function saveArt(){
     if(colorMode==='multiple' && colorCount<2){ toast('Se scegli Più colori devi indicare almeno 2 varianti'); return; }
 
     const categoriaValue=document.getElementById('a_cat').value.trim();
-    const misuraValue=document.getElementById('a_mis').value.trim();
+    const misuraValue=articleCategoryIsBelt(categoriaValue)?'da 95 a 125 cm, a passi di 5 cm':document.getElementById('a_mis').value.trim();
     const altezzaCinturaValue=document.getElementById('a_belt_h')?.value.trim()||'';
     const isBeltCategoryValue=articleCategoryIsBelt(categoriaValue);
     if(articleCategoryNeedsMeasure(categoriaValue) && !misuraValue){
       updateArticleMeasureState();
-      toast(isBeltCategoryValue ? 'Per le cinture la lunghezza è obbligatoria' : 'Per le scarpe la misura è obbligatoria');
+      toast('Per le scarpe la misura è obbligatoria');
       document.getElementById('a_mis')?.focus();
       return;
     }
     if(isBeltCategoryValue && !altezzaCinturaValue){
       updateArticleMeasureState();
-      toast('Per le cinture devi indicare anche H');
+      toast('Indica la larghezza della cintura in cm');
       document.getElementById('a_belt_h')?.focus();
       return;
     }
@@ -12890,7 +12890,7 @@ function articleCategoryIsBelt(rawCat=''){
   return ['cintura','cinture','belt','belts'].some(token=>cat===token || cat.includes(token));
 }
 function articleCategoryNeedsMeasure(rawCat=''){
-  return articleCategoryIsShoe(rawCat) || articleCategoryIsBelt(rawCat);
+  return articleCategoryIsShoe(rawCat);
 }
 function updateArticleMeasureState(){
   const catSel=document.getElementById('a_cat');
@@ -12904,21 +12904,26 @@ function updateArticleMeasureState(){
   const cat=catSel?.value||'';
   const isBelt=articleCategoryIsBelt(cat);
   const isShoe=articleCategoryIsShoe(cat);
-  const needed=isBelt || isShoe;
-  if(label) label.textContent=isBelt ? 'Lungh.' : 'Mis.';
+  const needed=isShoe;
+  if(label) label.textContent=isBelt ? 'Lunghezza' : 'Mis.';
   mis.required=needed;
-  mis.placeholder=isBelt ? 'Es. 110 cm' : (isShoe ? 'Es. 38' : 'Es. 25 x 18 x 8 cm');
+  mis.hidden=isBelt;
+  mis.placeholder=isShoe ? 'Es. 38' : 'Es. 25 x 18 x 8 cm';
   if(hint){
-    if(isBelt) hint.textContent='Lunghezza cintura. Valori consigliati: 70, 75, 80… fino a 130 cm.';
+    if(isBelt) hint.textContent='Il cliente sceglie da 95 a 125 cm, a passi di 5 cm.';
     else if(isShoe) hint.textContent='Per le scarpe scegli una misura da 34 a 45.';
     else hint.textContent='Per borse e portafogli indica le misure se disponibili.';
   }
   if(hWrap) hWrap.style.display=isBelt ? '' : 'none';
   if(hInput){
     hInput.required=isBelt;
+    if(isBelt&&!hInput.value.trim()){
+      const legacy=mis.value.trim().match(/^larghezza\s*[:=-]?\s*(\d+(?:[.,]\d+)?\s*cm)$/i);
+      if(legacy)hInput.value=legacy[1];
+    }
     if(!isBelt) hInput.value='';
   }
-  if(hHint) hHint.textContent='Altezza cintura. Esempio: 3,5 cm.';
+  if(hHint) hHint.textContent='Larghezza fissa dell’articolo. Esempio: 3,5 cm.';
   return needed;
 }
 
