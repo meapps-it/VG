@@ -342,3 +342,69 @@ body #accessGate .access-card #accessTabs button[aria-pressed=true] {
   #productView .product-request-title { color: var(--muted) !important; font-weight: 600; }
   #productView .action-row > label { font-size: 12px; max-width: none; }
 }
+
+/* Catalogue browsing */
+#catalogSection.catalog-introduction {
+  display: block;
+  padding: 0;
+  margin: 24px 0 12px;
+}
+#catalogSection h2, #shopPages h2 {
+  margin: 0;
+  color: #261e1b;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  line-height: 1.15;
+}
+#shopPages:not([hidden]) {
+  display: grid;
+  gap: 8px;
+  margin: 24px 0;
+}
+#shopPages h2 { margin-bottom: 4px; }
+#shopPages details {
+  border: 1px solid #ddcfc4;
+  border-radius: 12px;
+  background: #fffdf9;
+  color: #261e1b;
+}
+#shopPages summary {
+  min-height: 44px;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+#shopPages summary span {
+  color: #714b38;
+  font-size: .8rem;
+  margin-inline: 6px 10px;
+}
+#shopPages p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0;
+  padding: 0 16px 16px;
+  line-height: 1.55;
+}
+#catalog .item .name { overflow-wrap: anywhere; }
+#catalog .item .price { font-variant-numeric: tabular-nums; }
+#catalog .item:focus-within { outline: 2px solid #825640; outline-offset: 2px; }
+main.container > .discovery {
+  padding: clamp(12px, 2.5vw, 22px);
+  background: #fffdf9;
+  border-color: #ddcfc4;
+  border-radius: 16px;
+}
+main.container > .discovery :is(#toggleFilters, .quality-filter button, .group-tabs button) {
+  min-height: 44px;
+}
+main.container > .discovery .results-row {
+  border-top: 1px solid #e7dcd4;
+  padding-top: 10px;
+}
+#catalog .item {
+  border-radius: 16px;
+  background: #fffdf9;
+  box-shadow: 0 2px 8px #4224130c;
+}
+#catalog .item .details {
+  padding: clamp(10px, 1.8vw, 18px);
+}
