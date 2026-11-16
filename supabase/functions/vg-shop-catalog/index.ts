@@ -77,6 +77,16 @@ Deno.serve(async(req)=>{
   const handled=await accessAction(db,req,OWNER,action,out);if(handled)return handled;
   if(['customer-login','customer-register','customer-google','customer-facebook','customer-me','customer-logout','customer-authorize'].includes(action)){const result=await customerAction(db,req,OWNER,action,out);if(result)return result;}
   const viewer=await catalogSession(db,req,OWNER);if(!viewer)return fail("Accedi con un account autorizzato dal negozio",401);
+  if(action==='catalog-notifications-enabled'){
+    if(req.method!=='POST')return fail('Metodo non consentito',405);
+    const account=await customerSession(db,req,OWNER);
+    if(!account)return fail('Accedi con un account cliente',403);
+    const result=await db.from('vg_shop_customers')
+      .update({catalog_notifications_seen_at:new Date().toISOString()})
+      .eq('owner_id',OWNER).eq('id',account.customer_id).is('catalog_notifications_seen_at',null);
+    if(result.error)throw result.error;
+    return out({ok:true});
+  }
   if(action==='catalog-installation'){
     if(req.method!=='POST')return fail('Metodo non consentito',405);
     const account=await customerSession(db,req,OWNER);

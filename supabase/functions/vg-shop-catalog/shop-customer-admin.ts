@@ -28,7 +28,14 @@ export async function customerAdminAction(db:any,req:Request,owner:string,action
     .eq('owner_id',owner).not('catalog_installed_seen_at','is',null)
     .order('catalog_installed_seen_at',{ascending:false}).order('id').limit(30);
   if(installations.error)console.warn('Installazioni catalogo non disponibili',installations.error.code);
-  return out({installations:(installations.data||[]).map((c:any)=>({
+  const activations=await db.from('vg_shop_customers')
+    .select('id,phone,email,profile,catalog_notifications_seen_at')
+    .eq('owner_id',owner).not('catalog_notifications_seen_at','is',null)
+    .order('catalog_notifications_seen_at',{ascending:false}).order('id').limit(30);
+  if(activations.error)console.warn('Attivazioni notifiche non disponibili',activations.error.code);
+  return out({notificationActivations:(activations.data||[]).map((c:any)=>({
+    name:c.profile?.name||c.email||c.phone||'Cliente catalogo',at:c.catalog_notifications_seen_at
+  })),installations:(installations.data||[]).map((c:any)=>({
     name:c.profile?.name||c.email||c.phone||'Cliente catalogo',
     at:c.catalog_installed_seen_at,signal:c.catalog_install_signal
   })),latestAccess,total:results[0].count||0,pending:results[1].count||0,unread:results[2].count||0,customers:(results[3].data||[]).map((c:any)=>({id:c.id,name:typeof c.profile?.name==='string'?c.profile.name:'',phone:c.phone,email:c.email,status:c.access_status,registeredAt:c.created_at,lastLoginAt:c.last_login_at,lastAccessAt:c.last_access_at})),notifications:results[4].data||[],hasMore:results[3].data?.length===50,offset});

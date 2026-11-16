@@ -10,7 +10,13 @@
  const installationSummary=document.createElement('summary');
  const installationList=document.createElement('ul');
  installationAlerts.append(installationSummary,installationList);
- el('vgDashboardAlerts')?.append(tile,installationAlerts);tile.hidden=true;
+ const notificationAlerts=document.createElement('details');
+ notificationAlerts.className='vgOrderAlert';
+ notificationAlerts.hidden=true;
+ const notificationSummary=document.createElement('summary');
+ const notificationList=document.createElement('ul');
+ notificationAlerts.append(notificationSummary,notificationList);
+ el('vgDashboardAlerts')?.append(tile,installationAlerts,notificationAlerts);tile.hidden=true;
  const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='btn';dismiss.textContent='Cancella avvisi di registrazione';dismiss.hidden=true;tile.after(dismiss);dismiss.onclick=()=>el('vgCustomerRead').click();
  const opener=document.createElement('button');opener.type='button';opener.className='topMenuLink';opener.id='vgCustomerModuleOpen';opener.textContent='Clienti catalogo · registrazioni e accessi';el('vgCatalogStatsOpen')?.after(opener);
  const dialog=document.createElement('dialog');dialog.className='vgStatsDialog vgCustomersPanel';dialog.id='vgCustomersPanel';dialog.setAttribute('aria-labelledby','vgCustomersTitle');
@@ -63,6 +69,14 @@
  function line(root,text){const p=document.createElement('p');p.textContent=text;root.append(p);return p}
  function button(root,text,handler){const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=async()=>{b.disabled=true;try{await handler(b)}catch(e){el('vgCustomerPanelStatus').textContent=e.message}finally{b.disabled=false}};root.append(b);return b}
  function renderDashboard(data=current){
+  const activations=data?.notificationActivations||[];
+  notificationAlerts.hidden=!activations.length;
+  notificationSummary.textContent='Attivazioni notifiche · '+activations.length+(activations.length===30?' più recenti':'');
+  notificationList.replaceChildren(...activations.map(activation=>{
+   const item=document.createElement('li');
+   item.textContent=activation.name+' · '+date(activation.at);
+   return item;
+  }));
   const installations=data?.installations||[];
   installationAlerts.hidden=!installations.length;
   installationSummary.textContent='Installazioni catalogo · '+installations.length+(installations.length===30?' più recenti':'');
