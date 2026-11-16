@@ -172,7 +172,7 @@ Deno.serve(async(req)=>{
       const quality=supplier==="jayden"?"ORIGINALE":"STANDARD";
       const publicRaw=String(p.descrizione_app||((typeof meta.descrizione==='string'&&meta.descrizione)?meta.descrizione:rawDescription));
       const description=publicRaw.replace(/\[VGMETA\][\s\S]*?\[\/VGMETA\]/gi,' ').replace(/\[VGMETA\][\s\S]*$/gi,'').replace(/\\n/g,'\n').split(/\r?\n/).filter(line=>!/(?:costo|prezzo).*?(?:\busd\b|fornitor|jayden)/i.test(line)).join('\n').trim();
-      return {id:p.id,createdAt:p.created_at,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p),priceHidden:meta.nascondiPrezzo===true,price:meta.nascondiPrezzo===true?null:(promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita)),originalPrice:meta.nascondiPrezzo===true?null:Number(p.prezzo_vendita),promotion:meta.nascondiPrezzo===true?false:promo,promotionActive:promotionDetails.active,promotionEndsAt:promotionDetails.endsAt,image,images:coversOnly?images.slice(0,1):images,...(coversOnly?{photoCount:photoMap.get(p.id)?.length||0}:{}),availability:p.giacenza>0?"disponibile":"su richiesta",limitedAvailability:Number.isInteger(Number(p.giacenza))&&Number(p.giacenza)>=1&&Number(p.giacenza)<=3};
+      return {id:p.id,createdAt:p.created_at,sku:p.sku,name:p.nome,description,brand,quality,category:categoryMap.get(p.categoria_id)||valid(meta.categoria,100)||"",options:articleOptions(p,categoryMap.get(p.categoria_id)),priceHidden:meta.nascondiPrezzo===true,price:meta.nascondiPrezzo===true?null:(promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita)),originalPrice:meta.nascondiPrezzo===true?null:Number(p.prezzo_vendita),promotion:meta.nascondiPrezzo===true?false:promo,promotionActive:promotionDetails.active,promotionEndsAt:promotionDetails.endsAt,image,images:coversOnly?images.slice(0,1):images,...(coversOnly?{photoCount:photoMap.get(p.id)?.length||0}:{}),availability:p.giacenza>0?"disponibile":"su richiesta",limitedAvailability:Number.isInteger(Number(p.giacenza))&&Number(p.giacenza)>=1&&Number(p.giacenza)<=3};
     });
     const campaign=promo.data;
     const excluded=new Set(campaign?.excluded_product_ids||[]);
@@ -225,13 +225,17 @@ Deno.serve(async(req)=>{
   const {error:attemptError}=await db.from("vg_catalog_order_rate").insert({source_hash:hash});
   if(attemptError)throw attemptError;
   const ids=[...selected.keys()];
-  const {data:products,error:productError}=await published(db.from("prodotti").select("id,nome,sku,qualita,fornitore,descrizione,descrizione_app,colore,taglia,tipo_misura,valore_misura,dimensioni,prezzo_vendita,prezzo_promozionale,in_promozione,giacenza").in("id",ids));
+  const {data:products,error:productError}=await published(db.from("prodotti").select("id,nome,sku,categoria_id,qualita,fornitore,descrizione,descrizione_app,colore,taglia,tipo_misura,valore_misura,dimensioni,prezzo_vendita,prezzo_promozionale,in_promozione,giacenza").in("id",ids));
   if(productError)throw productError;
   if(!products||products.length!==ids.length)return fail("Uno o più articoli non sono disponibili");
   const byId=new Map(products.map((p:any)=>[p.id,p]));
+  const categoryIds=[...new Set(products.map(p=>p.categoria_id).filter(Boolean))];
+  const orderCategories=categoryIds.length?await db.from("categorie").select("id,nome").eq("user_id",OWNER).in("id",categoryIds):{data:[],error:null};
+  if(orderCategories.error)throw orderCategories.error;
+  const orderCategoryMap=new Map<string,string>((orderCategories.data||[]).map(c=>[c.id,c.nome]));
   let lines:any[];
   try{lines=raw.map((entry:any)=>{
-    const p:any=byId.get(entry.id);const variant=requestedVariant(p,entry);
+    const p:any=byId.get(entry.id);const variant=requestedVariant(p,entry,orderCategoryMap.get(p.categoria_id));
     const promo=p.in_promozione&&Number(p.prezzo_promozionale)>0&&Number(p.prezzo_promozionale)<Number(p.prezzo_vendita);
     const price=promo?Number(p.prezzo_promozionale):Number(p.prezzo_vendita);
     const meta=articleMetadata(p);
