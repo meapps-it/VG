@@ -808,6 +808,7 @@ window.addEventListener('error',e=>{
       <select id="vgArticleShareChannel">
         <option value="whatsapp">WhatsApp</option>
         <option value="chat">Telegram</option>
+        <option value="facebook">Facebook</option>
         <option value="instagram">Instagram</option>
       </select>
       <p id="vgArticleShareHelp"></p>
@@ -816,6 +817,7 @@ window.addEventListener('error',e=>{
       <p id="vgArticleShareStatus" role="status"></p>
       <div class="actions">
         <button id="vgArticleSharePhotos" type="button" class="btn primary">Condividi tutte le foto</button>
+        <button id="vgArticleShareFacebook" type="button" class="btn" style="background:#1877f2;border-color:#1877f2;color:#fff" disabled>📘 Facebook · foto + copia testo</button>
         <button id="vgArticleShareCopy" type="button" class="btn">Copia didascalia</button>
         <button id="vgArticleShareCopyLink" type="button" class="btn" hidden>Copia link</button>
         <button id="vgArticleShareDownload" type="button" class="btn" hidden>Scarica foto</button>
@@ -1286,7 +1288,7 @@ window.addEventListener('error',e=>{
 
   <div class="formBlock postblk inputSoft">
     <div class="blockTitle">Dati aggiuntivi</div>
-    <div hidden style="display:none!important"><textarea aria-hidden="true" tabindex="-1" id="a_post_fb"></textarea><div class="actions compact" style="margin-top:8px"></div></div>
+    <div style="margin-top:10px"><label class="k" for="a_post_fb">Descrizione FB · curiosità per Facebook</label><textarea id="a_post_fb" rows="5" maxlength="6000" placeholder="Scrivi una curiosità vera, una storia o un dettaglio interessante. Niente prezzi e link."></textarea><div class="helper">Testo separato da Telegram. Viene salvato con l'articolo e copiato automaticamente prima di condividere le foto su Facebook.</div></div>
     <div style="margin-top:10px"><div class="k">Link articolo / fornitore</div><input id="a_forn_link" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"/><div class="helper" style="margin-top:6px">I link web si aprono dal dettaglio articolo. Le note WhatsApp restano testo, senza collegamenti inventati.</div></div>
     <div style="margin-top:10px"><div class="k">Note</div><textarea id="a_note"></textarea></div>
     <div style="margin-top:10px"><div class="k">Foto articolo</div><input id="a_photo" type="file" accept="image/*" multiple style="display:none"/><div class="actions compact" style="margin-top:8px"><button class="btn smallish" type="button" data-action="pickMoreArtPhotos">Aggiungi foto</button><button class="btn smallish" type="button" data-action="clearPendingArtPhotos">Annulla nuove foto</button><button class="btn danger smallish" type="button" data-action="clearArtPhotos">Elimina foto attuali</button></div><div id="a_photo_status" class="small" style="margin-top:6px">Puoi aggiungere più foto senza perdere quelle già esistenti. Massimo 20 foto totali per articolo.</div></div>
@@ -9887,6 +9889,7 @@ async function openArticleShare(id){
   const url=published ? shortArticleShareUrl(id) : '';
   const captions=articleShareCaptions(article,url);
   captions.whatsapp=captions.chat;
+  captions.facebook=getArticleFacebookCustomPost(article);
   let whatsappUrl=url;
   const channel=get('vgArticleShareChannel');
   const caption=get('vgArticleShareCaption');
@@ -9894,6 +9897,7 @@ async function openArticleShare(id){
   const notice=get('vgArticleShareNotice');
   const status=get('vgArticleShareStatus');
   const share=get('vgArticleSharePhotos');
+  const facebookShare=get('vgArticleShareFacebook');
   const download=get('vgArticleShareDownload');
   const copyLink=get('vgArticleShareCopyLink');
   const androidShare=window.VgArticleShareBridge;
@@ -9903,20 +9907,26 @@ async function openArticleShare(id){
   channel.value='whatsapp';
   channel.onchange=()=>{
     const instagram=channel.value==='instagram';
-    caption.value=captions[channel.value];
-    help.textContent=instagram
-      ? 'Scegli Instagram nel menu del telefono. Se la didascalia non viene inserita, usa Copia didascalia e incollala nel post.'
-      : 'Scegli '+(channel.value==='whatsapp'?'WhatsApp':'Telegram')+' nel menu del telefono, poi seleziona il gruppo.';
+    caption.value=captions[channel.value]||'';
+    help.textContent=channel.value==='facebook'
+      ? 'Il pulsante blu copia la descrizione FB e apre la condivisione delle fotografie: scegli Facebook e il gruppo dalla schermata Android. Incolla poi il testo nel post.'
+      : instagram
+        ? 'Scegli Instagram nel menu del telefono. Se la didascalia non viene inserita, usa Copia didascalia e incollala nel post.'
+        : 'Scegli '+(channel.value==='whatsapp'?'WhatsApp':'Telegram')+' nel menu del telefono, poi seleziona il gruppo.';
     if(url){
-      notice.textContent=instagram
-        ? 'Per le Storie, usa Copia link e chiamalo Vanity Glamour nell’adesivo Link.'
-        : channel.value==='chat' ? 'Su Telegram puoi scrivere Vanity Glamour, selezionarlo e incollare il link con Crea link.' : '';
+      notice.textContent=channel.value==='facebook'
+        ? 'Facebook: niente link, prezzi o descrizioni commerciali nel testo preparato.'
+        : instagram
+          ? 'Per le Storie, usa Copia link e chiamalo Vanity Glamour nell’adesivo Link.'
+          : channel.value==='chat' ? 'Su Telegram puoi scrivere Vanity Glamour, selezionarlo e incollare il link con Crea link.' : '';
     }else notice.textContent=instagram ? '' : 'Il link al catalogo è disponibile per gli articoli pubblicati e sincronizzati.';
   };
   channel.onchange();
   const copyCaption=get('vgArticleShareCopy');
   copyCaption.onclick=()=>copyText(caption.value,'Didascalia copiata');
-  copyLink.disabled=copyCaption.disabled=published;
+  copyLink.disabled=published;
+  copyCaption.disabled=false;
+  facebookShare.disabled=true;
   share.disabled=true;
   share.hidden=false;
   share.textContent='Condividi tutte le foto';
@@ -9932,7 +9942,8 @@ async function openArticleShare(id){
     }catch(error){console.warn('Link WhatsApp non disponibile',error);}
     if(!isCurrent()) return;
     captions.whatsapp=articleShareCaptions(article,whatsappUrl).chat;
-    copyLink.disabled=copyCaption.disabled=false;
+    copyLink.disabled=false;
+    copyCaption.disabled=false;
     channel.onchange();
   }
   const shareSupported=typeof navigator.share==='function';
@@ -9972,7 +9983,44 @@ async function openArticleShare(id){
       return;
     }
     share.disabled=false;
+    facebookShare.disabled=false;
     status.textContent=files.length===1 ? '1 foto pronta.' : files.length+' foto pronte.';
+    // Copia prima di aprire la condivisione di sistema: Facebook può ignorare il testo,
+    // ma le fotografie vengono passate come file reali, mai come link al catalogo.
+    facebookShare.onclick=async()=>{
+      const fbText=String(getArticleFacebookCustomPost(article)||'').trim();
+      if(!fbText){
+        status.textContent='Prima compila «Descrizione FB» nella scheda dell’articolo e salva, poi riapri Condividi.';
+        return;
+      }
+      facebookShare.disabled=true;
+      const copied=copyShareTextSync(fbText);
+      if(!copied && navigator.clipboard?.writeText){
+        // Non attendere: navigator.share richiede un gesto utente attivo.
+        navigator.clipboard.writeText(fbText).catch(err=>console.warn('Copia Facebook non riuscita',err));
+      }
+      try{
+        if(nativeSupported){
+          await shareArticleOnAndroid(androidShare,files,'',isCurrent);
+        }else if(typeof navigator.share==='function'){
+          await navigator.share({files});
+        }else{
+          status.textContent='Condivisione foto non supportata su questo dispositivo.';
+          return;
+        }
+        noteArticleLastShare(id);
+        if(isCurrent()) status.textContent=copied
+          ? 'Foto inviate al menu Android, testo FB copiato. Scegli Facebook e incolla il testo nel gruppo.'
+          : 'Foto inviate al menu Android. Verifica gli appunti prima di incollare il testo su Facebook.';
+      }catch(error){
+        if(!isCurrent()) return;
+        status.textContent=isShareAbortError(error)
+          ? 'Condivisione annullata. Le foto non sono state pubblicate.'
+          : 'Facebook non ha ricevuto le foto: '+(error.message||'riprova.');
+      }finally{
+        if(isCurrent()) facebookShare.disabled=false;
+      }
+    };
     let photosOnly=false;
     share.onclick=async()=>{
       share.disabled=true;
