@@ -141,7 +141,7 @@ const offersUrl=new URL(location.href);
 offersUrl.searchParams.set('view','promozioni');
 offersUrl.hash='';
 if(offersPage){
- document.title='Promozioni | Vanity &amp; Glamour';
+ document.title='Promozioni | Vanity & Glamour';
  document.querySelector('.collection-heading')?.style.setProperty('display','none');
  const back=document.createElement('a');
  const catalogUrl=new URL(offersUrl);
@@ -154,8 +154,7 @@ if(offersPage){
  nav.append(back);
  el('catalogSection').before(nav);
  const hint=document.createElement('p');hint.textContent='Stai visualizzando soltanto gli articoli in promozione. Per vedere tutti gli articoli, torna al catalogo completo.';hint.style.cssText='margin:12px 16px;padding:12px 14px;background:#fff1f7;border:1px solid #efbfd3;border-radius:14px;font-weight:600;color:#782447';nav.append(hint);
- el('catalogSection').querySelector('.section-kicker').textContent='PROMOZIONI';
- el('catalogSection').querySelector('p').textContent='Al momento non ci sono promozioni attive.';
+ el('catalogSection').querySelector('h2').textContent='Promozioni';
 }
 const normalizeSearch=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('it').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 const productSearchCache=new WeakMap();
