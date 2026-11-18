@@ -11481,7 +11481,10 @@ function applyBulkPasteArticle(){
   toast(`Compilati ${applied.length} campi`);
 }
 
-async function openArtEdit(id){
+let currentArtEditPhotosPromise=Promise.resolve();
+let currentArtEditOpenToken=0;
+async function openArtEdit(id, opts={}){
+  const openToken=++currentArtEditOpenToken;
   document.getElementById('a_price_visibility').value='show';
   const db=loadDB();
   const a=id?db.articoli.find(x=>x.id===id):null;
@@ -11519,7 +11522,7 @@ async function openArtEdit(id){
     if(fbNewEl) fbNewEl.dataset.fbCustom='0';
     updateArticleMeasureState();
     updateArticleCodeStatus();
-    show('mArtEdit');
+    show('mArtEdit',opts.pushHistory!==false);
     scheduleModalTextareaFit('mArtEdit');
     return;
   }
@@ -11558,14 +11561,28 @@ async function openArtEdit(id){
   fitTextarea(document.getElementById('a_post_ig'));
   document.getElementById('a_photo').value='';
   renderArtAutoFields();
-  currentArtExistingPics=await getArticlePics(a);
+  // Apri subito l'editor: il recupero foto può impiegare tempo o fallire
+  // e non deve lasciare l'utente sulla lista articoli.
+  currentArtExistingPics=[];
   renderCurrentArtPhotoPreview();
-  // Per articoli già salvati mostriamo sempre i dati reali salvati,
-  // senza farli sovrascrivere da una bozza locale vecchia.
   updateArticleMeasureState();
   updateArticleCodeStatus();
-  show('mArtEdit');
+  show('mArtEdit',opts.pushHistory!==false);
   scheduleModalTextareaFit('mArtEdit');
+  const openArticleId=String(a.id);
+  currentArtEditPhotosPromise=getArticlePics(a).then(pics=>{
+    if(openToken!==currentArtEditOpenToken || String(currentArtId)!==openArticleId) return;
+    if(document.getElementById('mArtEdit')?.style.display==='none') return;
+    if(currentArtPhotosCleared) return;
+    currentArtExistingPics=pics;
+    renderCurrentArtPhotoPreview();
+  }).catch(error=>{
+    console.warn('Anteprima foto articolo non disponibile',error);
+    if(openToken===currentArtEditOpenToken && String(currentArtId)===openArticleId){
+      toast('Foto in caricamento non disponibili: verifica prima di salvare');
+    }
+  });
+  await currentArtEditPhotosPromise;
 }
 function renderArtPhotoPrev(pics){
   const box=document.getElementById('a_photo_prev');
@@ -12156,6 +12173,8 @@ async function duplicateCurrentArticle(sourceId=null){
 
 async function saveArt(){
   try{
+    // Non salvare mentre le foto esistenti sono ancora in lettura.
+    await currentArtEditPhotosPromise;
     await currentArtPhotoImportPromise;
     updateSupplierPromoExpiryWarning(true);
     const db=loadDB();
@@ -14466,7 +14485,19 @@ document.addEventListener('click',(ev)=>{
   if(a==='addArtToOrder'){ const id=el.dataset.id; if(id){ const db=loadDB(); const art=(db.articoli||[]).find(x=>String(x.id)===String(id)); if(art && isArticleUnavailable(art)){ toast('Articolo non disponibile'); return; } return openOrdEdit(currentOrdId||null, id); } return; }
   // Azioni della scheda articolo: handler nel file realmente eseguito dalla PWA.
   if(a==='duplicateArt'){ ev.preventDefault(); return duplicateCurrentArticle(el.dataset.id || currentArtId || null); }
-  if(a==='editFromView'){ ev.preventDefault(); if(!currentArtId){toast('Articolo non selezionato');return;} hide('mArtView', true); return openArtEdit(currentArtId); }
+  if(a==='editFromView'){
+    ev.preventDefault();
+    const articleId=currentArtId;
+    if(!articleId){toast('Articolo non selezionato');return;}
+    hide('mArtView',true);
+    // Sostituisce la stessa voce di cronologia: il tasto Indietro non deve
+    // rientrare nella scheda precedente e chiudere improvvisamente l'editor.
+    if(history.state?.modal==='mArtView'){
+      history.replaceState({...history.state,modal:'mArtEdit'},'',location.href);
+      return openArtEdit(articleId,{pushHistory:false});
+    }
+    return openArtEdit(articleId);
+  }
   if(a==='closeView'){ ev.preventDefault(); return hide('mArtView'); }
   if(a==='addArtToOrderFromView'){
     const targetId=currentArtId || String(document.getElementById('vCod')?.textContent||'').trim();
@@ -14739,7 +14770,7 @@ let cloudBusy=false;
 let catalogPublicationWrites=0;
 let catalogPublicationRevision=0;
 
-const VG_BUILD='1.0.163-2026-11-18-fb-one-button';
+const VG_BUILD='1.0.164-2026-11-18-edit-transition';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -15692,7 +15723,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.163', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.164', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
