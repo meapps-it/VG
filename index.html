@@ -813,6 +813,12 @@ window.addEventListener('error',e=>{
       </select>
       <p id="vgArticleShareHelp"></p>
       <textarea id="vgArticleShareCaption" aria-label="Didascalia" rows="4" readonly></textarea>
+      <div id="vgFbCaptionPanel" style="margin-top:12px;padding:12px;border:1px solid #c8d9f6;border-radius:12px;background:#f2f7ff">
+        <label for="vgArticleShareFbCaption" style="display:block;font-weight:700;margin-bottom:6px;color:#164b96">📘 Descrizione Facebook</label>
+        <textarea id="vgArticleShareFbCaption" aria-label="Descrizione Facebook da copiare" rows="7" readonly style="width:100%;max-width:100%;box-sizing:border-box;background:#fff;color:#172b4d;white-space:pre-wrap"></textarea>
+        <button id="vgArticleShareFbCopy" type="button" class="btn" style="margin-top:8px;background:#1877f2;border-color:#1877f2;color:#fff">📋 Copia testo FB</button>
+        <p id="vgArticleShareFbCopyStatus" aria-live="polite" style="font-size:13px;margin:7px 0 0"></p>
+      </div>
       <p id="vgArticleShareNotice"></p>
       <p id="vgArticleShareStatus" role="status"></p>
       <div class="actions">
@@ -9898,6 +9904,9 @@ async function openArticleShare(id){
   const status=get('vgArticleShareStatus');
   const share=get('vgArticleSharePhotos');
   const facebookShare=get('vgArticleShareFacebook');
+  const fbCaption=get('vgArticleShareFbCaption');
+  const fbCopy=get('vgArticleShareFbCopy');
+  const fbCopyStatus=get('vgArticleShareFbCopyStatus');
   const download=get('vgArticleShareDownload');
   const copyLink=get('vgArticleShareCopyLink');
   const androidShare=window.VgArticleShareBridge;
@@ -9905,6 +9914,8 @@ async function openArticleShare(id){
   copyLink.hidden=!url;
   copyLink.onclick=()=>copyText(channel.value==='whatsapp'?whatsappUrl:url,'Link copiato');
   channel.value='whatsapp';
+  fbCaption.value=captions.facebook||'';
+  fbCopyStatus.textContent='Caricamento della descrizione FB…';
   channel.onchange=()=>{
     const instagram=channel.value==='instagram';
     caption.value=captions[channel.value]||'';
@@ -9924,6 +9935,19 @@ async function openArticleShare(id){
   channel.onchange();
   const copyCaption=get('vgArticleShareCopy');
   copyCaption.onclick=()=>copyText(caption.value,'Didascalia copiata');
+  // Copia esplicita, indipendente dalla condivisione delle fotografie.
+  fbCopy.onclick=async()=>{
+    const text=fbCaption.value.trim();
+    if(!text){ fbCopyStatus.textContent='Nessuna descrizione FB presente.';return; }
+    try{
+      await navigator.clipboard.writeText(text);
+      fbCopyStatus.textContent='✅ Testo Facebook copiato. Incollalo nel post.';
+    }catch(_e){
+      const ok=copyShareTextSync(text);
+      fbCopyStatus.textContent=ok?'✅ Testo Facebook copiato. Incollalo nel post.':'Copia automatica non disponibile: tieni premuto sul testo qui sopra, seleziona tutto e copia.';
+      if(!ok){ fbCaption.removeAttribute('readonly');fbCaption.focus();fbCaption.select(); }
+    }
+  };
   copyLink.disabled=published;
   copyCaption.disabled=false;
   facebookShare.disabled=true;
@@ -9936,6 +9960,30 @@ async function openArticleShare(id){
   dialog.shareRequest=request;
   const isCurrent=()=>dialog.shareRequest===request&&dialog.open;
   dialog.showModal();
+  // Il testo salvato sul cloud può essere più recente della copia locale della PWA.
+  // Recupera solo il campo descrizione, senza alterare foto, prezzi o record articolo.
+  if(isUuid(id)){
+    try{
+      const sb=await ensureCloud();
+      if(sb && cloudSession?.user?.id){
+        const {data,error}=await sb.from('prodotti').select('descrizione').eq('id',id)
+          .eq('user_id',cloudSession.user.id).single();
+        if(error) throw error;
+        if(!isCurrent()) return;
+        const cloudFb=String(unpackCloudArticleDescription(data?.descrizione).meta?.postFb||'').trim();
+        if(cloudFb) captions.facebook=cloudFb;
+      }
+    }catch(error){
+      console.warn('Descrizione FB cloud non disponibile',error);
+      if(isCurrent()) fbCopyStatus.textContent='Cloud non raggiungibile. Mostro la copia locale; verifica che sia aggiornata.';
+    }
+  }
+  if(!isCurrent()) return;
+  fbCaption.value=captions.facebook||'';
+  if(!fbCopyStatus.textContent.includes('Cloud non raggiungibile')){
+    fbCopyStatus.textContent=fbCaption.value?'Testo pronto da copiare o condividere.':'Descrizione FB vuota: compilala nella scheda articolo e salva.';
+  }
+  channel.onchange();
   if(published){
     try{
       whatsappUrl=await namedArticleShareUrl(article)||url;
@@ -9988,30 +10036,41 @@ async function openArticleShare(id){
     // Copia prima di aprire la condivisione di sistema: Facebook può ignorare il testo,
     // ma le fotografie vengono passate come file reali, mai come link al catalogo.
     facebookShare.onclick=async()=>{
-      const fbText=String(getArticleFacebookCustomPost(article)||'').trim();
+      const fbText=fbCaption.value.trim();
       if(!fbText){
-        status.textContent='Prima compila «Descrizione FB» nella scheda dell’articolo e salva, poi riapri Condividi.';
+        status.textContent='Descrizione FB vuota. Compilala nella scheda articolo e salva.';
         return;
       }
       facebookShare.disabled=true;
-      const copied=copyShareTextSync(fbText);
-      if(!copied && navigator.clipboard?.writeText){
-        // Non attendere: navigator.share richiede un gesto utente attivo.
-        navigator.clipboard.writeText(fbText).catch(err=>console.warn('Copia Facebook non riuscita',err));
-      }
+      // Avvia la copia durante il tocco. Sulla PWA web non attendere il risultato:
+      // navigator.share richiede che il gesto dell'utente sia ancora attivo.
+      let copied=copyShareTextSync(fbText);
+      const clipboardPromise=!copied && navigator.clipboard?.writeText
+        ? navigator.clipboard.writeText(fbText).then(()=>true).catch(()=>false)
+        : Promise.resolve(copied);
+      if(copied) fbCopyStatus.textContent='✅ Testo FB copiato negli appunti.';
       try{
         if(nativeSupported){
-          await shareArticleOnAndroid(androidShare,files,'',isCurrent);
+          // La condivisione via bridge nativo non perde l'attivazione del gesto.
+          copied=await clipboardPromise;
+          if(isCurrent()) fbCopyStatus.textContent=copied
+            ? '✅ Testo FB copiato negli appunti.'
+            : 'La copia automatica non è riuscita. Usa «Copia testo FB» prima di incollare.';
+          await shareArticleOnAndroid(androidShare,files,fbText,isCurrent);
         }else if(typeof navigator.share==='function'){
           await navigator.share({files});
+          copied=await clipboardPromise;
         }else{
           status.textContent='Condivisione foto non supportata su questo dispositivo.';
           return;
         }
         noteArticleLastShare(id);
-        if(isCurrent()) status.textContent=copied
-          ? 'Foto inviate al menu Android, testo FB copiato. Scegli Facebook e incolla il testo nel gruppo.'
-          : 'Foto inviate al menu Android. Verifica gli appunti prima di incollare il testo su Facebook.';
+        if(isCurrent()){
+          status.textContent=copied
+            ? 'Foto inviate al menu Android e testo FB copiato. Scegli Facebook e incolla il testo nel gruppo.'
+            : 'Foto inviate al menu Android. Usa «Copia testo FB» se non trovi il testo negli appunti.';
+          fbCopyStatus.textContent=copied?'✅ Testo FB copiato.':'Copia automatica non riuscita: premi «Copia testo FB».';
+        }
       }catch(error){
         if(!isCurrent()) return;
         status.textContent=isShareAbortError(error)
