@@ -803,7 +803,7 @@ window.addEventListener('error',e=>{
     <div style="height:10px"></div>
     <div id="listArt" class="artGrid"></div>
     <dialog id="vgArticleShare" data-vg-dialog-history aria-labelledby="vgArticleShareTitle">
-      <h2 id="vgArticleShareTitle">Condividi articolo</h2>
+      <h2 id="vgArticleShareTitle">Condividi articolo</h2><p style="font-size:11px;color:#64748b;margin:0 0 8px">Versione condivisione FB 18/11/2026 · 1.0.161</p>
       <label for="vgArticleShareChannel">Didascalia per</label>
       <select id="vgArticleShareChannel">
         <option value="whatsapp">WhatsApp</option>
@@ -14744,7 +14744,7 @@ let cloudBusy=false;
 let catalogPublicationWrites=0;
 let catalogPublicationRevision=0;
 
-const VG_BUILD='1.0.160-2026-10-26';
+const VG_BUILD='1.0.161-2026-11-18-fb-share';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
@@ -15697,7 +15697,7 @@ if('serviceWorker' in navigator){
     window.location.reload();
   });
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./service-worker.js?v=1.0.137', { updateViaCache:'none' }).then(async reg=>{
+    navigator.serviceWorker.register('./service-worker.js?v=1.0.161', { updateViaCache:'none' }).then(async reg=>{
       try{ await reg.update(); }catch(_e){}
     }).catch(err=>console.warn('Registrazione service worker fallita', err));
   }, {once:true});
