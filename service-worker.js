@@ -1,4 +1,4 @@
-const VERSION = 'gestionale-vg-clean-new-article-20261116';
+const VERSION = 'gestionale-vg-fb-share-20261118-v161';
 const CACHE = `gestionale-runtime-${VERSION}`;
 const REQUIRED_ASSETS = [
   './', './index.html', './manifest.json', './vg-quality-pricing.js', './vg-bold-theme.css?v=1.0.156', './vg-startup.js?v=1.0.156',
