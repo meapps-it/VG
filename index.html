@@ -7528,19 +7528,20 @@ function getArticleFacebookCustomPost(a){
 }
 function getArticleFacebookPost(a){
   const custom=getArticleFacebookCustomPost(a);
-  if(custom) return normalizeFacebookPostForArticle(custom, a);
-  return normalizeFacebookPostForArticle(buildPostFacebookBase(a, {includePrice:false}), a);
+  if(custom) return custom;
+  // Facebook editoriale: niente marche, codici, prezzi o link. Non toccare Telegram.
+  const model=stripFacebookBrandName(String(a?.modello||a?.categoria||'Articolo'),a);
+  const material=String(a?.materiale||'').trim();
+  const isShoes=/scarpe|sandali|stivali/i.test(String(a?.categoria||''));
+  const measure=isShoes?'':String(a?.misura||a?.dimensioni||'').trim();
+  return [model,material?'Materiale: '+material:'',measure?'Misure: '+measure:''].filter(Boolean).join('\n');
 }
 function buildPostFacebook(a){
   return getArticleFacebookPost(a);
 }
 function buildPostFacebookWithPrice(a){
-  const base=getArticleFacebookPost(a);
-  const prezzo=formatPostPrezzoVendita(currentPrice(a), '💶');
-  if(!prezzo) return base;
-  const rx=new RegExp('(^|\\n)\\s*(?:💶|€)\\s*'+escapeRegExp(String(currentPrice(a))).replace('\\.','[,.]')+'\\s*(?=\\n|$)', 'i');
-  if(rx.test(base)) return base;
-  return formatGeneratedPostLines([base, prezzo]);
+  // La condivisione Facebook non deve mai aggiungere prezzi.
+  return getArticleFacebookPost(a);
 }
 function setArticleFacebookPostAuto(text){
   // Descriptions are entered manually; never regenerate deleted article text.
