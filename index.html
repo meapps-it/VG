@@ -11482,9 +11482,12 @@ function applyBulkPasteArticle(){
 }
 
 let currentArtEditPhotosPromise=Promise.resolve();
+let currentArtEditPhotosFailed=false;
 let currentArtEditOpenToken=0;
 async function openArtEdit(id, opts={}){
   const openToken=++currentArtEditOpenToken;
+  currentArtEditPhotosPromise=Promise.resolve();
+  currentArtEditPhotosFailed=false;
   document.getElementById('a_price_visibility').value='show';
   const db=loadDB();
   const a=id?db.articoli.find(x=>x.id===id):null;
@@ -11579,6 +11582,7 @@ async function openArtEdit(id, opts={}){
   }).catch(error=>{
     console.warn('Anteprima foto articolo non disponibile',error);
     if(openToken===currentArtEditOpenToken && String(currentArtId)===openArticleId){
+      currentArtEditPhotosFailed=true;
       toast('Foto in caricamento non disponibili: verifica prima di salvare');
     }
   });
@@ -12175,6 +12179,10 @@ async function saveArt(){
   try{
     // Non salvare mentre le foto esistenti sono ancora in lettura.
     await currentArtEditPhotosPromise;
+    if(currentArtEditPhotosFailed && currentArtId && !currentArtPhotosCleared){
+      toast('Foto non caricate: riprova ad aprire Modifica prima di salvare');
+      return;
+    }
     await currentArtPhotoImportPromise;
     updateSupplierPromoExpiryWarning(true);
     const db=loadDB();
