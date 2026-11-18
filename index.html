@@ -803,7 +803,7 @@ window.addEventListener('error',e=>{
     <div style="height:10px"></div>
     <div id="listArt" class="artGrid"></div>
     <dialog id="vgArticleShare" data-vg-dialog-history aria-labelledby="vgArticleShareTitle">
-      <h2 id="vgArticleShareTitle">Condividi articolo</h2><p style="font-size:11px;color:#64748b;margin:0 0 8px">Versione condivisione FB 18/11/2026 · 1.0.161</p>
+      <h2 id="vgArticleShareTitle">Condividi articolo</h2><p style="font-size:11px;color:#64748b;margin:0 0 8px">Versione condivisione FB 18/11/2026 · 1.0.162</p>
       <label for="vgArticleShareChannel">Didascalia per</label>
       <select id="vgArticleShareChannel">
         <option value="whatsapp">WhatsApp</option>
@@ -9915,7 +9915,7 @@ async function openArticleShare(id){
   copyLink.onclick=()=>copyText(channel.value==='whatsapp'?whatsappUrl:url,'Link copiato');
   channel.value='whatsapp';
   fbCaption.value=captions.facebook||'';
-  fbCopyStatus.textContent='Caricamento della descrizione FB…';
+  fbCopyStatus.textContent='Prima premi «Copia testo FB», poi condividi le foto. Se Facebook non inserisce il testo, incollalo nel post.';
   channel.onchange=()=>{
     const instagram=channel.value==='instagram';
     caption.value=captions[channel.value]||'';
@@ -9981,7 +9981,7 @@ async function openArticleShare(id){
   if(!isCurrent()) return;
   fbCaption.value=captions.facebook||'';
   if(!fbCopyStatus.textContent.includes('Cloud non raggiungibile')){
-    fbCopyStatus.textContent=fbCaption.value?'Testo pronto da copiare o condividere.':'Descrizione FB vuota: compilala nella scheda articolo e salva.';
+    fbCopyStatus.textContent=fbCaption.value?'Premi «Copia testo FB» prima di aprire Facebook. Poi incolla il testo nel post.':'Descrizione FB vuota: compilala nella scheda articolo e salva.';
   }
   channel.onchange();
   if(published){
@@ -10058,7 +10058,7 @@ async function openArticleShare(id){
             : 'La copia automatica non è riuscita. Usa «Copia testo FB» prima di incollare.';
           await shareArticleOnAndroid(androidShare,files,fbText,isCurrent);
         }else if(typeof navigator.share==='function'){
-          await navigator.share({files});
+          await navigator.share({title:captions.model,text:fbText,files});
           copied=await clipboardPromise;
         }else{
           status.textContent='Condivisione foto non supportata su questo dispositivo.';
@@ -14744,7 +14744,7 @@ let cloudBusy=false;
 let catalogPublicationWrites=0;
 let catalogPublicationRevision=0;
 
-const VG_BUILD='1.0.161-2026-11-18-fb-share';
+const VG_BUILD='1.0.162-2026-11-18-fb-caption';
 const AUTO_CLOUD_PULL_MS=180000;
 let autoCloudPullTimer=null;
 let autoCloudPullRunning=false;
