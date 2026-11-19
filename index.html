@@ -9893,6 +9893,19 @@ async function shareArticleOnAndroid(bridge, files, caption, isCurrent){
   }finally{nativeArticleShareBusy=false}
 }
 
+async function withArticleShareTimeout(operation, milliseconds){
+  let timer;
+  try{
+    return await Promise.race([
+      operation,
+      new Promise((_,reject)=>{
+        timer=setTimeout(()=>reject(new Error('Operazione di condivisione scaduta.')),milliseconds);
+      })
+    ]);
+  }finally{
+    clearTimeout(timer);
+  }
+}
 async function openArticleShare(id){
   const article=loadDB().articoli.find(item=>String(item.id)===id);
   if(!article) return toast('Articolo non trovato');
@@ -9958,10 +9971,10 @@ async function openArticleShare(id){
   // Recupera solo il campo descrizione, senza alterare foto, prezzi o record articolo.
   if(isUuid(id)){
     try{
-      const sb=await ensureCloud();
+      const sb=await withArticleShareTimeout(ensureCloud(),4000);
       if(sb && cloudSession?.user?.id){
-        const {data,error}=await sb.from('prodotti').select('descrizione').eq('id',id)
-          .eq('user_id',cloudSession.user.id).single();
+        const {data,error}=await withArticleShareTimeout(sb.from('prodotti').select('descrizione').eq('id',id)
+          .eq('user_id',cloudSession.user.id).single(),4000);
         if(error) throw error;
         if(!isCurrent()) return;
         const cloudFb=String(unpackCloudArticleDescription(data?.descrizione).meta?.postFb||'').trim();
@@ -9980,7 +9993,7 @@ async function openArticleShare(id){
   channel.onchange();
   if(published){
     try{
-      whatsappUrl=await namedArticleShareUrl(article)||url;
+      whatsappUrl=await withArticleShareTimeout(namedArticleShareUrl(article),4000)||url;
     }catch(error){console.warn('Link WhatsApp non disponibile',error);}
     if(!isCurrent()) return;
     captions.whatsapp=articleShareCaptions(article,whatsappUrl).chat;
@@ -9997,9 +10010,9 @@ async function openArticleShare(id){
   }
   try{
     const baseName=getArticlePhotoShareBaseName(article);
-    const pics=await getArticleCloudSyncSources(article);
+    const pics=await withArticleShareTimeout(getArticleCloudSyncSources(article),8000);
     if(!isCurrent()) return;
-    const files=await buildArticlePhotoFiles(article,pics,baseName);
+    const files=await withArticleShareTimeout(buildArticlePhotoFiles(article,pics,baseName),20000);
     if(!isCurrent()) return;
     if(!files.length||files.length!==pics.length){
       status.textContent=files.length
@@ -10104,7 +10117,7 @@ async function openArticleShare(id){
       }finally{if(isCurrent()) share.disabled=false}
     };
   }catch(error){
-    if(isCurrent()) status.textContent='Preparazione delle foto non riuscita. Puoi ancora copiare la didascalia.';
+    if(isCurrent()) status.textContent='Foto non pronte. Chiudi e riapri Condividi per riprovare. Puoi ancora copiare la didascalia.';
   }
 }
 
