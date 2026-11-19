@@ -4502,29 +4502,24 @@ window.artHeroVideo=function(url){
 
 
 
-function copyShareTextSync(text){
+function copyShareTextSync(text, container=document.body){
   const t=String(text||'').trim();
   if(!t) return false;
+  const ta=document.createElement('textarea');
+  ta.value=t;
+  ta.readOnly=true;
+  ta.style.cssText='position:fixed;top:0;left:-9999px;opacity:0;pointer-events:none';
   try{
-    const ta=document.createElement('textarea');
-    ta.value=t;
-    ta.setAttribute('readonly','readonly');
-    ta.setAttribute('aria-hidden','true');
-    ta.style.position='fixed';
-    ta.style.top='0';
-    ta.style.left='-9999px';
-    ta.style.opacity='0';
-    ta.style.pointerEvents='none';
-    document.body.appendChild(ta);
+    container.appendChild(ta);
     ta.focus({preventScroll:true});
     ta.select();
     ta.setSelectionRange(0,ta.value.length);
-    const ok=!!document.execCommand('copy');
-    document.body.removeChild(ta);
-    return ok;
+    return !!document.execCommand('copy');
   }catch(err){
     console.warn('Copia sincrona testo condivisione fallita',err);
     return false;
+  }finally{
+    ta.remove();
   }
 }
 
@@ -9850,7 +9845,7 @@ function articleShareCaptions(article, url, facebookNote=getArticleFacebookCusto
   return {
     model,
     chat:[chatDetails.join('\n'),url?'👇 Ordina qui 👇\n'+url:''].filter(Boolean).join('\n\n'),
-    facebook:[facebookFields.join('\n'),curiosity].filter(Boolean).join('\n\n')
+    facebook:[[promotion?'🔥 IN PROMOZIONE 🔥':'',...facebookFields].filter(Boolean).join('\n'),curiosity].filter(Boolean).join('\n\n')
   };
 }
 
@@ -9991,27 +9986,29 @@ async function openArticleShare(id){
       const text=facebook?fbCaption.value:caption.value;
       try{
         if(facebook&&copiedFacebookText!==text){
-          let copied=copyShareTextSync(text);
-          if(!copied&&navigator.clipboard?.writeText){
+          let copied=false;
+          if(navigator.clipboard?.writeText){
             try{await navigator.clipboard.writeText(text);copied=true;}
             catch(error){console.warn('Copia Facebook non riuscita',error);}
           }
           if(!isCurrent()) return;
+          if(!copied) copied=copyShareTextSync(text,dialog);
           if(!copied){
             fbCaption.closest('details').open=true;
             fbCaption.focus();
             fbCaption.select();
-            status.textContent='Copia manualmente il testo selezionato. Le foto si apriranno nel menu di condivisione.';
-          }else{
-            copiedFacebookText=text;
+            status.textContent='Copia automatica non riuscita. Il testo è selezionato. Puoi riprovare dal pulsante Facebook.';
+            return;
           }
+          copiedFacebookText=text;
         }
         if(nativeSupported) await shareArticleOnAndroid(androidShare,files,text,isCurrent);
         else await navigator.share({title:captions.model,text,files});
         if(!isCurrent()) return;
         noteArticleLastShare(id);
+        if(facebook) copiedFacebookText='';
         status.textContent=facebook
-          ? (copiedFacebookText===text ? 'Scegli Facebook e il gruppo, poi incolla il testo nel post.' : 'Copia il testo dall’anteprima Facebook e incollalo nel post.')
+          ? 'Testo copiato. Scegli Facebook e il gruppo, poi incollalo nel post.'
           : 'Scegli WhatsApp o Telegram dal menu del telefono.';
       }catch(error){
         if(!isCurrent()) return;
