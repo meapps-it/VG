@@ -50,7 +50,7 @@ export function requestedVariant(p:any,entry:any,category?:string){
 }
 
 // Same active-promotion rules as the administration's Promo badge.
-export function articlePromotionDetails(p:any,today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),allowLegacySupplier=true){
+function articlePromotion(p:any,today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),allowLegacySupplier=true){
  const m=articleMetadata(p),live=(end:any)=>!/^\d{4}-\d{2}-\d{2}$/.test(String(end||''))||String(end)>=today;
  const personalEnd=String(m.scadenzaPromoPersonale||m.scadenzaPromo||'');
  const personal=!!m.promoAttiva&&Number(m.prezzoPromo)>0&&live(personalEnd);
@@ -60,6 +60,28 @@ export function articlePromotionDetails(p:any,today=new Intl.DateTimeFormat('en-
  const supplier=Number(supplierCost)>0&&(m.promoFornitoreAttiva===true||(allowLegacySupplier&&m.promoFornitoreAttiva!==false))&&live(supplierEnd);
  const end=personal?personalEnd:supplier?supplierEnd:'';
  const valid=/^\d{4}-\d{2}-\d{2}$/.test(end)&&!Number.isNaN(Date.parse(end+'T12:00:00Z'))&&new Date(end+'T12:00:00Z').toISOString().slice(0,10)===end;
- return {active:personal||supplier,endsAt:valid?end:''};
+ return {active:personal||supplier,endsAt:valid?end:'',personal,supplier,supplierCost,meta:m};
+}
+export function articlePromotionDetails(p:any,today?:string,allowLegacySupplier=true){
+ const {active,endsAt}=articlePromotion(p,today,allowLegacySupplier);
+ return {active,endsAt};
+}
+export function articleCatalogPricing(p:any,today?:string){
+ const {active,endsAt,personal,supplier,supplierCost,meta}=articlePromotion(p,today);
+ const originalPrice=Number(p.prezzo_vendita);
+ let price=originalPrice;
+ if(personal){
+  price=Number(meta.prezzoPromo);
+ }else if(supplier){
+  const quality=String(p.fornitore||meta.fornitore||'').trim().toLowerCase()==='jayden'?'ORIGINALE':String(p.qualita||'STANDARD').trim().toUpperCase();
+  const pricing=(globalThis as any).VgQualityPricing;
+  const supplierPrice=Number(meta.prezzoVenditaPromoFornitore??pricing.calculate(Number(supplierCost)*0.90+5,quality).sell);
+  if(supplierPrice>0) price=supplierPrice;
+ }else if(!['promoAttiva','prezzoPromo','promoFornitoreAttiva','costoUsdPromo','costoUSDPromo','prezzoFornitorePromoUsd','promoCostoUsd'].some(key=>Object.hasOwn(meta,key))){
+  const legacyPrice=Number(p.prezzo_promozionale);
+  if(p.in_promozione&&legacyPrice>0&&legacyPrice<originalPrice) price=legacyPrice;
+ }
+ const promotion=price<originalPrice;
+ return {price,originalPrice,promotion,promotionActive:active||promotion,promotionEndsAt:endsAt};
 }
 export function articleHasActivePromo(p:any,today?:string){return articlePromotionDetails(p,today).active;}

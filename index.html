@@ -7648,6 +7648,7 @@ function buildCloudArticleMeta(art){
     hCintura: art?.hCintura||art?.altezzaCintura||'',
     costoUsd: Number(art?.costoUsd||0),
     costoUsdPromo: Number(art?.costoUsdPromo||0),
+    prezzoVenditaPromoFornitore: Number(promoSupplierCalc(art).sell||0),
     promoFornitoreAttiva: art?.promoFornitoreAttiva===true,
     scadenzaPromoFornitore: supplierPromoEnd(art),
     dataInizioPromoFornitore: normalizePromoStartDate(art?.dataInizioPromoFornitore||''),

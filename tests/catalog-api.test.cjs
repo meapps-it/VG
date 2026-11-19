@@ -61,7 +61,7 @@ test('metadata-first catalog returns articles without looking up or signing prod
  const {response,signedBatches,ranges}=await serve({query:'action=catalog&photos=none',photoError:{message:'storage is unavailable'}});
  const body=await response.json();
  assert.equal(response.status,200);assert.equal(body.coversPending,true);
- assert.equal(body.items[0].name,'Borsa');assert.equal(body.items[0].price,20);
+ assert.equal(body.items[0].name,'Borsa');assert.equal(body.items[0].price,15);
  assert.equal(body.items[0].image,'');assert.equal(signedBatches.length,0);assert.equal(ranges.length,0);
 });
 test('initial covers mode signs only one photo per product unless a cover is missing',async()=>{
@@ -82,4 +82,22 @@ test('gallery signs the requested published product photos after authentication'
  assert.equal(unauthorized.response.status,401);assert.equal(unauthorized.signedBatches.length,0);
  const hidden=await serve({query,photos});
  assert.equal(hidden.response.status,404);assert.equal(hidden.signedBatches.length,0);
+});
+
+test('supplier promotion uses the same price through its last day',()=>{
+ const {articleCatalogPricing}=require('./catalog-server-helpers.cjs');
+ const article={
+  prezzo_vendita:230,
+  in_promozione:false,
+  prezzo_promozionale:0,
+  qualita:'ORIGINALE',
+  fornitore:'Jayden',
+  descrizione:'[VGMETA]'+JSON.stringify({
+   costoUsdPromo:145,promoFornitoreAttiva:true,scadenzaPromoFornitore:'2026-11-30'
+  })+'[/VGMETA]'
+ };
+ assert.equal(articleCatalogPricing(article,'2026-11-19').price,215);
+ assert.equal(articleCatalogPricing(article,'2026-11-30').price,215);
+ assert.equal(articleCatalogPricing(article,'2026-12-01').price,230);
+ assert.equal(articleCatalogPricing(article,'2026-12-01').promotionActive,false);
 });
