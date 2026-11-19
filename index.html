@@ -615,10 +615,17 @@ window.addEventListener('error',e=>{
 #vgArticleShare{width:min(540px,calc(100% - 24px));max-height:calc(100dvh - 24px);padding:18px;border:1px solid #b5c9e7;border-radius:14px;color:#142840;background:white}
 #vgArticleShare::backdrop{background:#14284085}
 #vgArticleShare h2{margin:0;font-size:21px}
-#vgArticleShare select{display:block;width:100%;margin:4px 0 8px}
-#vgArticleShare textarea{width:100%;min-height:104px}
-#vgArticleShare p:empty,#vgArticleShare [hidden]{display:none}
-#vgArticleShare .actions{display:flex;gap:8px;flex-wrap:wrap}
+#vgArticleShare .shareHeader{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#vgArticleShare .shareHeader form{margin:0}
+#vgArticleShare .shareActions{display:grid;gap:10px;margin:16px 0}
+#vgArticleShare .shareActions .btn{width:100%;min-height:46px;color:#fff}
+#vgArticleShare #vgArticleShareFacebook{background:#1877f2;border-color:#1563c9}
+#vgArticleShare #vgArticleSharePhotos{background:#087955;border-color:#076747}
+#vgArticleShare details{border-top:1px solid #dbe4ef;padding:9px 0}
+#vgArticleShare summary{cursor:pointer}
+#vgArticleShare textarea{width:100%;margin-top:8px;min-height:105px}
+#vgArticleShare p{margin:8px 0;font-size:.9rem}
+#vgArticleShare p:empty{display:none}
 .vgArtShareButton{display:inline-grid;place-items:center;flex:none;width:44px;height:44px;padding:0;border:0;border-radius:10px;background:transparent;color:#164e99;cursor:pointer}
 .vgArtShareButton:hover,.vgArtShareButton:focus-visible{background:#dce8f8}
 .vgArtShareButton svg{width:20px;height:20px;pointer-events:none}
@@ -803,31 +810,23 @@ window.addEventListener('error',e=>{
     <div style="height:10px"></div>
     <div id="listArt" class="artGrid"></div>
     <dialog id="vgArticleShare" data-vg-dialog-history aria-labelledby="vgArticleShareTitle">
-      <h2 id="vgArticleShareTitle">Condividi articolo</h2><p style="font-size:11px;color:#64748b;margin:0 0 8px">Versione condivisione FB 18/11/2026 · 1.0.163</p>
-      <label for="vgArticleShareChannel">Didascalia per</label>
-      <select id="vgArticleShareChannel">
-        <option value="whatsapp">WhatsApp</option>
-        <option value="chat">Telegram</option>
-        <option value="facebook">Facebook</option>
-        <option value="instagram">Instagram</option>
-      </select>
-      <p id="vgArticleShareHelp"></p>
-      <textarea id="vgArticleShareCaption" aria-label="Didascalia" rows="4" readonly></textarea>
-      <div id="vgFbCaptionPanel" style="margin-top:12px;padding:12px;border:1px solid #c8d9f6;border-radius:12px;background:#f2f7ff">
-        <label for="vgArticleShareFbCaption" style="display:block;font-weight:700;margin-bottom:6px;color:#164b96">📘 Descrizione Facebook</label>
-        <textarea id="vgArticleShareFbCaption" aria-label="Descrizione Facebook da copiare" rows="7" readonly style="width:100%;max-width:100%;box-sizing:border-box;background:#fff;color:#172b4d;white-space:pre-wrap"></textarea>
-        <button id="vgArticleShareFacebook" type="button" class="btn" style="display:block;width:100%;white-space:normal;min-height:62px;font-size:19px;line-height:1.3;font-weight:800;padding:14px 10px;margin-top:12px;background:#1877f2;border-color:#1877f2;color:#fff" disabled>📘 Facebook · foto + testo</button>
-        <p id="vgArticleShareFbCopyStatus" aria-live="polite" style="font-size:13px;margin:7px 0 0"></p>
+      <div class="shareHeader">
+        <h2 id="vgArticleShareTitle">Pannello di condivisione</h2>
+        <form method="dialog"><button type="submit" class="btn" aria-label="Chiudi" autofocus>×</button></form>
       </div>
-      <p id="vgArticleShareNotice"></p>
+      <div class="shareActions">
+        <button id="vgArticleShareFacebook" type="button" class="btn" disabled>Condividi su Facebook</button>
+        <button id="vgArticleSharePhotos" type="button" class="btn" disabled>Condividi su WhatsApp / Telegram</button>
+      </div>
       <p id="vgArticleShareStatus" role="status"></p>
-      <div class="actions">
-        <button id="vgArticleSharePhotos" type="button" class="btn primary">Condividi tutte le foto</button>
-        <button id="vgArticleShareCopy" type="button" class="btn">Copia didascalia</button>
-        <button id="vgArticleShareCopyLink" type="button" class="btn" hidden>Copia link</button>
-        <button id="vgArticleShareDownload" type="button" class="btn" hidden>Scarica foto</button>
-        <form method="dialog"><button type="submit" class="btn">Chiudi</button></form>
-      </div>
+      <details>
+        <summary>Testo Facebook</summary>
+        <textarea id="vgArticleShareFbCaption" aria-label="Testo Facebook" rows="4" readonly></textarea>
+      </details>
+      <details>
+        <summary>Testo WhatsApp / Telegram</summary>
+        <textarea id="vgArticleShareCaption" aria-label="Testo WhatsApp e Telegram" rows="4" readonly></textarea>
+      </details>
     </dialog>
   </div>
 
@@ -9822,7 +9821,7 @@ function compareArticlesForPreview(a,b){
   );
 }
 
-function articleShareCaptions(article, url){
+function articleShareCaptions(article, url, facebookNote=getArticleFacebookCustomPost(article)){
   const model=normalizeSpaceText(article.modello||article.codice||'Articolo');
   const material=normalizeSpaceText(article.materiale||article.taglia||'').replace(/^materiale\s*:\s*/i,'');
   const size=normalizeSpaceText(article.misura||article.dimensioni||'')
@@ -9833,14 +9832,25 @@ function articleShareCaptions(article, url){
   const price=article.nascondiPrezzo===true?'':formatPostPrezzoVendita(currentPrice(article));
   const heading=[promotion?'🔥 IN PROMOZIONE 🔥':'',model];
   const details=[material,formattedSize ? 'Mis. '+formattedSize : ''];
-  const quality=qualityPricingKey(getEffectiveArticleQuality(article))==='ORIGINALE' ? 'QUALITÀ ORIGINALE' : '';
+  const effectiveQuality=getEffectiveArticleQuality(article);
+  const quality=qualityPricingKey(effectiveQuality)==='ORIGINALE'||/^(?:qualit[àa]\s+)?massima$/i.test(effectiveQuality) ? 'QUALITÀ MASSIMA' : '';
   const describedClosure=String(article.descrizione||'').match(/(?:^|[\r\n.!?;])\s*(?:[-•✔✓]\s*)?(?:tipo di )?chiusura(?:\s*[:–-]\s*|\s+(?=con\b|a\b))([^,.!?;\r\n]+)/i);
   const closure=normalizeSpaceText(article.chiusura||describedClosure?.[1]||'');
   const chatDetails=[...heading,quality,...details,closure?'Chiusura: '+closure:'',price].filter(Boolean);
+  const facebookModel=stripFacebookBrandName(model,article)||model;
+  const category=normalizeTextKey(article.categoria||'');
+  const facebookDimensions=['borse','portafogli'].includes(category)&&dimensions ? 'Mis. '+formattedSize : '';
+  const facebookFields=[facebookModel,quality,material,facebookDimensions].filter(Boolean);
+  const repeatedFields=new Set([...facebookFields,model,size,formattedSize].filter(Boolean).map(normalizeTextKey));
+  const curiosity=stripFacebookBrandName(facebookNote||'',article).split(/\r?\n/).map(line=>line.trim()).filter(line=>{
+    return line&&!repeatedFields.has(normalizeTextKey(stripQualityEmojisFromText(line)))
+      && !/^(?:cod(?:ice)?\b[.:\s]|sku\b|taglia\b|mis(?:ure?)?\b|dimensioni\b|materiale\b|qualit[àa]\b|🔥|(?:in\s+)?promo\b|prezzo\b)/i.test(line)
+      && !/(?:https?:\/\/|www\.|€|\bEUR\b|\beuro\b)/i.test(line);
+  }).join('\n');
   return {
     model,
     chat:[chatDetails.join('\n'),url?'👇 Ordina qui 👇\n'+url:''].filter(Boolean).join('\n\n'),
-    instagram:[...heading,...details,price].filter(Boolean).join('\n')
+    facebook:[facebookFields.join('\n'),curiosity].filter(Boolean).join('\n\n')
   };
 }
 
@@ -9917,210 +9927,112 @@ async function openArticleShare(id){
   if(dialog.open) return;
   const published=isUuid(id)&&article.pubblicatoCatalogo!==false&&!isArticleUnavailable(article);
   const url=published ? shortArticleShareUrl(id) : '';
-  const captions=articleShareCaptions(article,url);
-  captions.whatsapp=captions.chat;
-  captions.facebook=getArticleFacebookCustomPost(article);
-  let whatsappUrl=url;
-  const channel=get('vgArticleShareChannel');
   const caption=get('vgArticleShareCaption');
-  const help=get('vgArticleShareHelp');
-  const notice=get('vgArticleShareNotice');
+  const fbCaption=get('vgArticleShareFbCaption');
   const status=get('vgArticleShareStatus');
   const share=get('vgArticleSharePhotos');
   const facebookShare=get('vgArticleShareFacebook');
-  const fbCaption=get('vgArticleShareFbCaption');
-  const fbCopyStatus=get('vgArticleShareFbCopyStatus');
-  const download=get('vgArticleShareDownload');
-  const copyLink=get('vgArticleShareCopyLink');
   const androidShare=window.VgArticleShareBridge;
   const nativeSupported=typeof androidShare?.postMessage==='function';
-  copyLink.hidden=!url;
-  copyLink.onclick=()=>copyText(channel.value==='whatsapp'?whatsappUrl:url,'Link copiato');
-  channel.value='whatsapp';
-  fbCaption.value=stripFacebookBrandName(captions.facebook||'',article);
-  fbCopyStatus.textContent='Prima premi «Copia testo FB», poi condividi le foto. Se Facebook non inserisce il testo, incollalo nel post.';
-  channel.onchange=()=>{
-    const instagram=channel.value==='instagram';
-    caption.value=captions[channel.value]||'';
-    help.textContent=channel.value==='facebook'
-      ? 'Il pulsante blu copia la descrizione FB e apre la condivisione delle fotografie: scegli Facebook e il gruppo dalla schermata Android. Incolla poi il testo nel post.'
-      : instagram
-        ? 'Scegli Instagram nel menu del telefono. Se la didascalia non viene inserita, usa Copia didascalia e incollala nel post.'
-        : 'Scegli '+(channel.value==='whatsapp'?'WhatsApp':'Telegram')+' nel menu del telefono, poi seleziona il gruppo.';
-    if(url){
-      notice.textContent=channel.value==='facebook'
-        ? 'Facebook: niente link, prezzi o descrizioni commerciali nel testo preparato.'
-        : instagram
-          ? 'Per le Storie, usa Copia link e chiamalo Vanity Glamour nell’adesivo Link.'
-          : channel.value==='chat' ? 'Su Telegram puoi scrivere Vanity Glamour, selezionarlo e incollare il link con Crea link.' : '';
-    }else notice.textContent=instagram ? '' : 'Il link al catalogo è disponibile per gli articoli pubblicati e sincronizzati.';
-  };
-  channel.onchange();
-  const copyCaption=get('vgArticleShareCopy');
-  copyCaption.onclick=()=>copyText(caption.value,'Didascalia copiata');
-  copyLink.disabled=published;
-  copyCaption.disabled=false;
+  const captions=articleShareCaptions(article,url);
+  caption.value=captions.chat;
+  fbCaption.value=captions.facebook;
+  for(const preview of dialog.querySelectorAll('details')) preview.open=false;
   facebookShare.disabled=true;
   share.disabled=true;
-  share.hidden=false;
-  share.textContent='Condividi tutte le foto';
-  download.hidden=true;
   status.textContent='Preparazione delle foto…';
   const request={};
   dialog.shareRequest=request;
   const isCurrent=()=>dialog.shareRequest===request&&dialog.open;
   dialog.showModal();
-  // Il testo salvato sul cloud può essere più recente della copia locale della PWA.
-  // Recupera solo il campo descrizione, senza alterare foto, prezzi o record articolo.
-  if(isUuid(id)){
+
+  const refreshFacebookNote=async()=>{
+    if(!isUuid(id)) return;
     try{
       const sb=await withArticleShareTimeout(ensureCloud(),4000);
-      if(sb && cloudSession?.user?.id){
-        const {data,error}=await withArticleShareTimeout(sb.from('prodotti').select('descrizione').eq('id',id)
-          .eq('user_id',cloudSession.user.id).single(),4000);
-        if(error) throw error;
-        if(!isCurrent()) return;
-        const cloudFb=String(unpackCloudArticleDescription(data?.descrizione).meta?.postFb||'').trim();
-        if(cloudFb) captions.facebook=cloudFb;
-      }
-    }catch(error){
-      console.warn('Descrizione FB cloud non disponibile',error);
-      if(isCurrent()) fbCopyStatus.textContent='Cloud non raggiungibile. Mostro la copia locale; verifica che sia aggiornata.';
-    }
-  }
-  if(!isCurrent()) return;
-  fbCaption.value=stripFacebookBrandName(captions.facebook||'',article);
-  if(!fbCopyStatus.textContent.includes('Cloud non raggiungibile')){
-    fbCopyStatus.textContent=fbCaption.value?'Premi il pulsante blu per copiare il testo e condividere le fotografie. Poi incolla nel post.':'Descrizione FB vuota: compilala nella scheda articolo e salva.';
-  }
-  channel.onchange();
-  if(published){
+      if(!sb||!cloudSession?.user?.id||!isCurrent()) return;
+      const {data,error}=await withArticleShareTimeout(sb.from('prodotti').select('descrizione').eq('id',id)
+        .eq('user_id',cloudSession.user.id).single(),4000);
+      if(error) throw error;
+      const note=unpackCloudArticleDescription(data?.descrizione).meta?.postFb;
+      if(isCurrent()&&String(note||'').trim()) fbCaption.value=articleShareCaptions(article,url,note).facebook;
+    }catch(error){console.warn('Descrizione FB cloud non disponibile',error);}
+  };
+  const refreshChatLink=async()=>{
+    if(!published) return;
     try{
-      whatsappUrl=await withArticleShareTimeout(namedArticleShareUrl(article),4000)||url;
+      const link=await withArticleShareTimeout(namedArticleShareUrl(article),4000);
+      if(link&&isCurrent()) caption.value=articleShareCaptions(article,link).chat;
     }catch(error){console.warn('Link WhatsApp non disponibile',error);}
-    if(!isCurrent()) return;
-    captions.whatsapp=articleShareCaptions(article,whatsappUrl).chat;
-    copyLink.disabled=false;
-    copyCaption.disabled=false;
-    channel.onchange();
-  }
-  const shareSupported=typeof navigator.share==='function';
-  if(!nativeSupported&&!shareSupported){
-    share.hidden=true;
-    status.textContent=/VgHybrid\//.test(navigator.userAgent)
-      ? 'Aggiorna l’app V&G per condividere direttamente tutte le foto.'
-      : 'Questo browser non apre il menu di condivisione delle foto.';
-  }
+  };
+  const refreshCaptions=Promise.all([refreshFacebookNote(),refreshChatLink()]);
   try{
     const baseName=getArticlePhotoShareBaseName(article);
     const pics=await withArticleShareTimeout(getArticleCloudSyncSources(article),8000);
     if(!isCurrent()) return;
     const files=await withArticleShareTimeout(buildArticlePhotoFiles(article,pics,baseName),20000);
+    await refreshCaptions;
     if(!isCurrent()) return;
     if(!files.length||files.length!==pics.length){
       status.textContent=files.length
-        ? 'Pronte '+files.length+' foto su '+pics.length+'. Riapri Condividi per riprovare a prepararle tutte.'
+        ? 'Pronte '+files.length+' foto su '+pics.length+'. Riapri il pannello per riprovare.'
         : 'Nessuna foto pronta da condividere.';
       return;
     }
-    download.hidden=false;
-    download.disabled=false;
-    download.onclick=async()=>{
-      download.disabled=true;
-      try{
-        const file=files.length===1 ? files[0] : await buildZipFromFiles(files,baseName+'_foto.zip');
-        if(isCurrent()) triggerBlobDownload(file,file.name);
-      }catch(error){
-        if(isCurrent()) status.textContent='Download delle foto non riuscito.';
-      }finally{if(isCurrent()) download.disabled=false}
-    };
     if(!nativeSupported&&!canNativeShareFiles(files)){
-      status.textContent=shareSupported
-        ? 'Il browser non può inviare tutte queste foto insieme. Usa Scarica foto e Copia didascalia.'
-        : status.textContent+' Puoi usare Scarica foto e Copia didascalia.';
+      status.textContent='Il browser non può condividere queste foto insieme. Il testo è disponibile nelle anteprime.';
       return;
     }
-    share.disabled=false;
-    facebookShare.disabled=false;
-    status.textContent=files.length===1 ? '1 foto pronta.' : files.length+' foto pronte.';
-    // Copia prima di aprire la condivisione di sistema: Facebook può ignorare il testo,
-    // ma le fotografie vengono passate come file reali, mai come link al catalogo.
-    facebookShare.dataset.fbCopied='';
-    facebookShare.onclick=async()=>{
-      const fbText=fbCaption.value.trim();
-      if(!fbText){
-        status.textContent='Descrizione Facebook vuota. Compilala nella scheda articolo e salva.';
-        return;
-      }
+
+    let copiedFacebookText='';
+    const openShare=async facebook=>{
       facebookShare.disabled=true;
+      share.disabled=true;
+      const text=facebook?fbCaption.value:caption.value;
       try{
-        if(facebookShare.dataset.fbCopied!=='1'){
-          fbCopyStatus.textContent='Copia della descrizione Facebook…';
-          // Attendi la copia effettiva prima di aprire la condivisione foto.
-          let copied=false;
-          if(navigator.clipboard?.writeText){
-            try{await navigator.clipboard.writeText(fbText);copied=true;}
-            catch(err){console.warn('Copia FB via Clipboard API non riuscita',err);}
+        if(facebook&&copiedFacebookText!==text){
+          let copied=copyShareTextSync(text);
+          if(!copied&&navigator.clipboard?.writeText){
+            try{await navigator.clipboard.writeText(text);copied=true;}
+            catch(error){console.warn('Copia Facebook non riuscita',error);}
           }
-          if(!copied) copied=copyShareTextSync(fbText);
           if(!isCurrent()) return;
           if(!copied){
-            fbCopyStatus.textContent='Copia non riuscita: tieni premuto sulla descrizione, seleziona tutto e copia.';
-            fbCaption.removeAttribute('readonly');
+            fbCaption.closest('details').open=true;
             fbCaption.focus();
             fbCaption.select();
-            status.textContent='Foto non aperte: manca la copia del testo.';
-            return;
+            status.textContent='Copia manualmente il testo selezionato. Le foto si apriranno nel menu di condivisione.';
+          }else{
+            copiedFacebookText=text;
           }
-          facebookShare.dataset.fbCopied='1';
-          fbCopyStatus.textContent='✅ Descrizione copiata negli appunti.';
         }
-        if(nativeSupported) await shareArticleOnAndroid(androidShare,files,fbText,isCurrent);
-        else if(typeof navigator.share==='function') await navigator.share({title:'Articolo',text:fbText,files});
-        else {status.textContent='Descrizione copiata; condivisione foto non supportata.';return;}
-        facebookShare.dataset.fbCopied='';
+        if(nativeSupported) await shareArticleOnAndroid(androidShare,files,text,isCurrent);
+        else await navigator.share({title:captions.model,text,files});
+        if(!isCurrent()) return;
         noteArticleLastShare(id);
+        status.textContent=facebook
+          ? (copiedFacebookText===text ? 'Scegli Facebook e il gruppo, poi incolla il testo nel post.' : 'Copia il testo dall’anteprima Facebook e incollalo nel post.')
+          : 'Scegli WhatsApp o Telegram dal menu del telefono.';
+      }catch(error){
+        if(!isCurrent()) return;
+        if(isShareAbortError(error)) status.textContent='Condivisione annullata. Puoi riprovare.';
+        else if(facebook&&error?.name==='NotAllowedError'&&copiedFacebookText===text){
+          status.textContent='Testo copiato. Premi di nuovo Facebook per aprire le foto.';
+        }else status.textContent='Condivisione non riuscita. Riprova.';
+      }finally{
         if(isCurrent()){
-          status.textContent='Foto aperte. ✅ Descrizione copiata: incollala nel post Facebook.';
-          fbCopyStatus.textContent='✅ Testo copiato. Incollalo nel post.';
+          facebookShare.disabled=false;
+          share.disabled=false;
         }
-      }catch(error){
-        if(!isCurrent()) return;
-        if(error?.name==='NotAllowedError') status.textContent='✅ Testo copiato. Android richiede un altro tocco per condividere: premi nuovamente il pulsante blu.';
-        else if(isShareAbortError(error)) status.textContent='Condivisione foto annullata. Testo FB già copiato; puoi riprovare.';
-        else status.textContent='Testo copiato, ma foto non aperte: '+(error.message||'riprova.');
-      }finally{if(isCurrent())facebookShare.disabled=false;}
+      }
     };
-    let photosOnly=false;
-    share.onclick=async()=>{
-      share.disabled=true;
-      try{
-        if(nativeSupported){
-          status.textContent='Apertura del menu di Android…';
-          await shareArticleOnAndroid(androidShare,files,caption.value,isCurrent);
-          noteArticleLastShare(id);
-          if(isCurrent()) status.textContent='Scegli l’app dal menu di Android.';
-        }else{
-          await navigator.share(photosOnly ? {files} : {title:captions.model,text:caption.value,files});
-          noteArticleLastShare(id);
-        }
-      }catch(error){
-        if(!isCurrent()) return;
-        if(nativeSupported){
-          status.textContent=error.message||'Android non ha aperto il menu. Riprova.';
-        }else if(isShareAbortError(error)){
-          status.textContent='Condivisione chiusa o nessuna app disponibile. Puoi riprovare oppure usare Scarica foto.';
-        }else if(!photosOnly){
-          photosOnly=true;
-          share.textContent='Condividi solo le foto';
-          status.textContent='Il menu non si è aperto. Copia la didascalia, poi premi Condividi solo le foto e incollala nell’app.';
-        }else{
-          status.textContent='Il menu non si è aperto. Usa Scarica foto e Copia didascalia.';
-        }
-      }finally{if(isCurrent()) share.disabled=false}
-    };
+    facebookShare.onclick=()=>openShare(true);
+    share.onclick=()=>openShare(false);
+    facebookShare.disabled=false;
+    share.disabled=false;
+    status.textContent='';
   }catch(error){
-    if(isCurrent()) status.textContent='Foto non pronte. Chiudi e riapri Condividi per riprovare. Puoi ancora copiare la didascalia.';
+    if(isCurrent()) status.textContent='Foto non pronte. Chiudi e riapri il pannello per riprovare.';
   }
 }
 
