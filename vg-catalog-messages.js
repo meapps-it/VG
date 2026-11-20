@@ -3,10 +3,10 @@
  const admin=Boolean(document.querySelector('.topMenuGrid'));
  const endpoint='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-shop-messages';
  const dialog=document.createElement('dialog');
- dialog.className='vgMessages';
+ dialog.className='vgMessages vgMessagesScreen';
  dialog.setAttribute('aria-labelledby','vgMessagesTitle');
  dialog.innerHTML=`
-  <header><h2 id="vgMessagesTitle">Messaggi</h2><form method="dialog"><button type="submit">Chiudi</button></form></header>
+  <header><h2 id="vgMessagesTitle">Messaggi</h2><form method="dialog"><button type="submit" aria-label="Torna indietro">← Indietro</button></form></header>
   <p id="vgMessagesStatus" role="status"></p>
   <button type="button" id="vgMessagesLogin" hidden>Accedi come cliente</button>
   <button type="button" id="vgMessagesBack" hidden>← Tutte le conversazioni</button>
@@ -39,6 +39,13 @@
  const style=document.createElement('style');
  style.textContent=`
  .vgMessages{box-sizing:border-box;width:min(680px,calc(100% - 20px));max-height:92dvh;overflow:auto;border:1px solid #c9d4e0;border-radius:20px;padding:clamp(14px,4vw,24px);background:#fff;color:#172233;box-shadow:0 18px 50px #17223342}
+ .vgMessagesScreen{inset:0;width:100%;max-width:none;height:100%;max-height:none;margin:0;border:0;border-radius:0;padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));background:#eef3f7;overflow:auto;overscroll-behavior:contain}
+ .vgMessagesScreen[open]{display:flex;flex-direction:column;gap:8px}
+ .vgMessagesScreen header,.vgMessagesScreen form,.vgMessagesScreen details{flex:none}
+ .vgMessagesScreen #vgMessagesList{flex:1;overflow:auto;align-content:start}
+ .vgMessages.vgMessagesScreen #vgMessagesThread{flex:1;max-height:none;min-height:80px;margin:2px 0}
+ .vgMessages.vgMessagesScreen #vgMessagesCompose{margin:0;padding:10px;background:#fff;box-shadow:0 0 0 1px #dce4eb}
+ .vgMessagesScreen #vgMessagesCompose textarea{min-height:96px;max-height:24dvh}
  .vgMessages::backdrop{background:#121a278c}
  .vgMessages header{display:flex;align-items:center;justify-content:space-between;gap:8px}
  .vgMessages h2{margin:0;color:#172233;font-size:clamp(23px,5vw,30px);line-height:1.16}
@@ -178,7 +185,7 @@
    el('Push').hidden=!(pushKey&&window.Notification&&navigator.serviceWorker&&window.PushManager);
    el('Email').hidden=!emailEnabled;
    if(reset&&!admin)el('EmailAddress').value=data.email??window.shopAccess.customer?.()?.email??'';
-   alerts.hidden=admin||(!emailEnabled&&el('Push').hidden)||!rows.length;
+   alerts.hidden=admin||(!emailEnabled&&el('Push').hidden);
    render();
    return true;
   }catch(error){
@@ -233,11 +240,14 @@
   const button=el('Push');button.disabled=true;
   try{
    const epoch=revision;
-   if(await Notification.requestPermission()!=='granted')throw Error('Permesso per le notifiche non concesso.');
+   if(Notification.permission!=='granted'&&await Notification.requestPermission()!=='granted')throw Error('Permesso per le notifiche non concesso.');
    const root=new URL('.',location.href);
    const existing=await navigator.serviceWorker.getRegistration(root.href);
    const registration=existing||await navigator.serviceWorker.register(new URL('vg-push-sw.js',root));
-   const ready=registration.active?registration:await navigator.serviceWorker.ready;
+   const ready=registration.active?registration:await Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise((_,reject)=>setTimeout(()=>reject(Error('Il servizio notifiche non è pronto. Riprova.')),8000))
+   ]);
    const key=pushKey.replace(/-/g,'+').replace(/_/g,'/');
    const bytes=Uint8Array.from(atob(key.padEnd(Math.ceil(key.length/4)*4,'=')),c=>c.charCodeAt(0));
    const subscription=await ready.pushManager.getSubscription()||await ready.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});
@@ -245,6 +255,7 @@
    if(epoch!==revision)return;
    await request('alerts',{subscription:subscription.toJSON()});
    notifiedDevice=true;
+   button.textContent='Notifiche attive su questo dispositivo';
    status.textContent='Notifiche delle risposte attivate su questo dispositivo.';
   }catch(error){status.textContent=error.message}
   finally{button.disabled=false}

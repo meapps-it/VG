@@ -1,4 +1,5 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.57.4';
+import {JWT} from 'npm:google-auth-library@9.15.1';
 import webpush from 'npm:web-push@3.6.7';
 import {requireOwner,digest} from '../vg-shop-catalog/shop-access.ts';
 
@@ -36,6 +37,28 @@ function validSubscription(value:any){
   return url.protocol==='https:'&&!url.port&&!url.username&&!url.password
    && ['fcm.googleapis.com','updates.push.services.mozilla.com','web.push.apple.com','wns.windows.com'].some(host=>url.hostname===host||url.hostname.endsWith('.'+host));
  }catch{return false}
+}
+
+async function notifyOwner(id:string){
+ const raw=Deno.env.get('FCM_SERVICE_ACCOUNT');
+ if(!raw)return false;
+ const service=JSON.parse(raw);
+ if(!service.client_email||!service.private_key||!service.project_id)return false;
+ const devices=await db.from('vg_shop_push_tokens').select('token').eq('owner_id',owner);
+ if(devices.error||!devices.data?.length)return false;
+ const auth=new JWT({email:service.client_email,key:service.private_key,scopes:['https://www.googleapis.com/auth/firebase.messaging']});
+ const access=await auth.getAccessToken();
+ if(!access.token)return false;
+ const endpoint='https://fcm.googleapis.com/v1/projects/'+encodeURIComponent(service.project_id)+'/messages:send';
+ const sent=await Promise.allSettled(devices.data.map(async ({token})=>{
+  const response=await fetch(endpoint,{method:'POST',headers:{Authorization:'Bearer '+access.token,'Content-Type':'application/json'},body:JSON.stringify({
+   message:{token,notification:{title:'Nuovo messaggio dal catalogo',body:'Apri Messaggi catalogo per leggere e rispondere.'},
+    data:{type:'catalog_message',messageId:id},android:{priority:'high',notification:{channel_id:'vg_orders',tag:'catalog-message-'+id}}}
+  }),signal:AbortSignal.timeout(5000)});
+  if(!response.ok)console.warn('VG admin message push failed',response.status);
+  return response.ok;
+ }));
+ return sent.some(result=>result.status==='fulfilled'&&result.value);
 }
 
 async function notify(customer:string){
@@ -151,7 +174,10 @@ Deno.serve(async req=>{
    if(prior.data)return out({ok:true});
   }
   if(sent.error)throw sent.error;
-  const notified=admin?await notify(target!).catch(()=>false):false;
+  const notified=await (admin?notify(target!):notifyOwner(id)).catch(error=>{
+   console.warn('VG message alert failed',error instanceof Error?error.name:'unknown');
+   return false;
+  });
   return out({ok:true,notified});
  }catch(error){
   console.error('VG messages operation failed',error instanceof Error?error.name:'database');
