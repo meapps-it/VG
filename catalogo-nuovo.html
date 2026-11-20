@@ -46,6 +46,12 @@ body.shop-checking > #accessGate{visibility:hidden}
 #catalogLoading > .catalog-loading{box-sizing:border-box;width:min(100%,360px);min-height:0;margin:0;padding:24px 18px;border-radius:18px;box-shadow:0 12px 36px #14264540;text-align:center}
 </style>
 <style>
+#vgPushSettings { position:relative; }
+#vgPushSettings[aria-pressed="false"]::after {
+  content:""; position:absolute; left:50%; top:50%; width:25px; height:3px;
+  border-radius:3px; background:#c21d36; box-shadow:0 0 0 1px #fff1f7;
+  transform:translate(-50%,-50%) rotate(-45deg); pointer-events:none;
+}
 #vgPushInvitation {
   display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
   gap:10px 16px; margin:12px 0; padding:12px;
