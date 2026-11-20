@@ -71,10 +71,16 @@ body.shop-checking > #accessGate{visibility:hidden}
 .vg-push-actions button:disabled { opacity:.6; cursor:wait; }
 </style>
 <script src="./vg-push.js?v=compact-invitation-20261116" defer></script>
-<script src="./vg-customer-presence.js?v=1" defer></script></head>
+<script src="./vg-customer-presence.js?v=1" defer></script><style>
+.vg-telegram-contact{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 14px;border:1px solid #086da2;border-radius:10px;background:#086da2;color:white;text-align:center;text-decoration:none;font-weight:750;line-height:1.2}
+.vg-telegram-contact:hover{background:#075780;color:white}
+.vg-telegram-contact:focus-visible{outline:3px solid #092f4f;outline-offset:3px}
+.product-buy-panel .vg-telegram-product{box-sizing:border-box;display:flex;width:100%;margin-top:10px;min-height:48px}
+</style>
+</head>
 <body class="shop-locked shop-checking"><section id="accessGate" aria-labelledby="accessTitle"><div class="access-card"><img src="/shop-vanity-glamour.webp?v=vg-fix-20261107" alt="Vanity &amp; Glamour"><h1 id="accessTitle">Catalogo riservato</h1><p>Con Google accedi o crei automaticamente il tuo account. Per entrare con Google premi il pulsante Google qui sotto. Le due opzioni successive sono per il telefono.</p><p id="accessPending" role="status" aria-live="polite">Verifica dell’accesso…</p><button id="accessGoogle" type="button" class="google-signin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="22" height="22" aria-hidden="true" focusable="false"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6C44.4 38.04 46.98 31.9 46.98 24.55Z"/><path fill="#FBBC05" d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.87 23.87 0 0 0 0 24c0 3.87.93 7.53 2.56 10.78l7.97-6.19Z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"/></svg><span>Accedi con Google</span></button><label id="accessGooglePrivacyLabel" class="access-consent"><input id="accessGooglePrivacy" type="checkbox" aria-describedby="accessGoogleConsentError"> Acconsento all’uso dei dati per l’account e le richieste d’ordine tramite l’accesso social.</label><p id="accessGoogleConsentError" class="access-consent-error" role="alert" hidden>Spunta la casella del consenso per continuare.</p><div id="accessTabs" class="access-mode-tabs" role="group" aria-label="Scegli accesso o registrazione"><button type="button" id="accessLoginTab" aria-pressed="true"><strong>Accedi con telefono</strong><small>Numero e password</small></button><button type="button" id="accessRegisterTab" aria-pressed="false"><strong>Registrati con telefono</strong><small>Crea un nuovo account</small></button></div><p id="accessModeHelp" class="access-mode-help">Hai già un account? Inserisci il numero e la password usati per registrarti.</p><form id="accessForm"><h2 id="accessFormTitle">Accedi con telefono</h2><div id="accessNameField" hidden><label for="accessName">Il tuo nome *</label><input id="accessName" type="text" autocomplete="name" minlength="2" maxlength="100" placeholder="Es. Maria Rossi" disabled></div><label for="accessPhone">Numero di telefono</label><input id="accessPhone" type="tel" required maxlength="40" autocomplete="tel" placeholder="Es. +39 333 1234567"><label for="accessPassword">Password personale</label><input id="accessPassword" type="password" required minlength="6" maxlength="128" autocomplete="current-password"><label id="accessPrivacyLabel" class="access-consent" hidden><input id="accessPrivacy" type="checkbox"> Acconsento all’uso dei dati per l’account e le richieste d’ordine.</label><button id="accessSubmit" type="submit">Accedi</button></form><p id="accessError" role="alert" aria-live="polite"></p><button id="accessCheck" type="button" hidden>Verifica autorizzazione</button><button id="accessSignout" type="button" hidden>Esci / Cambia account</button></div></section><div id="adminPreviewNotice" hidden>Anteprima amministratore · i tuoi accessi sono esclusi dalle statistiche · <a href="./admin-notifiche.html" style="color:inherit;font-weight:700;text-decoration:underline">🔔 Gestisci notifiche</a></div><div class="brand-stage"><header class="top"><div class="top-inner">
 <a href="#" aria-label="Vanity &amp; Glamour, catalogo"><img class="logo" src="/shop-vanity-glamour.webp?v=vg-fix-20261107" alt="Vanity &amp; Glamour"></a>
-<div class="header-actions"><button type="button" id="openCustomer" class="customer-entry" aria-label="I miei ordini"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><span>I miei ordini</span></button><button type="button" class="customer-entry" data-vg-message="inbox">Messaggi</button><button type="button" id="vgHeaderFavorites" class="vg-header-favorites" aria-label="Apri preferiti" title="Preferiti">♡<span class="vg-header-favorites-count" data-fav-count hidden></span></button><button class="cart-action" id="openCart" aria-label="Apri carrello"><img src="./shop-icons/shopping-bag.svg" alt=""><span class="sr-only">Carrello</span><span id="cartCount">0</span></button></div>
+<div class="header-actions"><button type="button" id="openCustomer" class="customer-entry" aria-label="I miei ordini"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><span>I miei ordini</span></button><a class="customer-entry vg-telegram-contact" href="https://t.me/maurizio_cn" target="_blank" rel="noopener noreferrer">Telegram</a><button type="button" id="vgHeaderFavorites" class="vg-header-favorites" aria-label="Apri preferiti" title="Preferiti">♡<span class="vg-header-favorites-count" data-fav-count hidden></span></button><button class="cart-action" id="openCart" aria-label="Apri carrello"><img src="./shop-icons/shopping-bag.svg" alt=""><span class="sr-only">Carrello</span><span id="cartCount">0</span></button></div>
 </div></header><div class="vg-install-wrap" id="vgInstallWrap" hidden><button type="button" class="vg-install-btn" id="vgInstallBtn">⬇ Installa come app</button></div></div>
 <div id="catalogLoading"><div class="catalog-loading" role="status" aria-live="polite" aria-atomic="true"><span class="loading-ring" aria-hidden="true"></span><strong>Caricamento catalogo</strong><span id="catalogLoadingMessage">Verifica dell’accesso…</span></div></div><main class="container"><section id="shopPages" aria-label="Informazioni e offerte" hidden></section><div class="catalog-introduction" id="catalogSection"><h2>Catalogo</h2></div><div class="discovery" id="catalogFilters">
 <div class="search-row"><div class="search-box"><img src="./shop-icons/search.svg" alt=""><input id="search" placeholder="Cerca nome, marca o codice" aria-label="Cerca prodotti" type="search" maxlength="160" autocomplete="off"><button type="button" id="clearSearch" aria-label="Cancella ricerca" hidden><img src="./shop-icons/x.svg" alt=""></button></div><button type="button" id="toggleFilters" aria-expanded="false" aria-controls="filterPanel" aria-label="Filtri"><img src="./shop-icons/adjustments-horizontal.svg" alt=""><span class="filter-caption">Filtri</span><span id="filterCount" class="sr-only"></span></button></div>
@@ -83,17 +89,17 @@ body.shop-checking > #accessGate{visibility:hidden}
 <section id="filterPanel" class="filters-panel" aria-label="Filtra articoli" hidden><label>Categoria<select id="category" aria-label="Categoria"><option value="">Tutte le categorie</option></select></label><label>Marca<select id="brand" aria-label="Marca"><option value="">Tutte le marche</option></select></label><label>Prezzo minimo (€)<input id="minPrice" type="number" min="0" step="1" inputmode="decimal" placeholder="Da"></label><label>Prezzo massimo (€)<input id="maxPrice" type="number" min="0" step="1" inputmode="decimal" placeholder="A"></label><button id="resetFilters" type="button">Azzera filtri</button></section>
 <div class="results-row"><p id="resultCount" role="status" aria-live="polite">Caricamento articoli…</p><button type="button" id="resetAll" hidden>Azzera ricerca e filtri</button><label class="sort-label"><span class="sr-only">Ordina</span><select id="sort" aria-label="Ordina articoli"><option value="relevance">Consigliati</option><option value="price-asc">Prezzo crescente</option><option value="price-desc">Prezzo decrescente</option><option value="name">Nome A–Z</option></select></label></div></div>
 <div id="catalog" class="catalog"></div></main>
-<footer class="footer"><strong>Vanity &amp; Glamour</strong><p>Scegli gli articoli. Ti contattiamo per confermare disponibilità e ordine.</p><span>Nessun pagamento anticipato.</span><p><button type="button" class="shop-whatsapp" data-vg-message="general">Contattaci</button></p><p><button type="button" id="shopLogout">Esci da questo dispositivo</button></p></footer>
+<footer class="footer"><strong>Vanity &amp; Glamour</strong><p>Scegli gli articoli. Ti contattiamo per confermare disponibilità e ordine.</p><span>Nessun pagamento anticipato.</span><p><a class="vg-telegram-contact" href="https://t.me/maurizio_cn" target="_blank" rel="noopener noreferrer">Contattaci su Telegram</a></p><p><button type="button" id="shopLogout">Esci da questo dispositivo</button></p></footer>
 
 <section id="productView" class="view" role="dialog" aria-modal="true" aria-labelledby="productTitle" aria-hidden="true">
 <div class="product-dialog"><div class="topline"><button type="button" id="closeProduct" class="product-back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h12"/></svg>Indietro</button><span class="product-top-brand">Vanity &amp; Glamour<small>Dettaglio articolo</small></span></div><nav class="product-breadcrumb" aria-label="Percorso articolo"><button type="button" id="productCatalogBack">Catalogo</button><span aria-hidden="true">/</span><span id="productTrail"></span></nav>
 <div class="product-layout"><header class="product-heading"><div class="product-labels"><div id="productCategory" class="category"></div><div id="productQualityInfo" class="quality-badge"></div></div><div class="vg-detail-title-row"><h2 id="productTitle"></h2><button type="button" id="vgProductFavorite" class="vg-fav-button vg-detail-heart" aria-label="Aggiungi ai preferiti" aria-pressed="false">♡ <span>Salva</span></button></div><div id="productSku" class="muted"></div><div class="product-price-line"><div id="productPrice" class="price"></div><span>Prezzo articolo</span></div><div id="productPromoBadge" class="product-promo-badge" hidden><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M3 4h12l14 14-11 11L3 14Z" fill="currentColor"/><circle cx="9" cy="10" r="2.5" fill="white"/><path d="m16 13 6 8m-2-8-6 8" stroke="white" stroke-width="2" stroke-linecap="round"/></svg><div><strong>IN PROMO</strong><span id="productPromoEnd"></span></div></div></header>
 <div class="gallery"><div class="gallery-stage"><button type="button" id="productHero" class="product-hero" aria-label="Ingrandisci fotografia"></button><button type="button" id="galleryPrev" class="gallery-arrow gallery-prev" aria-label="Fotografia precedente">‹</button><button type="button" id="galleryNext" class="gallery-arrow gallery-next" aria-label="Fotografia successiva">›</button></div><div id="galleryCount" class="gallery-count" role="status" aria-live="polite"></div><div id="galleryThumbs" class="gallery-thumbs" aria-label="Fotografie articolo"></div><div class="gallery-tip">Scorri le foto · tocca per ingrandire</div></div>
-<div class="product-information"><section class="product-buy-panel" aria-labelledby="productChoiceHeading"><span class="panel-kicker">I DETTAGLI FANNO LA DIFFERENZA</span><h3 id="productChoiceHeading">Prepara la tua richiesta</h3><p id="productAvailability" class="muted"></p><div id="productChoices" class="variant-options"></div><div class="action-row"><span class="product-request-title">Prepara la tua richiesta</span><label for="productQty">Quantità</label><input id="productQty" type="number" min="1" max="20" value="1" inputmode="numeric"><button class="add" id="productAdd" type="button">Ordina ora</button></div><p class="purchase-note">Nessun pagamento online. Ti contattiamo per confermare disponibilità e ordine.</p></section><button type="button" class="shop-whatsapp product-support" data-vg-message="product">Chiedi info</button><section class="product-description" aria-labelledby="productDescriptionHeading"><h3 id="productDescriptionHeading">Dettagli dell’articolo</h3><p id="productDescription"></p><dl id="productFacts" class="product-facts"></dl></section></div></div>
+<div class="product-information"><section class="product-buy-panel" aria-labelledby="productChoiceHeading"><span class="panel-kicker">I DETTAGLI FANNO LA DIFFERENZA</span><h3 id="productChoiceHeading">Prepara la tua richiesta</h3><p id="productAvailability" class="muted"></p><div id="productChoices" class="variant-options"></div><div class="action-row"><span class="product-request-title">Prepara la tua richiesta</span><label for="productQty">Quantità</label><input id="productQty" type="number" min="1" max="20" value="1" inputmode="numeric"><button class="add" id="productAdd" type="button">Ordina ora</button></div><a class="vg-telegram-contact vg-telegram-product" href="https://t.me/maurizio_cn" target="_blank" rel="noopener noreferrer">Chiedi informazioni su Telegram</a><p class="purchase-note">Nessun pagamento online. Ti contattiamo per confermare disponibilità e ordine.</p></section><section class="product-description" aria-labelledby="productDescriptionHeading"><h3 id="productDescriptionHeading">Dettagli dell’articolo</h3><p id="productDescription"></p><dl id="productFacts" class="product-facts"></dl></section></div></div>
 <section id="relatedSection" class="related-section" aria-labelledby="relatedTitle" hidden><header class="related-header"><div><span class="section-kicker">CONTINUA A SCOPRIRE</span><h2 id="relatedTitle">Potrebbero piacerti anche</h2></div><p>Altri articoli della selezione, per categoria, marca e fascia di prezzo.</p></header><div id="relatedProducts" class="related-grid"></div></section></div></section>
 <section id="photoZoom" class="zoom-view" role="dialog" aria-modal="true" aria-label="Fotografia ingrandita" aria-hidden="true"><button type="button" id="closeZoom" class="close">Chiudi ✕</button><img id="zoomImage" alt=""><span id="zoomError" class="photo-error" hidden>Fotografia non disponibile</span><button type="button" id="zoomPrev" class="gallery-arrow gallery-prev" aria-label="Fotografia precedente">‹</button><button type="button" id="zoomNext" class="gallery-arrow gallery-next" aria-label="Fotografia successiva">›</button><div id="zoomCount" class="gallery-count" role="status" aria-live="polite"></div></section>
 <section id="overlay" class="overlay" aria-label="Carrello" aria-hidden="true"><div class="drawer"><div class="drawer-head"><h2>Il tuo carrello</h2><button class="close" id="closeCart">Chiudi ✕</button></div><div id="amendBanner" class="amend-banner" hidden><strong id="amendLabel"></strong><button type="button" id="cancelAmend">Annulla modifica</button></div><div id="cartLines"></div><div id="total" class="total"></div>
-<div class="checkout-steps"><div id="stepCart" class="checkout-step active">1 · Carrello</div><div id="stepContact" class="checkout-step active">2 · Dati</div><div id="stepReview" class="checkout-step">3 · Verifica</div></div><h3 id="checkoutHeading">I tuoi dati</h3><p class="muted">Nome, telefono e indirizzo sono necessari per ricontattarti e organizzare l'eventuale ordine.</p><button type="button" class="shop-whatsapp" data-vg-message="general">Chiedi assistenza</button>
+<div class="checkout-steps"><div id="stepCart" class="checkout-step active">1 · Carrello</div><div id="stepContact" class="checkout-step active">2 · Dati</div><div id="stepReview" class="checkout-step">3 · Verifica</div></div><h3 id="checkoutHeading">I tuoi dati</h3><p class="muted">Nome, telefono e indirizzo sono necessari per ricontattarti e organizzare l'eventuale ordine.</p><a class="vg-telegram-contact" href="https://t.me/maurizio_cn" target="_blank" rel="noopener noreferrer">Chiedi assistenza su Telegram</a>
 <p id="checkoutAccountHint" class="muted"></p><button type="button" id="checkoutAccount" class="secondary">Accedi / I miei ordini</button><form id="orderForm" class="form"><div class="full"><button class="submit checkout-hide" id="sendOrder" type="submit">Conferma e invia richiesta</button><p id="orderStatus" class="status" role="status" aria-live="polite"></p></div><div class="full checkout-review" id="checkoutReview" hidden></div><label class="full">Nome e cognome *<input name="name" required minlength="3" maxlength="100" autocomplete="name"></label><label>Telefono *<input name="phone" required pattern="[+0-9() .-]{6,40}" type="tel" maxlength="40" autocomplete="tel"></label><label class="full">Indirizzo *<input name="address" required minlength="5" maxlength="200" autocomplete="street-address"></label><label>Provincia *<select name="province" id="shippingProvince" required autocomplete="address-level1"><option value="">Scegli provincia</option><option value="manual">Inserimento manuale / estero</option></select><input id="shippingProvinceManual" type="text" maxlength="100" placeholder="Provincia / regione" autocomplete="address-level1" hidden disabled></label><label>Comune *<select name="city" id="shippingCity" required autocomplete="address-level2"><option value="">Scegli prima la provincia</option></select><input id="shippingCityManual" type="text" maxlength="100" placeholder="Scrivi il comune" autocomplete="address-level2" hidden disabled style="margin-top:8px"></label><label>CAP *<input name="cap" id="shippingCap" list="capOptions" required maxlength="12" autocomplete="postal-code" inputmode="numeric"><datalist id="capOptions"></datalist></label><p id="shippingHint" class="full muted">Scegli la provincia per i suggerimenti di comune e CAP.</p><label class="full" style="display:block"><input type="checkbox" name="rememberShipping" checked style="width:auto"> Ricorda i dati di spedizione su questo dispositivo e nel mio account, se ho effettuato l’accesso</label><label class="full">Note<textarea name="notes" maxlength="500" rows="3" placeholder="Colori, taglie, richieste particolari…"></textarea></label><label class="honeypot" aria-hidden="true">Sito<input name="website" tabindex="-1" autocomplete="off"></label><label class="full" style="display:block"><input name="privacy" type="checkbox" required style="width:auto"> Accetto che i dati inseriti siano utilizzati per gestire la richiesta d'ordine e ricontattarmi.</label><div class="full checkout-actions"><button type="button" id="checkoutBack" class="secondary">Torna al catalogo</button><button type="button" id="checkoutNext" class="primary">Rivedi richiesta</button></div></form></div></section>
 <section id="customerView" class="view customer-view" role="dialog" aria-modal="true" aria-labelledby="customerTitle" aria-hidden="true">
   <div class="customer-page">
@@ -447,7 +453,6 @@ function showProduct(id,navigate=true){
  const p=products.find(x=>x.id===id);if(!p)return;if(!editingCartKey)el('productAdd').textContent='Ordina ora';
  if(navigate)beginShopView('product',{id});
  activeProduct=p;
- document.querySelector('[data-vg-message=product]').dataset.productId=p.id;
  window.shopBoutique?.product(visibleProducts(),p);
  el('productCategory').textContent=p.category||'';
  el('productTitle').textContent=p.name||'';
@@ -551,336 +556,6 @@ if(legacyLinkedProductId||sharedArticleSlug)window.addEventListener('vg-catalog-
 },{once:true});
 if(window.vgDiscovery)window.vgDiscovery.open=showProduct;
 shopAccess.start(load);
-</script><script>
-(()=>{
- 'use strict';
- const admin=Boolean(document.querySelector('.topMenuGrid'));
- const endpoint='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-shop-messages';
- const dialog=document.createElement('dialog');
- dialog.className='vgMessages vgMessagesScreen';
- dialog.id='vgMessagesScreen';
- dialog.setAttribute('aria-labelledby','vgMessagesTitle');
- dialog.innerHTML=`
-  <header><h2 id="vgMessagesTitle">Messaggi</h2><form method="dialog"><button type="submit" aria-label="Torna indietro">← Indietro</button></form></header>
-  <p id="vgMessagesStatus" role="status"></p>
-  <button type="button" id="vgMessagesEnable" hidden>🔔 Attiva avvisi per le risposte</button>
-  <button type="button" id="vgMessagesLogin" hidden>Accedi come cliente</button>
-  <button type="button" id="vgMessagesBack" hidden>← Tutte le conversazioni</button>
-  <div id="vgMessagesList"></div>
-  <div id="vgMessagesThread" role="log" aria-label="Conversazione" hidden></div>
-  <button type="button" id="vgMessagesMore" hidden>Carica messaggi precedenti</button>
-  <form id="vgMessagesCompose" hidden>
-   <label for="vgMessagesText" id="vgMessagesSubject">Messaggio</label>
-   <textarea id="vgMessagesText" name="message" required maxlength="2000" rows="5" placeholder="Scrivi il tuo messaggio…"></textarea>
-   <button type="submit">Invia</button>
-  </form>
-  <details id="vgMessagesAlerts" hidden><summary>Avvisi per le risposte</summary>
-   <button type="button" id="vgMessagesPush" hidden>Attiva notifiche delle risposte</button>
-   <form id="vgMessagesEmail" hidden>
-    <label for="vgMessagesEmailAddress">Email per gli avvisi (facoltativa)</label>
-    <input id="vgMessagesEmailAddress" name="email" type="email" maxlength="254" autocomplete="email">
-    <button type="submit">Salva email</button>
-   </form>
-   <p id="vgMessagesAlertStatus" role="status"></p>
-  </details>`;
- const prompt=document.createElement('dialog');
- prompt.className='vgMessages vgMessagesPrompt';
- prompt.setAttribute('aria-labelledby','vgMessagesPromptTitle');
- prompt.innerHTML=`<h2 id="vgMessagesPromptTitle">Vuoi essere avvisato quando ti rispondiamo?</h2>
-  <div class="vgMessagesChoices">
-   <button type="button" id="vgMessagesYes" class="vgMessagesYes">Sì, avvisami</button>
-   <button type="button" id="vgMessagesNo" class="vgMessagesNo">No, grazie</button>
-  </div>`;
- document.body.append(dialog,prompt);
- const style=document.createElement('style');
- style.textContent=`
- .vgMessages{box-sizing:border-box;width:min(680px,calc(100% - 20px));max-height:92dvh;overflow:auto;border:1px solid #c9d4e0;border-radius:20px;padding:clamp(14px,4vw,24px);background:#fff;color:#172233;box-shadow:0 18px 50px #17223342}
- #vgMessagesScreen{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;transform:none;border:0;border-radius:0;padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));background:#eef3f7;overflow:auto;overscroll-behavior:contain}
- #vgMessagesScreen[open]{display:flex;flex-direction:column;gap:8px}
- #vgMessagesScreen header,.vgMessagesScreen form,.vgMessagesScreen details{flex:none}
- .vgMessagesScreen #vgMessagesList{flex:1;overflow:auto;align-content:start}
- .vgMessages.vgMessagesScreen #vgMessagesThread{flex:1;max-height:none;min-height:80px;margin:2px 0}
- .vgMessages.vgMessagesScreen #vgMessagesCompose{margin:0;padding:10px;background:#fff;box-shadow:0 0 0 1px #dce4eb}
- .vgMessagesScreen #vgMessagesCompose textarea{min-height:96px;max-height:24dvh}
- .vgMessages::backdrop{background:#121a278c}
- .vgMessages header{display:flex;align-items:center;justify-content:space-between;gap:8px}
- .vgMessages h2{margin:0;color:#172233;font-size:clamp(23px,5vw,30px);line-height:1.16}
- .vgMessages button{cursor:pointer;border:1px solid #9cabc0;border-radius:10px;background:#edf2f8;color:#172233;padding:10px 14px;font:inherit;min-height:42px}
- .vgMessages button:focus-visible,.vgMessages textarea:focus-visible{outline:3px solid #135aad;outline-offset:2px}
- .vgMessages button:disabled{opacity:.65;cursor:wait}
- .vgMessages form:not([hidden]){display:grid;gap:10px}
- .vgMessages textarea,.vgMessages input{box-sizing:border-box;width:100%;padding:12px;font:inherit;font-size:16px;color:#172233;background:#fff;border:1px solid #8997a6;border-radius:12px}
- .vgMessages textarea{min-height:132px;resize:vertical}
- .vgMessages #vgMessagesCompose{margin:12px 0;padding:12px;background:#f2f6fb;border-radius:14px}
- .vgMessages #vgMessagesEnable{align-self:start;background:#e8f1ff;border-color:#9fbbe3;color:#123a6e;font-weight:700}
- .vgMessages #vgMessagesCompose button{background:#1456a0;color:#fff;border-color:#1456a0;font-weight:800;font-size:18px;min-height:50px}
- .vgMessages #vgMessagesList{display:grid;gap:7px}
- .vgMessages #vgMessagesList button{text-align:left;background:#f3f7fb;width:100%;overflow-wrap:anywhere}
- .vgMessages #vgMessagesThread{display:flex;flex-direction:column;gap:10px;min-height:94px;max-height:42dvh;overflow:auto;padding:12px;background:#f0f4f8;border-radius:14px;margin:12px 0}
- .vgMessages article{align-self:flex-start;max-width:86%;min-width:0;padding:9px 12px;border-radius:14px;background:#fff;color:#172233}
- .vgMessages article.isMine{align-self:flex-end;background:#dcecff;color:#102d4f}
- .vgMessages article strong{display:block;font-size:.78rem}
- .vgMessages article p{margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere}
- .vgMessages details{margin:16px 0 0;border-top:1px solid #dce3eb;padding-top:12px}
- .vgMessages summary{cursor:pointer;color:#354b64}
- .vgMessages #vgMessagesStatus:empty,.vgMessages [hidden]{display:none!important}
- .vgMessagesUnread{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 5px;margin-inline-start:6px;border-radius:999px;background:#b42335;color:white;font:800 12px/1 system-ui}
- .vgMessagesUnread[hidden]{display:none}
- #topMenuBtn .vgMessagesUnread{position:absolute;right:-7px;top:-6px;margin:0;z-index:1;box-shadow:0 0 0 2px white}
- .vgMessagesPrompt{width:min(430px,calc(100% - 26px));padding:24px}
- .vgMessagesChoices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
- .vgMessagesPrompt .vgMessagesYes,.vgMessagesPrompt .vgMessagesNo{color:#fff;font-weight:800;min-height:48px}
- .vgMessagesPrompt .vgMessagesYes{background:#08713e;border-color:#08713e}
- .vgMessagesPrompt .vgMessagesNo{background:#ae2435;border-color:#ae2435}
- `;
- document.head.append(style);
- const el=id=>document.getElementById('vgMessages'+id);
- const status=el('Status'), list=el('List'), compose=el('Compose'), alerts=el('Alerts');
- const formatter=new Intl.DateTimeFormat('it-IT',{dateStyle:'short',timeStyle:'short'});
- let page=0, rows=[], revision=0, context=null, pushKey=null, emailEnabled=false, sending=false;
- let attempted=null, refreshTimer=null, loading=false;
- const badges=[];
- let unreadRequest=false;
- function addBadge(button){
-  const badge=document.createElement('span');
-  badge.className='vgMessagesUnread';badge.hidden=true;
-  button.append(badge);badges.push(badge);
- }
- async function syncAdminBadge(){
-  if(!admin||unreadRequest||document.hidden)return;
-  unreadRequest=true;
-  try{
-   const {unread}=await request('unread');
-   for(const badge of badges){
-    badge.hidden=!unread;
-    badge.textContent=unread||'';
-    badge.setAttribute('aria-label',unread===1?'1 messaggio non letto':unread+' messaggi non letti');
-   }
-  }catch{/* An expired or unavailable session can retry on the next refresh. */}
-  finally{unreadRequest=false}
- }
- const launchAdmin=()=>{
-  document.querySelectorAll('[data-vg-admin-messages]').forEach(button=>{
-   addBadge(button);
-   button.onclick=()=>{window.setTopMenuOpen?.(false);open(null)};
-  });
-  const menu=document.getElementById('topMenuBtn');
-  if(menu)addBadge(menu);
-  void syncAdminBadge();
-  setInterval(syncAdminBadge,12000);
-  window.addEventListener('focus',syncAdminBadge);
-  document.addEventListener('visibilitychange',syncAdminBadge);
- };
- async function request(action,body,pageNumber=0){
-  const url=endpoint+'?'+new URLSearchParams({action:admin?'admin-'+action:action,page:String(pageNumber)});
-  const options={cache:'no-store',signal:AbortSignal.timeout(12000)};
-  if(body!==undefined)Object.assign(options,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  let response;
-  if(admin){
-   const client=await window.VG_SUPABASE_READY;
-   const token=(await client?.auth.getSession())?.data?.session?.access_token;
-   if(!token)throw Error('Accedi al gestionale come amministratore.');
-   options.headers={...options.headers,Authorization:'Bearer '+token};
-   response=await fetch(url,options);
-  }else response=await window.shopAccess.fetch(url,options);
-  const data=await response.json().catch(()=>null);
-  if(!response.ok||!data)throw Object.assign(Error(data?.error||'Messaggistica temporaneamente non disponibile.'),{status:response.status});
-  return data;
- }
- function choose(item){
-  context={replyTo:item.id,topic:item.topic,customerId:item.customer_id,subject:item.subject};
-  attempted=null;el('Text').value='';
-  render();el('Text').focus();
- }
- function showCompose(){
-  compose.hidden=!context;
-  el('Subject').textContent=context?.subject||'Messaggio';
- }
- async function markRead(thread){
-  const ids=thread.filter(row=>!row.read_at&&row.sender===(admin?'customer':'shop')).map(row=>row.id);
-  if(!ids.length)return;
-  const epoch=revision;
-  try{
-   for(let i=0;i<ids.length;i+=50)await request('read',{ids:ids.slice(i,i+50)});
-   if(epoch===revision)for(const row of thread)if(ids.includes(row.id))row.read_at=true;
-   if(admin)await syncAdminBadge();
-  }catch(error){if(epoch===revision)status.textContent=error.message}
- }
- function render(){
-  const history=el('Thread'), back=el('Back');
-  list.replaceChildren();history.replaceChildren();
-  list.hidden=Boolean(context);history.hidden=!context;back.hidden=!context;
-  showCompose();
-  if(context){
-   const thread=rows.filter(row=> row.topic===(context.topic||context.productId||'general')
-     &&(!context.customerId||row.customer_id===context.customerId));
-   if(!thread.length)history.textContent='Inizia la conversazione con un messaggio.';
-   for(const row of [...thread].reverse()){
-    const article=document.createElement('article'), sender=document.createElement('strong'), body=document.createElement('p');
-    const mine=row.sender===(admin?'shop':'customer');
-    article.classList.toggle('isMine',mine);
-    sender.textContent=(mine?'Tu':row.sender==='shop'?'Vanity & Glamour':'Cliente')+' · '+formatter.format(new Date(row.created_at));
-    body.textContent=row.body;article.append(sender,body);history.append(article);
-   }
-   history.scrollTop=history.scrollHeight;
-   void markRead(thread);
-   return;
-  }
-  if(!rows.length){list.textContent='Nessun messaggio.';return}
-  const groups=new Map();
-  for(const row of rows){
-   const key=row.customer_id+'|'+row.topic;
-   if(!groups.has(key))groups.set(key,[]);
-   groups.get(key).push(row);
-  }
-  for(const thread of groups.values()){
-   const first=thread[0], button=document.createElement('button'),customer=first.vg_shop_customers;
-   const label=admin?(customer?.profile?.name||customer?.phone||customer?.email||'Cliente')+' · ':'';
-   const unread=thread.filter(row=>!row.read_at&&row.sender===(admin?'customer':'shop'));
-   button.type='button';button.textContent=label+first.subject+(unread.length?' ('+unread.length+' da leggere)':'');
-   button.onclick=()=>choose(first);list.append(button);
-  }
- }
- el('Back').onclick=()=>{context=null;attempted=null;el('Text').value='';render()};
- let notifiedDevice=false, promptDismissed=false;
- function offerNotifications(){
-  if(admin||el('Push').hidden||notifiedDevice||promptDismissed||Notification.permission==='denied'||prompt.open)return;
-  prompt.showModal();
- }
- el('Enable').onclick=()=>{
-  if(Notification.permission==='denied'){
-   status.textContent='Le notifiche sono bloccate. Riattivale nelle impostazioni del sito nel browser.';
-   return;
-  }
-  if(!prompt.open)prompt.showModal();
- };
- el('Yes').onclick=()=>{prompt.close();el('Push').click()};
- el('No').onclick=()=>{promptDismissed=true;prompt.close()};
- prompt.addEventListener('cancel',()=>{promptDismissed=true});
- async function refreshChat(){
-  if(!dialog.open||document.hidden||sending||loading)return;
-  const epoch=revision;
-  loading=true;
-  try{
-   const {items}=await request('list');
-   if(epoch!==revision)return;
-   const known=new Set(rows.map(row=>row.id));
-   const fresh=items.filter(row=>!known.has(row.id));
-   if(fresh.length){rows=[...fresh,...rows];render()}
-  }catch{/* The next poll can retry without disturbing the current draft. */}
-  finally{loading=false}
- }
- async function load(reset){
-  const epoch=revision, next=reset?0:page+1;
-  el('More').disabled=true;
-  try{
-   const data=await request('list',undefined,next);
-   if(epoch!==revision)return;
-   page=next;rows=reset?data.items:[...rows,...data.items.filter(row=>!rows.some(old=>old.id===row.id))];
-   el('More').hidden=!data.more;pushKey=data.pushKey;emailEnabled=data.emailEnabled;
-   el('Push').hidden=!(pushKey&&window.Notification&&navigator.serviceWorker&&window.PushManager);
-   el('Enable').hidden=el('Push').hidden||notifiedDevice;
-   el('Email').hidden=!emailEnabled;
-   if(reset&&!admin)el('EmailAddress').value=data.email??window.shopAccess.customer?.()?.email??'';
-   alerts.hidden=admin||(!emailEnabled&&el('Push').hidden);
-   render();
-   return true;
-  }catch(error){
-   if(epoch===revision){
-    status.textContent=error.message;
-    if(!admin&&[401,403].includes(error.status)){
-     context=null;showCompose();el('Back').hidden=true;el('Thread').hidden=true;
-     status.textContent='La sessione aperta in questo catalogo non risulta associata a un account cliente. Accedi qui con il tuo numero.';
-     el('Login').hidden=false;
-    }
-   }
-   return false;
-  }
-  finally{if(epoch===revision)el('More').disabled=false}
- }
- async function open(topic){
-  revision++;context=topic;attempted=null;rows=[];page=0;
-  compose.hidden=true;el('Login').hidden=true;el('Enable').hidden=true;
-  el('Text').value='';list.replaceChildren();el('More').hidden=true;alerts.hidden=true;alerts.open=false;el('AlertStatus').textContent='';
-  if(!admin)el('EmailAddress').value='';
-  status.textContent='Caricamento messaggi…';
-  if(!dialog.open)dialog.showModal();
-  clearInterval(refreshTimer);
-  refreshTimer=setInterval(refreshChat,10000);
-  const epoch=revision;
-  if(await load(true)&&epoch===revision)status.textContent='';
- }
- dialog.addEventListener('close',()=>{clearInterval(refreshTimer);if(prompt.open)prompt.close();revision++;rows=[];context=null;attempted=null;list.replaceChildren();showCompose()});
- el('More').onclick=()=>load(false);
- el('Login').onclick=async()=>{dialog.close();await window.shopAccess.logout()};
- compose.onsubmit=async event=>{
-  event.preventDefault();
-  const message=el('Text').value.trim();
-  if(sending||!context||!message)return;
-  const payload={message,...(context.replyTo?{replyTo:context.replyTo}:context.productId?{productId:context.productId}:{})};
-  const key=JSON.stringify(payload);
-  if(attempted?.key!==key)attempted={key,id:crypto.randomUUID()};
-  const submit=compose.querySelector('button'), epoch=revision;
-  sending=true;submit.disabled=true;
-  try{
-   const result=await request('send',{...payload,id:attempted.id});
-   if(epoch!==revision)return;
-   attempted=null;el('Text').value='';
-   const loaded=await load(true);
-   if(epoch!==revision)return;
-   if(loaded)status.textContent=admin?(result.notified?'Risposta inviata. Avviso consegnato al servizio.':'Risposta visibile nel catalogo.'):'Messaggio inviato.';
-   if(dialog.open)offerNotifications();
-  }catch(error){if(epoch===revision)status.textContent=error.message}
-  finally{sending=false;submit.disabled=false}
- };
- el('Push').onclick=async()=>{
-  const button=el('Push');button.disabled=true;el('Enable').disabled=true;
-  try{
-   const epoch=revision;
-   if(Notification.permission!=='granted'&&await Notification.requestPermission()!=='granted')throw Error('Permesso per le notifiche non concesso.');
-   const root=new URL(location.hostname==='meapps-it.github.io'?'/VG/':'/',location.origin);
-   const existing=await navigator.serviceWorker.getRegistration(location.href);
-   const worker=existing?.active||existing?.waiting||existing?.installing;
-   const trusted=worker&&['vg-push-sw.js','service-worker.js'].includes(new URL(worker.scriptURL).pathname.split('/').pop());
-   const registration=trusted?existing:await navigator.serviceWorker.register(new URL('vg-push-sw.js',root),{scope:root.pathname,updateViaCache:'none'});
-   const ready=registration.active?registration:await Promise.race([
-    navigator.serviceWorker.ready,
-    new Promise((_,reject)=>setTimeout(()=>reject(Error('Il servizio notifiche non è pronto. Riprova.')),8000))
-   ]);
-   const key=pushKey.replace(/-/g,'+').replace(/_/g,'/');
-   const bytes=Uint8Array.from(atob(key.padEnd(Math.ceil(key.length/4)*4,'=')),c=>c.charCodeAt(0));
-   const subscription=await ready.pushManager.getSubscription()||await ready.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});
-   if(subscription.options.applicationServerKey&&String(new Uint8Array(subscription.options.applicationServerKey))!==String(bytes))throw Error('Le notifiche delle risposte non sono disponibili con questa iscrizione.');
-   if(epoch!==revision)return;
-   await request('alerts',{subscription:subscription.toJSON()});
-   notifiedDevice=true;
-   el('Enable').hidden=true;
-   button.textContent='Notifiche attive su questo dispositivo';
-   status.textContent='Notifiche delle risposte attivate su questo dispositivo.';
-  }catch(error){status.textContent=error.message}
-  finally{button.disabled=false;el('Enable').disabled=false}
- };
- el('Email').onsubmit=async event=>{
-  event.preventDefault();
-  const email=el('EmailAddress').value.trim();
-  try{await request('alerts',{email});el('AlertStatus').textContent=email?'Email per le risposte salvata.':'Avvisi email disattivati.'}
-  catch(error){el('AlertStatus').textContent=error.message}
- };
- if(admin){launchAdmin();return}
- window.vgMessageAlertsLogout=()=>request('logout-alerts').catch(()=>{});
- window.addEventListener('vg-shop-logout',()=>{notifiedDevice=false;promptDismissed=false;if(dialog.open)dialog.close()});
- document.querySelectorAll('[data-vg-message]').forEach(button=>button.onclick=()=>{
-  const kind=button.dataset.vgMessage;
-  open(kind==='inbox'?null:{productId:button.dataset.productId,subject:kind==='product'?document.getElementById('productTitle').textContent:'Informazioni generali'});
- });
- window.addEventListener('vg-customer-ready',()=>{
-  const url=new URL(location.href);
-  if(url.searchParams.get('messaggi')==='1'){
-   url.searchParams.delete('messaggi');history.replaceState(history.state,'',url);
-   open(null);
-  }
- });
-})();
 </script>
 <script>
 (() => {
