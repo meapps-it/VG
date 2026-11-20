@@ -9828,15 +9828,19 @@ function articleShareCaptions(article, url, facebookNote=getArticleFacebookCusto
   const heading=[promotion?'🔥 IN PROMOZIONE 🔥':'',model];
   const details=[material,formattedSize ? 'Mis. '+formattedSize : ''];
   const effectiveQuality=getEffectiveArticleQuality(article);
-  const quality=qualityPricingKey(effectiveQuality)==='ORIGINALE'||/^(?:qualit[àa]\s+)?massima$/i.test(effectiveQuality) ? 'QUALITÀ MASSIMA' : '';
+  const original=qualityPricingKey(effectiveQuality)==='ORIGINALE'||/^(?:qualit[àa]\s+)?massima$/i.test(effectiveQuality);
+  const quality=original?'QUALITÀ MASSIMA':'';
   const describedClosure=String(article.descrizione||'').match(/(?:^|[\r\n.!?;])\s*(?:[-•✔✓]\s*)?(?:tipo di )?chiusura(?:\s*[:–-]\s*|\s+(?=con\b|a\b))([^,.!?;\r\n]+)/i);
   const closure=normalizeSpaceText(article.chiusura||describedClosure?.[1]||'');
   const chatDetails=[...heading,quality,...details,closure?'Chiusura: '+closure:'',price].filter(Boolean);
-  const facebookModel=stripFacebookBrandName(model,article)||model;
+  const facebookModel=stripQualityEmojisFromText(stripFacebookBrandName(model,article)||model)||'Articolo';
+  const medal=original?'🥇':emojiQualityForPost(article);
   const category=normalizeTextKey(article.categoria||'');
-  const facebookDimensions=['borse','portafogli'].includes(category)&&dimensions ? 'Mis. '+formattedSize : '';
-  const facebookFields=[facebookModel,quality,material,facebookDimensions].filter(Boolean);
-  const repeatedFields=new Set([...facebookFields,model,size,formattedSize].filter(Boolean).map(normalizeTextKey));
+  const facebookSize=/scarpe|calzature|sandali|stivali|sneakers/i.test(category)
+    ? ''
+    : (formattedSize?'Mis. '+formattedSize:formatPostBeltHeightLine(article));
+  const facebookFields=[[facebookModel,medal].filter(Boolean).join(' '),original?'QUALITÀ ORIGINALE':'',facebookSize,material].filter(Boolean);
+  const repeatedFields=new Set([...facebookFields,facebookModel,model,size,formattedSize].filter(Boolean).map(normalizeTextKey));
   const curiosity=stripFacebookBrandName(facebookNote||'',article).split(/\r?\n/).map(line=>line.trim()).filter(line=>{
     return line&&!repeatedFields.has(normalizeTextKey(stripQualityEmojisFromText(line)))
       && !/^(?:cod(?:ice)?\b[.:\s]|sku\b|taglia\b|mis(?:ure?)?\b|dimensioni\b|materiale\b|qualit[àa]\b|🔥|(?:in\s+)?promo\b|prezzo\b)/i.test(line)
@@ -9845,7 +9849,7 @@ function articleShareCaptions(article, url, facebookNote=getArticleFacebookCusto
   return {
     model,
     chat:[chatDetails.join('\n'),url?'👇 Ordina qui 👇\n'+url:''].filter(Boolean).join('\n\n'),
-    facebook:[[promotion?'🔥 IN PROMOZIONE 🔥':'',...facebookFields].filter(Boolean).join('\n'),curiosity].filter(Boolean).join('\n\n')
+    facebook:[[promotion?'🔥 PROMO 🔥':'',...facebookFields].filter(Boolean).join('\n'),curiosity].filter(Boolean).join('\n\n')
   };
 }
 
