@@ -8,6 +8,7 @@
  dialog.innerHTML=`
   <header><h2 id="vgMessagesTitle">Messaggi</h2><form method="dialog"><button type="submit">Chiudi</button></form></header>
   <p id="vgMessagesStatus" role="status"></p>
+  <button type="button" id="vgMessagesLogin" hidden>Accedi come cliente</button>
   <button type="button" id="vgMessagesBack" hidden>← Tutte le conversazioni</button>
   <div id="vgMessagesList"></div>
   <div id="vgMessagesThread" role="log" aria-label="Conversazione" hidden></div>
@@ -89,7 +90,7 @@
    response=await fetch(url,options);
   }else response=await window.shopAccess.fetch(url,options);
   const data=await response.json().catch(()=>null);
-  if(!response.ok||!data)throw Error(data?.error||'Messaggistica temporaneamente non disponibile.');
+  if(!response.ok||!data)throw Object.assign(Error(data?.error||'Messaggistica temporaneamente non disponibile.'),{status:response.status});
   return data;
  }
  function choose(item){
@@ -176,22 +177,28 @@
    el('More').hidden=!data.more;pushKey=data.pushKey;emailEnabled=data.emailEnabled;
    el('Push').hidden=!(pushKey&&window.Notification&&navigator.serviceWorker&&window.PushManager);
    el('Email').hidden=!emailEnabled;
-   if(reset&&!admin)el('EmailAddress').value=data.email??window.shopAccess.customer()?.email??'';
+   if(reset&&!admin)el('EmailAddress').value=data.email??window.shopAccess.customer?.()?.email??'';
    alerts.hidden=admin||(!emailEnabled&&el('Push').hidden)||!rows.length;
    render();
    return true;
-  }catch(error){if(epoch===revision)status.textContent=error.message;return false}
+  }catch(error){
+   if(epoch===revision){
+    status.textContent=error.message;
+    if(!admin&&[401,403].includes(error.status)){
+     context=null;showCompose();el('Back').hidden=true;el('Thread').hidden=true;
+     status.textContent='La sessione aperta in questo catalogo non risulta associata a un account cliente. Accedi qui con il tuo numero.';
+     el('Login').hidden=false;
+    }
+   }
+   return false;
+  }
   finally{if(epoch===revision)el('More').disabled=false}
  }
  async function open(topic){
-  if(!admin&&!window.shopAccess?.customer()){
-   dialog.showModal();status.textContent='Accedi con il tuo account cliente per usare i messaggi.';
-   return;
-  }
   revision++;context=topic;attempted=null;rows=[];page=0;
-  showCompose();
+  compose.hidden=true;el('Login').hidden=true;
   el('Text').value='';list.replaceChildren();el('More').hidden=true;alerts.hidden=true;alerts.open=false;el('AlertStatus').textContent='';
-  if(!admin)el('EmailAddress').value=window.shopAccess.customer()?.email||'';
+  if(!admin)el('EmailAddress').value='';
   status.textContent='Caricamento messaggi…';
   if(!dialog.open)dialog.showModal();
   clearInterval(refreshTimer);
@@ -201,6 +208,7 @@
  }
  dialog.addEventListener('close',()=>{clearInterval(refreshTimer);if(prompt.open)prompt.close();revision++;rows=[];context=null;attempted=null;list.replaceChildren();showCompose()});
  el('More').onclick=()=>load(false);
+ el('Login').onclick=async()=>{dialog.close();await window.shopAccess.logout()};
  compose.onsubmit=async event=>{
   event.preventDefault();
   const message=el('Text').value.trim();
@@ -256,7 +264,7 @@
  });
  window.addEventListener('vg-customer-ready',()=>{
   const url=new URL(location.href);
-  if(url.searchParams.get('messaggi')==='1'&&window.shopAccess.customer()){
+  if(url.searchParams.get('messaggi')==='1'){
    url.searchParams.delete('messaggi');history.replaceState(history.state,'',url);
    open(null);
   }
