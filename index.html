@@ -15709,10 +15709,12 @@ if('serviceWorker' in navigator){
  const endpoint='https://qfjwtawsqfwmsmrrgqfi.supabase.co/functions/v1/vg-shop-messages';
  const dialog=document.createElement('dialog');
  dialog.className='vgMessages vgMessagesScreen';
+ dialog.id='vgMessagesScreen';
  dialog.setAttribute('aria-labelledby','vgMessagesTitle');
  dialog.innerHTML=`
   <header><h2 id="vgMessagesTitle">Messaggi</h2><form method="dialog"><button type="submit" aria-label="Torna indietro">← Indietro</button></form></header>
   <p id="vgMessagesStatus" role="status"></p>
+  <button type="button" id="vgMessagesEnable" hidden>🔔 Attiva avvisi per le risposte</button>
   <button type="button" id="vgMessagesLogin" hidden>Accedi come cliente</button>
   <button type="button" id="vgMessagesBack" hidden>← Tutte le conversazioni</button>
   <div id="vgMessagesList"></div>
@@ -15744,9 +15746,9 @@ if('serviceWorker' in navigator){
  const style=document.createElement('style');
  style.textContent=`
  .vgMessages{box-sizing:border-box;width:min(680px,calc(100% - 20px));max-height:92dvh;overflow:auto;border:1px solid #c9d4e0;border-radius:20px;padding:clamp(14px,4vw,24px);background:#fff;color:#172233;box-shadow:0 18px 50px #17223342}
- .vgMessagesScreen{inset:0;width:100%;max-width:none;height:100%;max-height:none;margin:0;border:0;border-radius:0;padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));background:#eef3f7;overflow:auto;overscroll-behavior:contain}
- .vgMessagesScreen[open]{display:flex;flex-direction:column;gap:8px}
- .vgMessagesScreen header,.vgMessagesScreen form,.vgMessagesScreen details{flex:none}
+ #vgMessagesScreen{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;transform:none;border:0;border-radius:0;padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));background:#eef3f7;overflow:auto;overscroll-behavior:contain}
+ #vgMessagesScreen[open]{display:flex;flex-direction:column;gap:8px}
+ #vgMessagesScreen header,.vgMessagesScreen form,.vgMessagesScreen details{flex:none}
  .vgMessagesScreen #vgMessagesList{flex:1;overflow:auto;align-content:start}
  .vgMessages.vgMessagesScreen #vgMessagesThread{flex:1;max-height:none;min-height:80px;margin:2px 0}
  .vgMessages.vgMessagesScreen #vgMessagesCompose{margin:0;padding:10px;background:#fff;box-shadow:0 0 0 1px #dce4eb}
@@ -15761,6 +15763,7 @@ if('serviceWorker' in navigator){
  .vgMessages textarea,.vgMessages input{box-sizing:border-box;width:100%;padding:12px;font:inherit;font-size:16px;color:#172233;background:#fff;border:1px solid #8997a6;border-radius:12px}
  .vgMessages textarea{min-height:132px;resize:vertical}
  .vgMessages #vgMessagesCompose{margin:12px 0;padding:12px;background:#f2f6fb;border-radius:14px}
+ .vgMessages #vgMessagesEnable{align-self:start;background:#e8f1ff;border-color:#9fbbe3;color:#123a6e;font-weight:700}
  .vgMessages #vgMessagesCompose button{background:#1456a0;color:#fff;border-color:#1456a0;font-weight:800;font-size:18px;min-height:50px}
  .vgMessages #vgMessagesList{display:grid;gap:7px}
  .vgMessages #vgMessagesList button{text-align:left;background:#f3f7fb;width:100%;overflow-wrap:anywhere}
@@ -15772,6 +15775,9 @@ if('serviceWorker' in navigator){
  .vgMessages details{margin:16px 0 0;border-top:1px solid #dce3eb;padding-top:12px}
  .vgMessages summary{cursor:pointer;color:#354b64}
  .vgMessages #vgMessagesStatus:empty,.vgMessages [hidden]{display:none!important}
+ .vgMessagesUnread{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 5px;margin-inline-start:6px;border-radius:999px;background:#b42335;color:white;font:800 12px/1 system-ui}
+ .vgMessagesUnread[hidden]{display:none}
+ #topMenuBtn .vgMessagesUnread{position:absolute;right:-7px;top:-6px;margin:0;z-index:1;box-shadow:0 0 0 2px white}
  .vgMessagesPrompt{width:min(430px,calc(100% - 26px));padding:24px}
  .vgMessagesChoices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
  .vgMessagesPrompt .vgMessagesYes,.vgMessagesPrompt .vgMessagesNo{color:#fff;font-weight:800;min-height:48px}
@@ -15784,10 +15790,37 @@ if('serviceWorker' in navigator){
  const formatter=new Intl.DateTimeFormat('it-IT',{dateStyle:'short',timeStyle:'short'});
  let page=0, rows=[], revision=0, context=null, pushKey=null, emailEnabled=false, sending=false;
  let attempted=null, refreshTimer=null, loading=false;
+ const badges=[];
+ let unreadRequest=false;
+ function addBadge(button){
+  const badge=document.createElement('span');
+  badge.className='vgMessagesUnread';badge.hidden=true;
+  button.append(badge);badges.push(badge);
+ }
+ async function syncAdminBadge(){
+  if(!admin||unreadRequest||document.hidden)return;
+  unreadRequest=true;
+  try{
+   const {unread}=await request('unread');
+   for(const badge of badges){
+    badge.hidden=!unread;
+    badge.textContent=unread||'';
+    badge.setAttribute('aria-label',unread===1?'1 messaggio non letto':unread+' messaggi non letti');
+   }
+  }catch{/* An expired or unavailable session can retry on the next refresh. */}
+  finally{unreadRequest=false}
+ }
  const launchAdmin=()=>{
   document.querySelectorAll('[data-vg-admin-messages]').forEach(button=>{
+   addBadge(button);
    button.onclick=()=>{window.setTopMenuOpen?.(false);open(null)};
   });
+  const menu=document.getElementById('topMenuBtn');
+  if(menu)addBadge(menu);
+  void syncAdminBadge();
+  setInterval(syncAdminBadge,12000);
+  window.addEventListener('focus',syncAdminBadge);
+  document.addEventListener('visibilitychange',syncAdminBadge);
  };
  async function request(action,body,pageNumber=0){
   const url=endpoint+'?'+new URLSearchParams({action:admin?'admin-'+action:action,page:String(pageNumber)});
@@ -15816,10 +15849,12 @@ if('serviceWorker' in navigator){
  }
  async function markRead(thread){
   const ids=thread.filter(row=>!row.read_at&&row.sender===(admin?'customer':'shop')).map(row=>row.id);
+  if(!ids.length)return;
   const epoch=revision;
   try{
    for(let i=0;i<ids.length;i+=50)await request('read',{ids:ids.slice(i,i+50)});
    if(epoch===revision)for(const row of thread)if(ids.includes(row.id))row.read_at=true;
+   if(admin)await syncAdminBadge();
   }catch(error){if(epoch===revision)status.textContent=error.message}
  }
  function render(){
@@ -15863,6 +15898,13 @@ if('serviceWorker' in navigator){
   if(admin||el('Push').hidden||notifiedDevice||promptDismissed||Notification.permission==='denied'||prompt.open)return;
   prompt.showModal();
  }
+ el('Enable').onclick=()=>{
+  if(Notification.permission==='denied'){
+   status.textContent='Le notifiche sono bloccate. Riattivale nelle impostazioni del sito nel browser.';
+   return;
+  }
+  if(!prompt.open)prompt.showModal();
+ };
  el('Yes').onclick=()=>{prompt.close();el('Push').click()};
  el('No').onclick=()=>{promptDismissed=true;prompt.close()};
  prompt.addEventListener('cancel',()=>{promptDismissed=true});
@@ -15888,6 +15930,7 @@ if('serviceWorker' in navigator){
    page=next;rows=reset?data.items:[...rows,...data.items.filter(row=>!rows.some(old=>old.id===row.id))];
    el('More').hidden=!data.more;pushKey=data.pushKey;emailEnabled=data.emailEnabled;
    el('Push').hidden=!(pushKey&&window.Notification&&navigator.serviceWorker&&window.PushManager);
+   el('Enable').hidden=el('Push').hidden||notifiedDevice;
    el('Email').hidden=!emailEnabled;
    if(reset&&!admin)el('EmailAddress').value=data.email??window.shopAccess.customer?.()?.email??'';
    alerts.hidden=admin||(!emailEnabled&&el('Push').hidden);
@@ -15908,7 +15951,7 @@ if('serviceWorker' in navigator){
  }
  async function open(topic){
   revision++;context=topic;attempted=null;rows=[];page=0;
-  compose.hidden=true;el('Login').hidden=true;
+  compose.hidden=true;el('Login').hidden=true;el('Enable').hidden=true;
   el('Text').value='';list.replaceChildren();el('More').hidden=true;alerts.hidden=true;alerts.open=false;el('AlertStatus').textContent='';
   if(!admin)el('EmailAddress').value='';
   status.textContent='Caricamento messaggi…';
@@ -15942,13 +15985,15 @@ if('serviceWorker' in navigator){
   finally{sending=false;submit.disabled=false}
  };
  el('Push').onclick=async()=>{
-  const button=el('Push');button.disabled=true;
+  const button=el('Push');button.disabled=true;el('Enable').disabled=true;
   try{
    const epoch=revision;
    if(Notification.permission!=='granted'&&await Notification.requestPermission()!=='granted')throw Error('Permesso per le notifiche non concesso.');
-   const root=new URL('.',location.href);
-   const existing=await navigator.serviceWorker.getRegistration(root.href);
-   const registration=existing||await navigator.serviceWorker.register(new URL('vg-push-sw.js',root));
+   const root=new URL(location.hostname==='meapps-it.github.io'?'/VG/':'/',location.origin);
+   const existing=await navigator.serviceWorker.getRegistration(location.href);
+   const worker=existing?.active||existing?.waiting||existing?.installing;
+   const trusted=worker&&['vg-push-sw.js','service-worker.js'].includes(new URL(worker.scriptURL).pathname.split('/').pop());
+   const registration=trusted?existing:await navigator.serviceWorker.register(new URL('vg-push-sw.js',root),{scope:root.pathname,updateViaCache:'none'});
    const ready=registration.active?registration:await Promise.race([
     navigator.serviceWorker.ready,
     new Promise((_,reject)=>setTimeout(()=>reject(Error('Il servizio notifiche non è pronto. Riprova.')),8000))
@@ -15960,10 +16005,11 @@ if('serviceWorker' in navigator){
    if(epoch!==revision)return;
    await request('alerts',{subscription:subscription.toJSON()});
    notifiedDevice=true;
+   el('Enable').hidden=true;
    button.textContent='Notifiche attive su questo dispositivo';
    status.textContent='Notifiche delle risposte attivate su questo dispositivo.';
   }catch(error){status.textContent=error.message}
-  finally{button.disabled=false}
+  finally{button.disabled=false;el('Enable').disabled=false}
  };
  el('Email').onsubmit=async event=>{
   event.preventDefault();

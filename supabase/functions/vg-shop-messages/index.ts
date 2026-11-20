@@ -73,6 +73,7 @@ async function notify(customer:string){
   tasks.push(webpush.sendNotification(subscription,JSON.stringify({title:'Vanity & Glamour',body:'Hai una nuova risposta nel catalogo.',url:destination||catalog,tag:'vg-messages'}),{
    vapidDetails:{subject:Deno.env.get('VG_VAPID_SUBJECT')||'mailto:info@simplexapp.it',...keys},TTL:86400,timeout:5000
   }).then(()=>true).catch(async error=>{
+   console.warn('VG customer message push failed',Number(error.statusCode)||0);
    if([404,410].includes(error.statusCode))await db.from('vg_catalog_message_alerts').update({subscription:null}).eq('owner_id',owner).eq('customer_id',customer).eq('subscription->>endpoint',alerts.subscription.endpoint);
    return false;
   }));
@@ -97,6 +98,12 @@ Deno.serve(async req=>{
   const customer=admin?null:await customerId(req);
   if(admin?!await requireOwner(db,req,owner):!customer)return out({error:'Accedi con un account autorizzato.'},403);
 
+  if(req.method==='GET'&&action==='admin-unread'){
+   const result=await db.from('vg_catalog_messages').select('id',{count:'exact',head:true})
+    .eq('owner_id',owner).eq('sender','customer').is('read_at',null);
+   if(result.error)throw result.error;
+   return out({unread:result.count||0});
+  }
   if(req.method==='GET'&&(action==='list'||action==='admin-list')){
    const page=Number(url.searchParams.get('page')||0);
    if(!Number.isSafeInteger(page)||page<0||page>10000)return out({error:'Pagina non valida'},400);
