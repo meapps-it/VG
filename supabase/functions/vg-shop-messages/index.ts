@@ -7,11 +7,16 @@ const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVI
 const origins=new Set(['https://veglamour.cloud','https://www.veglamour.cloud','https://meapps-it.github.io','https://simplexapp.it']);
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const catalog='https://veglamour.cloud/catalogo-nuovo.html?messaggi=1';
-const publicKey=Deno.env.get('VAPID_PUBLIC_KEY');
-const privateKey=Deno.env.get('VAPID_PRIVATE_KEY');
 const mailKey=Deno.env.get('RESEND_API_KEY');
 const mailFrom=Deno.env.get('VG_MESSAGES_EMAIL_FROM');
 const fields='id,customer_id,topic,subject,sender,body,created_at,read_at';
+
+async function pushKeys(){
+ const result=await db.rpc('vg_catalog_vapid_keys');
+ const row=result.data?.[0];
+ return row?.public_key&&row?.private_key?{publicKey:row.public_key,privateKey:row.private_key}:null;
+}
+
 
 async function customerId(req:Request){
  const token=req.headers.get('x-vg-customer-token')||'';
@@ -39,9 +44,11 @@ async function notify(customer:string){
  const alerts=preference.data;
  if(!alerts)return false;
  const tasks=[];
- if(alerts.subscription&&publicKey&&privateKey){
-  tasks.push(webpush.sendNotification(alerts.subscription,JSON.stringify({title:'Vanity & Glamour',body:'Hai una nuova risposta nel catalogo.',url:catalog,tag:'vg-messages'}),{
-   vapidDetails:{subject:'https://veglamour.cloud',publicKey,privateKey},TTL:86400,timeout:5000
+ const keys=alerts.subscription?await pushKeys():null;
+ if(alerts.subscription&&keys){
+  const {destination,...subscription}=alerts.subscription;
+  tasks.push(webpush.sendNotification(subscription,JSON.stringify({title:'Vanity & Glamour',body:'Hai una nuova risposta nel catalogo.',url:destination||catalog,tag:'vg-messages'}),{
+   vapidDetails:{subject:Deno.env.get('VG_VAPID_SUBJECT')||'mailto:info@simplexapp.it',...keys},TTL:86400,timeout:5000
   }).then(()=>true).catch(async error=>{
    if([404,410].includes(error.statusCode))await db.from('vg_catalog_message_alerts').update({subscription:null}).eq('owner_id',owner).eq('customer_id',customer).eq('subscription->>endpoint',alerts.subscription.endpoint);
    return false;
@@ -78,7 +85,7 @@ Deno.serve(async req=>{
     ? await db.from('vg_catalog_message_alerts').select('email').eq('owner_id',owner).eq('customer_id',customer).maybeSingle()
     : null;
    if(preference?.error)throw preference.error;
-   return out({items:rows.data.slice(0,50),more:rows.data.length>50,pushKey:customer&&privateKey?publicKey||null:null,emailEnabled:Boolean(customer&&mailKey&&mailFrom),email:preference?.data?.email||null});
+   return out({items:rows.data.slice(0,50),more:rows.data.length>50,pushKey:customer?(await pushKeys())?.publicKey||null:null,emailEnabled:Boolean(customer&&mailKey&&mailFrom),email:preference?.data?.email||null});
   }
   if(req.method!=='POST')return out({error:'Operazione non valida'},405);
   let body:any;
@@ -92,9 +99,11 @@ Deno.serve(async req=>{
     update.email=email||null;
    }
    if(Object.hasOwn(body,'subscription')){
-    if(!publicKey||!privateKey||!validSubscription(body.subscription))return out({error:'Notifiche non disponibili su questo dispositivo.'},400);
+    if(!validSubscription(body.subscription)||!await pushKeys())return out({error:'Notifiche non disponibili su questo dispositivo.'},400);
     const {endpoint,keys:{p256dh,auth}}=body.subscription;
-    update.subscription={endpoint,keys:{p256dh,auth}};
+    const path=origin==='https://meapps-it.github.io'?'/VG/catalogo-nuovo.html':origin==='https://simplexapp.it'?'/shop':'/';
+    const destination=origin?new URL(path+'?messaggi=1',origin).href:catalog;
+    update.subscription={endpoint,keys:{p256dh,auth},destination};
    }
    const save=await db.from('vg_catalog_message_alerts').upsert(update,{onConflict:'owner_id,customer_id'});
    if(save.error?.code==='23505')return out({error:'Questo dispositivo riceve già notifiche per un altro account.'},409);
