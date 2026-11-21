@@ -9839,7 +9839,7 @@ function articleShareCaptions(article, url, facebookNote=getArticleFacebookCusto
   const facebookSize=/scarpe|calzature|sandali|stivali|sneakers/i.test(category)
     ? ''
     : (formattedSize?'Mis. '+formattedSize:formatPostBeltHeightLine(article));
-  const facebookFields=[[facebookModel,medal].filter(Boolean).join(' '),original?'QUALITÀ ORIGINALE':'',facebookSize,material].filter(Boolean);
+  const facebookFields=[[facebookModel,medal].filter(Boolean).join(' '),original?'QUALITÀ PREMIUM':'',facebookSize,material].filter(Boolean);
   const repeatedFields=new Set([...facebookFields,facebookModel,model,size,formattedSize].filter(Boolean).map(normalizeTextKey));
   const curiosity=stripFacebookBrandName(facebookNote||'',article).split(/\r?\n/).map(line=>line.trim()).filter(line=>{
     return line&&!repeatedFields.has(normalizeTextKey(stripQualityEmojisFromText(line)))
