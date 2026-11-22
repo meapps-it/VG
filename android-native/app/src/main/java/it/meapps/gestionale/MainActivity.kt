@@ -1163,7 +1163,7 @@ private fun shareProduct(context: android.content.Context, product: Product, tar
         append(product.name)
         val code = product.code.ifBlank { product.sku }
         if (code.isNotBlank()) append("\nCodice: ").append(code)
-        if (product.effectiveSalePrice > 0) {
+        if (product.effectiveSalePrice > 0 && targetPackage != "org.telegram.messenger") {
             append("\nPrezzo: ").append(money(product.effectiveSalePrice))
             if (product.inPromotion && product.promotionalPrice > 0) append(" (promo)")
         }
