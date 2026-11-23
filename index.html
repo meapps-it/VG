@@ -9824,7 +9824,7 @@ function articleShareCaptions(article, url, facebookNote=getArticleFacebookCusto
   const dimensions=/^\d+(?:[.,]\d+)?\s*(?:cm)?(?:\s*[x×]\s*\d+(?:[.,]\d+)?\s*(?:cm)?){1,2}$/i.test(size);
   const formattedSize=dimensions ? size.replace(/cm|\s/gi,'').replace(/[X×]/g,'x')+' cm' : size;
   const promotion=promoValid(article);
-  const price=article.nascondiPrezzo===true?'':formatPostPrezzoVendita(currentPrice(article));
+  const price=''; // Il testo condiviso su WhatsApp/Telegram non deve contenere il prezzo.
   const heading=[promotion?'🔥 IN PROMOZIONE 🔥':'',model];
   const details=[material,formattedSize ? 'Mis. '+formattedSize : ''];
   const effectiveQuality=getEffectiveArticleQuality(article);
