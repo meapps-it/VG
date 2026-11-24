@@ -1,4 +1,4 @@
-import {dispatchCustomerRegistration} from './shop-customer-admin.ts';
+import {dispatchCustomerRegistration,dispatchCustomerLogin} from './shop-customer-admin.ts';
 import {digest,passwordHash,requireOwner} from './shop-access.ts';
 export function customerOrderState(o:any){
  const raw=String(o.note||'').match(/\[STATO:([^\]]+)\]/i)?.[1]?.trim().toLowerCase()||'';
@@ -51,8 +51,10 @@ export async function customerAction(db:any,req:Request,owner:string,action:stri
    isNew=!account.error;
    if(account.error?.code==='23505')account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status').eq('owner_id',owner).eq('auth_user_id',user.id).single();if(account.error)throw account.error;
   }
+  const issued=await issue(db,owner,account.data);
   if(isNew)await dispatchCustomerRegistration(db,owner,account.data.id);
-  return out(await issue(db,owner,account.data));
+  else await dispatchCustomerLogin(account.data.id);
+  return out(issued);
  }
  if(['customer-register','customer-login'].includes(action)&&req.method==='POST'){
   const raw=await req.text();if(raw.length>4000)return out({error:'Richiesta troppo grande'},413);let body:any;try{body=JSON.parse(raw)}catch{return out({error:'Richiesta non valida'},400)}
@@ -71,7 +73,9 @@ export async function customerAction(db:any,req:Request,owner:string,action:stri
   const account=await db.from('vg_shop_customers').select('id,phone,profile,email,access_status,pin_salt,pin_hash').eq('owner_id',owner).eq('phone_hash',phoneHash).maybeSingle();if(account.error)throw account.error;
   // Use the same derivation even for an unknown number.
   const actual=await passwordHash(pin,account.data?.pin_salt||'00'.repeat(16));if(!account.data)return out({error:'Questo numero non risulta registrato. Premi Registrati per creare il tuo account.',code:'CUSTOMER_NOT_REGISTERED'},403);if(!equal(actual,account.data.pin_hash))return out({error:'Password non corretta. Riprova oppure usa Password dimenticata.',code:'CUSTOMER_INVALID_PASSWORD'},403);
-  return out(await issue(db,owner,account.data));
+  const issued=await issue(db,owner,account.data);
+  await dispatchCustomerLogin(account.data.id);
+  return out(issued);
  }
  const session=await customerSession(db,req,owner,['customer-me','customer-logout'].includes(action));if(!session)return out({error:'Accedi alla tua area clienti',code:'CUSTOMER_LOGIN_REQUIRED'},403);
  if(action==='customer-me'&&req.method==='GET'){
