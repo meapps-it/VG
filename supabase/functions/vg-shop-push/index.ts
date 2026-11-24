@@ -37,7 +37,7 @@ async function dispatchCustomerLogin(customerId:string){
  if(!access.token)throw Error('Push authorization unavailable');
  let sent=0,failed=0;
  for(const device of devices.data){
-  const response=await fetch('https://fcm.googleapis.com/v1/projects/'+encodeURIComponent(service.project_id)+'/messages:send',{method:'POST',headers:{Authorization:'Bearer '+access.token,'Content-Type':'application/json'},body:JSON.stringify({message:{token:device.token,notification:{title:'Nuovo accesso al catalogo',body:name+' ha effettuato l’accesso al catalogo.'},data:{type:'customer_login',customerId},android:{priority:'high',collapse_key:'customer-login-'+customerId,notification:{channel_id:'vg_orders',tag:'customer-login-'+customerId}}}})});
+  const response=await fetch('https://fcm.googleapis.com/v1/projects/'+encodeURIComponent(service.project_id)+'/messages:send',{method:'POST',headers:{Authorization:'Bearer '+access.token,'Content-Type':'application/json'},body:JSON.stringify({message:{token:device.token,notification:{title:'Nuovo accesso al catalogo',body:name+' ha effettuato l’accesso al catalogo.'},data:{type:'customer_login',customerId},android:{priority:'high',notification:{channel_id:'vg_orders',tag:'customer-login-'+Date.now()}}}})});
   if(response.ok)sent++;
   else{
    failed++;
