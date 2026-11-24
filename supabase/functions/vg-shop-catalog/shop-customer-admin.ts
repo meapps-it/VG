@@ -69,3 +69,10 @@ export async function dispatchCustomerRegistration(db:any,owner:string,customerI
   const runtime=(globalThis as any).EdgeRuntime;if(runtime?.waitUntil)runtime.waitUntil(job);else await job;
  }catch{console.error('Customer registration notification queued for retry')}
 }
+
+export async function dispatchCustomerLogin(customerId:string){
+ try{
+  const job=fetch(Deno.env.get('SUPABASE_URL')+'/functions/v1/vg-shop-push',{method:'POST',headers:{Authorization:'Bearer '+Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),'Content-Type':'application/json'},body:JSON.stringify({action:'dispatch-login',customerId})}).catch(()=>console.error('Customer login push pending'));
+  const runtime=(globalThis as any).EdgeRuntime;if(runtime?.waitUntil)runtime.waitUntil(job);else await job;
+ }catch{console.error('Customer login notification queued for retry')}
+}
