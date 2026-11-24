@@ -21,6 +21,32 @@ async function dispatch(orderId:string){
  if(sent){const update=await db.from('vg_shop_notification_outbox').update({sent_at:new Date().toISOString(),last_error:null}).eq('owner_id',owner).eq('order_id',orderId);if(update.error)throw update.error;}
  return {sent:sent>0,devicesNotified:sent};
 }
+async function dispatchCustomerLogin(customerId:string){
+ const raw=Deno.env.get('FCM_SERVICE_ACCOUNT');
+ if(!raw)return {sent:false,configured:false};
+ const service=JSON.parse(raw);
+ if(typeof service.client_email!=='string'||typeof service.private_key!=='string'||typeof service.project_id!=='string')throw Error('Invalid server push configuration');
+ const customer=await db.from('vg_shop_customers').select('profile,phone,email').eq('owner_id',owner).eq('id',customerId).single();
+ if(customer.error)throw customer.error;
+ const devices=await db.from('vg_shop_push_tokens').select('token').eq('owner_id',owner);
+ if(devices.error)throw devices.error;
+ if(!devices.data?.length)return {sent:false,registeredDevices:0};
+ const name=String(customer.data.profile?.name||customer.data.email||customer.data.phone||'Un cliente').slice(0,90);
+ const auth=new JWT({email:service.client_email,key:service.private_key,scopes:['https://www.googleapis.com/auth/firebase.messaging']});
+ const access=await auth.getAccessToken();
+ if(!access.token)throw Error('Push authorization unavailable');
+ let sent=0,failed=0;
+ for(const device of devices.data){
+  const response=await fetch('https://fcm.googleapis.com/v1/projects/'+encodeURIComponent(service.project_id)+'/messages:send',{method:'POST',headers:{Authorization:'Bearer '+access.token,'Content-Type':'application/json'},body:JSON.stringify({message:{token:device.token,notification:{title:'Nuovo accesso al catalogo',body:name+' ha effettuato l’accesso al catalogo.'},data:{type:'customer_login',customerId},android:{priority:'high',collapse_key:'customer-login-'+customerId,notification:{channel_id:'vg_orders',tag:'customer-login-'+customerId}}}})});
+  if(response.ok)sent++;
+  else{
+   failed++;
+   const result=await response.json().catch(()=>({}));
+   if(result.error?.details?.some((d:any)=>d.errorCode==='UNREGISTERED'))await db.from('vg_shop_push_tokens').delete().eq('owner_id',owner).eq('token',device.token);
+  }
+ }
+ return {sent:sent>0,attempted:devices.data.length,devicesNotified:sent,failed};
+}
 Deno.serve(async request=>{
  const origin=request.headers.get('origin');const headers={'Access-Control-Allow-Origin':origin&&origins.has(origin)?origin:'https://meapps-it.github.io','Access-Control-Allow-Headers':'authorization,content-type,apikey','Access-Control-Allow-Methods':'GET,POST,OPTIONS','Vary':'Origin','Content-Type':'application/json','Cache-Control':'no-store'};
  const out=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers});
@@ -28,7 +54,7 @@ Deno.serve(async request=>{
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
  const action=new URL(request.url).searchParams.get('action');
  try{
-  if(request.method==='POST'&&request.headers.get('authorization')==='Bearer '+key){const body=await request.json();if(body.action==='dispatch-customer'&&/^[0-9a-f-]{36}$/i.test(body.notificationId||''))return out(await dispatchCustomerNotification(db,owner,body.notificationId,Deno.env.get('FCM_SERVICE_ACCOUNT')));if(body.action!=='dispatch'||!/^[0-9a-f-]{36}$/i.test(body.orderId||''))return out({error:'Richiesta non valida'},400);return out(await dispatch(body.orderId));}
+  if(request.method==='POST'&&request.headers.get('authorization')==='Bearer '+key){const body=await request.json();if(body.action==='dispatch-customer'&&/^[0-9a-f-]{36}$/i.test(body.notificationId||''))return out(await dispatchCustomerNotification(db,owner,body.notificationId,Deno.env.get('FCM_SERVICE_ACCOUNT')));if(body.action==='dispatch-login'&&/^[0-9a-f-]{36}$/i.test(body.customerId||''))return out(await dispatchCustomerLogin(body.customerId));if(body.action!=='dispatch'||!/^[0-9a-f-]{36}$/i.test(body.orderId||''))return out({error:'Richiesta non valida'},400);return out(await dispatch(body.orderId));}
   if(!await requireOwner(db,request,owner))return out({error:'Accesso amministratore richiesto'},403);
   if(action==='config'&&request.method==='GET')return out({configured:Boolean(Deno.env.get('FCM_SERVICE_ACCOUNT')&&clientConfig()),client:clientConfig()});
   if(action==='register'&&request.method==='POST'){
